@@ -21,6 +21,11 @@ app.listen(config.port, () => {
   console.log(`Mode AI — analisis gambar: ${require('./services/ai').vision().mode}, percakapan: ${require('./services/ai').chat().mode}`);
 });
 
+// Chatbot lokal: muat model Ollama di latar belakang agar jawaban pertama cepat.
+if (config.ai.chatProvider === 'ollama') {
+  require('./services/ai/ollama').warmup().then((ok) => ok && console.log(`Model asisten lokal ${config.ai.ollamaModel} siap.`));
+}
+
 // Tugas berkala: ambil berita RSS & bersihkan sesi kedaluwarsa.
 const store = new SqliteStore();
 setInterval(() => store.prune(), 60 * 60 * 1000).unref();

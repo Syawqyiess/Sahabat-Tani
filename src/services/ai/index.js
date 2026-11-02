@@ -11,7 +11,12 @@ const providers = {
     gemini: () => require('./gemini').vision,
     lokal: () => require('./local-scanner').vision,
   },
-  chat: { demo: demo.chat, anthropic: () => require('./anthropic').chat, gemini: () => require('./gemini').chat },
+  chat: {
+    demo: demo.chat,
+    anthropic: () => require('./anthropic').chat,
+    gemini: () => require('./gemini').chat,
+    ollama: () => require('./ollama').chat,
+  },
 };
 
 // Penyedia hanya aktif bila kuncinya terpasang; bila tidak, kembali ke mode demo.
@@ -20,6 +25,8 @@ const keyFor = {
   gemini: () => config.ai.geminiKey,
   // Model lokal "tersedia" bila berkas model hasil latih sudah ada.
   lokal: () => require('./local-scanner').isAvailable(),
+  // Ollama dipilih secara eksplisit; bila tidak berjalan, pesan galat yang jelas muncul saat menjawab.
+  ollama: () => !!config.ai.ollamaUrl,
 };
 
 let overrides = {};

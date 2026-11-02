@@ -432,7 +432,8 @@ router.post('/referensi-hama/:id/verifikasi', (req, res) => {
 });
 
 // ---------- Status integrasi (tanpa menampilkan nilai kunci) ----------
-router.get('/integrasi', (req, res) => {
+router.get('/integrasi', async (req, res) => {
+  const ollama = await require('../services/ai/ollama').status();
   const lastAir = db.get("SELECT * FROM integration_events WHERE service = 'open-meteo' ORDER BY id DESC LIMIT 1");
   const lastScanAi = db.get("SELECT provider, model, status, error_message, completed_at FROM pest_scans WHERE mode = 'ai' ORDER BY id DESC LIMIT 1");
   const vision = ai.vision();
@@ -463,6 +464,15 @@ router.get('/integrasi', (req, res) => {
         name: 'Asisten percakapan (AI)', status: chat.mode === 'ai' ? 'aktif' : 'demo',
         detail: chat.mode === 'ai' ? `Penyedia: ${chat.name}, model: ${chat.model}, dukung gambar: ${chat.supportsImages ? 'ya' : 'tidak'}` : 'Mode demo — "Simulasi respons AI".',
         secret: aiKeys,
+      },
+      {
+        name: 'Asisten lokal (Ollama)',
+        status: !ollama.running ? (chat.name === 'ollama' ? 'galat' : 'belum') : (!ollama.modelReady ? 'perhatian' : (chat.name === 'ollama' ? 'aktif' : 'perhatian')),
+        detail: !ollama.running
+          ? `Ollama tidak terdeteksi di ${config.ai.ollamaUrl}.${chat.name === 'ollama' ? ' Asisten tidak bisa menjawab sampai Ollama dinyalakan.' : ''}`
+          : `Ollama ${ollama.version} berjalan. Model ${config.ai.ollamaModel}: ${ollama.modelReady ? 'siap' : 'belum diunduh (ollama pull ' + config.ai.ollamaModel + ')'}.`
+            + (chat.name === 'ollama' ? ' Dipakai untuk percakapan; data tidak dikirim ke layanan luar.' : ' Belum dipakai — set AI_CHAT_PROVIDER=ollama di .env.'),
+        secret: 'Tidak memerlukan kunci; berjalan di server sendiri',
       },
       {
         name: 'Catatan privasi AI', status: [vision.name, chat.name].includes('gemini') ? 'perhatian' : 'aktif',

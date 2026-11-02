@@ -8,7 +8,8 @@ const ai = require('./services/ai');
 const { demoPng } = require('./db/seed');
 
 async function main() {
-  if (!config.ai.anthropicKey && !config.ai.geminiKey) {
+  const usesLocal = config.ai.chatProvider === 'ollama' || config.ai.visionProvider === 'lokal';
+  if (!config.ai.anthropicKey && !config.ai.geminiKey && !usesLocal) {
     console.log('Belum ada kunci AI di file .env — aplikasi masih mode demo.');
     console.log('Isi GEMINI_API_KEY=... (gratis, dari aistudio.google.com) atau ANTHROPIC_API_KEY=..., simpan, lalu jalankan lagi: npm run cek-ai');
     process.exit(1);
@@ -17,6 +18,12 @@ async function main() {
   const chat = ai.chat();
   console.log(`Analisis gambar : ${vision.mode} (${vision.name}${vision.model ? ', ' + vision.model : ''})`);
   console.log(`Percakapan      : ${chat.mode} (${chat.name}${chat.model ? ', ' + chat.model : ''})`);
+  if (chat.name === 'ollama') {
+    const st = await require('./services/ai/ollama').status();
+    console.log(st.running
+      ? `Ollama          : berjalan (versi ${st.version}); model ${config.ai.ollamaModel} ${st.modelReady ? 'siap' : 'BELUM diunduh → jalankan: ollama pull ' + config.ai.ollamaModel}`
+      : `Ollama          : TIDAK berjalan (${st.error}). Buka aplikasi Ollama, lalu ulangi.`);
+  }
   if (vision.mode !== 'ai' || chat.mode !== 'ai') {
     console.log('Salah satu modul masih demo. Periksa AI_VISION_PROVIDER / AI_CHAT_PROVIDER di .env ("gemini" atau "anthropic", sesuai kunci yang diisi).');
     process.exit(1);

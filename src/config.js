@@ -48,6 +48,12 @@ const config = {
     geminiVisionModels: list(env.GEMINI_VISION_MODEL || env.GEMINI_MODEL || 'gemini-3.5-flash,gemini-flash-lite-latest'),
     geminiChatModels: list(env.GEMINI_CHAT_MODEL || env.GEMINI_MODEL || 'gemini-flash-lite-latest,gemini-3.5-flash'),
     geminiTimeoutMs: Number(env.GEMINI_TIMEOUT_MS || 50000),
+    // Chatbot lokal lewat Ollama. Aktifkan dengan AI_CHAT_PROVIDER=ollama.
+    ollamaUrl: env.OLLAMA_URL || 'http://127.0.0.1:11434',
+    ollamaModel: env.OLLAMA_MODEL || 'gemma3:4b',
+    ollamaVision: bool(env.OLLAMA_VISION, true),
+    ollamaNumCtx: Number(env.OLLAMA_NUM_CTX || 4096),
+    ollamaTimeoutMs: Number(env.OLLAMA_TIMEOUT_MS || 180000),
     // Model scanner buatan sendiri (ml/train.py). Aktifkan dengan AI_VISION_PROVIDER=lokal.
     localScannerDir: env.LOCAL_SCANNER_DIR || 'models/scanner-padi',
     localScannerMinScore: env.LOCAL_SCANNER_MIN_SCORE ? Number(env.LOCAL_SCANNER_MIN_SCORE) : null,

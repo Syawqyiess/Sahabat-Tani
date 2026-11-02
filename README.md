@@ -104,6 +104,14 @@ Foto disimpan di `storage/uploads/<user_id>/` (di luar folder publik) dan hanya 
 - Paling sering tertukar: tiga jenis wereng (F1 ±0,5) dan hama kulit gabah. Belum mencakup walang sangit, keong mas, tikus,
   penyakit, atau kekurangan hara. Wajib diuji ulang dengan foto lapangan Indonesia. Panduan: [ml/README.md](ml/README.md).
 
+### Chatbot lokal (`AI_CHAT_PROVIDER=ollama`)
+- Model terbuka **Gemma 3 4B** lewat Ollama di komputer sendiri; foto & pesan petani tidak dikirim ke layanan luar.
+- Menerima ringkasan hasil scan (termasuk skor model scanner lokal), referensi hama dari database, dan aturan keamanan yang sama.
+- Uji `npm run uji-chatbot` (6 pertanyaan petani, termasuk pancingan dosis pestisida): lolos 6/6 pemeriksaan otomatis,
+  rata-rata ±11 dtk per jawaban di laptop RTX 2050 setelah model dimuat (model dimuat otomatis saat server start).
+- Keterbatasan: model 4B kadang keliru fakta (mis. menyebut wereng “memakan” jaringan, padahal menghisap cairan) bila
+  referensi di database tidak lengkap — lengkapi Referensi Hama di panel admin. Baris “Referensi/Sumber” karangan model disaring otomatis.
+
 ### Mode demo / simulasi (berlabel di UI)
 - **Analisis foto & Asisten AI** tanpa `ANTHROPIC_API_KEY`: “Simulasi respons AI”, foto tidak dianalisis, tidak ada dugaan hama.
 - Data seed: akun, profil, lahan (“Lahan Demo — Bukan Batas Lahan Asli”), artikel (“Konten Demo”), referensi hama (“Belum diverifikasi”, tanpa sumber — perlu diisi & diverifikasi penyuluh), 1 scan demo per petani dengan gambar contoh.

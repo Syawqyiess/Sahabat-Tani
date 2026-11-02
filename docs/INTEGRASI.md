@@ -4,6 +4,22 @@ Semua kunci disimpan di file `.env` di server (lihat `.env.example`). Kunci raha
 
 ---
 
+## 1. Chatbot lokal: Ollama (tanpa layanan luar)
+
+Percakapan bisa dijalankan sepenuhnya di komputer/server sendiri dengan model bahasa terbuka.
+Foto dan pesan petani tidak dikirim ke layanan luar.
+
+1. Pasang Ollama: `winget install Ollama.Ollama` (atau unduh dari <https://ollama.com>). Ollama berjalan di `http://127.0.0.1:11434`.
+2. Unduh model (±3,3 GB): `ollama pull gemma3:4b`. Gemma 3 4B dipilih karena dukungan banyak bahasa dan bisa membaca gambar.
+3. Di `.env`: `AI_CHAT_PROVIDER=ollama` (opsional `OLLAMA_MODEL`, `OLLAMA_VISION`, `OLLAMA_NUM_CTX`).
+4. `npm run cek-ai` untuk memastikan Ollama berjalan dan model siap, lalu mulai ulang aplikasi.
+
+Implementasi: `src/services/ai/ollama.js`. Untuk model kecil, konteks dijaga pendek (ringkasan hasil scan + 12 pesan terakhir)
+dan hanya foto scan serta foto tambahan terakhir yang dikirim. Bila Ollama mati, chat menampilkan status gagal dengan tombol coba lagi.
+
+Kebutuhan perangkat (perkiraan): RAM 16 GB; dengan GPU NVIDIA 4 GB model berjalan sebagian di GPU. Tanpa GPU tetap bisa, tetapi
+jawaban bisa makan waktu puluhan detik. Mutu model 4B di bawah Gemini/Claude — tetap ingatkan petani bahwa jawabannya bantuan awal.
+
 ## 1a. AI gratis untuk demo: Google Gemini
 
 1. Buka <https://aistudio.google.com>, masuk dengan akun Google, klik **Get API key** → **Create API key** (tanpa kartu kredit).
