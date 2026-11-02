@@ -1,0 +1,28 @@
+<%- include('../partials/head') %>
+<div class="page-head"><h1>Manajemen Data Lahan</h1><a class="btn" href="/admin/lahan/baru"><%- icon('plus', 18) %> Tambah lahan</a></div>
+<% if (!lands.length) { %><div class="state"><%- icon('field', 40) %><p>Belum ada lahan.</p></div><% } else { %>
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Lahan</th><th>Pemilik</th><th>Luas</th><th>Koordinat</th><th>Jenis data</th><th>Aksi</th></tr></thead>
+  <tbody>
+  <% lands.forEach((l) => { %>
+    <tr>
+      <td><%= l.name %><br><span class="small muted"><%= l.variety || '' %> <%= l.season_status || '' %></span></td>
+      <td><%= l.owner_name || l.owner_phone %></td>
+      <td><%= l.area_ha != null ? l.area_ha + ' ha' : '—' %></td>
+      <td class="small"><%= l.lat != null ? l.lat.toFixed(4) + ', ' + l.lng.toFixed(4) : '—' %><%= l.polygon_json ? ' + poligon' : '' %></td>
+      <td><% if (l.data_source === 'demo') { %><span class="badge badge-demo">Demo</span><% } else { %><span class="badge badge-real">Asli</span><% } %></td>
+      <td class="actions">
+        <a class="btn btn-sm btn-ghost" href="/admin/lahan/<%= l.id %>/ubah">Ubah</a>
+        <form method="post" action="/admin/lahan/<%= l.id %>/hapus" data-confirm="Hapus lahan ini?">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-sm btn-ghost btn-danger" type="submit">Hapus</button>
+        </form>
+      </td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+</div>
+<% } %>
+<%- include('../partials/foot') %>

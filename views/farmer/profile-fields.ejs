@@ -1,0 +1,25 @@
+<fieldset>
+  <legend>Data diri</legend>
+  <%- include('../partials/field', { name: 'full_name', label: 'Nama lengkap', value: values.full_name, error: errors.full_name, autocomplete: 'name' }) %>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'phone', label: 'Nomor HP (untuk masuk)', type: 'tel', inputmode: 'tel', value: values.phone, error: errors.phone, autocomplete: 'tel' }) %>
+    <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', value: values.email, error: errors.email, optional: true, hint: 'Bisa dipakai untuk masuk selain nomor HP.' }) %>
+  </div>
+</fieldset>
+<fieldset>
+  <legend>Alamat</legend>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'village', label: 'Desa/kelurahan', value: values.village, error: errors.village }) %>
+    <%- include('../partials/field', { name: 'district', label: 'Kecamatan', value: values.district, error: errors.district }) %>
+    <%- include('../partials/field', { name: 'regency', label: 'Kabupaten/kota', value: values.regency, error: errors.regency }) %>
+    <%- include('../partials/field', { name: 'province', label: 'Provinsi', value: values.province, error: errors.province }) %>
+  </div>
+</fieldset>
+<fieldset>
+  <legend>Usaha tani</legend>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'farmer_group', label: 'Nama kelompok tani', value: values.farmer_group, error: errors.farmer_group, optional: true }) %>
+    <%- include('../partials/field', { name: 'experience_years', label: 'Pengalaman bertani (tahun)', type: 'number', inputmode: 'numeric', value: values.experience_years, error: errors.experience_years, optional: true }) %>
+  </div>
+  <%- include('../partials/field', { name: 'main_commodity', label: 'Komoditas utama', value: values.main_commodity, error: errors.main_commodity, placeholder: 'Padi' }) %>
+</fieldset>

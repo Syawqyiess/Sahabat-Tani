@@ -1,0 +1,27 @@
+</main>
+<% if (currentUser) { %>
+    <footer class="footer">
+      <p style="margin:0">Hasil AI adalah bantuan awal — konsultasikan dengan penyuluh pertanian setempat. Data berlabel “Data Demo” atau “Konten Demo” adalah contoh, bukan data nyata.</p>
+    </footer>
+  </div>
+</div>
+<% if (currentUser.role === 'farmer') {
+  const act = (p) => (path === p || path.startsWith(p + '/')) ? 'is-active' : ''; %>
+  <nav class="bottomnav" aria-label="Navigasi bawah">
+    <a class="<%= act('/dashboard') %>" href="/dashboard"><span class="pill"><%- icon('home') %></span><span>Beranda</span></a>
+    <a class="<%= act('/lahan') %>" href="/lahan"><span class="pill"><%- icon('field') %></span><span>Lahan</span></a>
+    <a class="bottomnav-scan <%= act('/scan') %>" href="/scan"><span class="scan-bubble"><%- icon('camera', 26) %></span><span>Scan Hama</span></a>
+    <a class="<%= act('/asisten') %>" href="/asisten"><span class="pill"><%- icon('chat') %></span><span>Asisten AI</span></a>
+    <a href="#menu-lainnya" data-sheet-open="menu-lainnya"><span class="pill"><%- icon('menu') %></span><span>Lainnya</span></a>
+  </nav>
+<% } %>
+<% } else { %>
+<footer class="footer">
+  <div class="container">
+    <p><strong>Sahabat Tani</strong> — aplikasi demo untuk petani padi. Hasil AI adalah bantuan awal; konsultasikan dengan penyuluh pertanian setempat.</p>
+    <p class="small muted" style="margin:0">Data berlabel “Data Demo” atau “Konten Demo” adalah contoh, bukan data nyata.</p>
+  </div>
+</footer>
+<% } %>
+</body>
+</html>

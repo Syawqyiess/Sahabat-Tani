@@ -1,0 +1,30 @@
+<%
+  const id = 'f-' + name;
+  const val = (typeof value === 'undefined' || value === null) ? '' : value;
+  const err = (typeof error !== 'undefined' && error) ? error : null;
+  const t = (typeof type !== 'undefined') ? type : 'text';
+%>
+<div class="field <%= err ? 'has-error' : '' %>">
+  <label for="<%= id %>"><%= label %><% if (typeof required !== 'undefined' && required) { %> <span class="req" aria-hidden="true">*</span><% } else if (typeof optional !== 'undefined' && optional) { %> <span class="opt">(opsional)</span><% } %></label>
+  <% if (t === 'textarea') { %>
+    <textarea id="<%= id %>" name="<%= name %>" rows="<%= typeof rows !== 'undefined' ? rows : 4 %>" <%= err ? 'aria-invalid=true' : '' %> aria-describedby="<%= id %>-h"><%= val %></textarea>
+  <% } else if (t === 'select') { %>
+    <select id="<%= id %>" name="<%= name %>" aria-describedby="<%= id %>-h">
+      <option value="">— Pilih —</option>
+      <% options.forEach((o) => { const ov = Array.isArray(o) ? o[0] : o; const ol = Array.isArray(o) ? o[1] : o; %>
+        <option value="<%= ov %>" <%= String(ov) === String(val) ? 'selected' : '' %>><%= ol %></option>
+      <% }) %>
+    </select>
+  <% } else { %>
+    <input id="<%= id %>" name="<%= name %>" type="<%= t %>" value="<%= val %>"
+      <% if (typeof inputmode !== 'undefined') { %>inputmode="<%= inputmode %>"<% } %>
+      <% if (typeof autocomplete !== 'undefined') { %>autocomplete="<%= autocomplete %>"<% } %>
+      <% if (typeof step !== 'undefined') { %>step="<%= step %>"<% } %>
+      <% if (typeof placeholder !== 'undefined') { %>placeholder="<%= placeholder %>"<% } %>
+      <%= (typeof required !== 'undefined' && required) ? 'required' : '' %> <%= err ? 'aria-invalid=true' : '' %> aria-describedby="<%= id %>-h">
+  <% } %>
+  <div id="<%= id %>-h">
+    <% if (err) { %><p class="field-error"><%- icon('alert', 16) %> <%= err %></p><% } %>
+    <% if (typeof hint !== 'undefined' && hint) { %><p class="hint"><%= hint %></p><% } %>
+  </div>
+</div>

@@ -1,0 +1,12 @@
+<%- include('../partials/head') %>
+<div class="page-head"><h1><%= title %></h1><a href="<%= land.id ? '/lahan/' + land.id : '/lahan' %>">Batal</a></div>
+<form method="post" action="<%= action %>" class="form card" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% if (Object.keys(errors).length) { %><div class="alert alert-error" role="alert"><%- icon('alert') %><span>Ada data yang perlu diperbaiki.</span></div><% } %>
+  <%- include('land-fields') %>
+  <% if (land.data_source === 'demo') { %>
+    <label class="check"><input type="checkbox" name="mark_real" value="1"> Data lahan ini sudah sesuai kondisi asli (hapus label demo)</label>
+  <% } %>
+  <button class="btn btn-lg btn-block" type="submit" data-busy="Menyimpan…">Simpan Lahan</button>
+</form>
+<%- include('../partials/foot') %>

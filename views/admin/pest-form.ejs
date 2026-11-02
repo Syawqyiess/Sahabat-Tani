@@ -1,0 +1,22 @@
+<%- include('../partials/head') %>
+<div class="page-head"><h1><%= title %></h1><a href="/admin/referensi-hama">Kembali</a></div>
+<form method="post" action="<%= pest.id ? '/admin/referensi-hama/' + pest.id : '/admin/referensi-hama' %>" class="form card" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% if (Object.keys(errors).length) { %><div class="alert alert-error" role="alert"><%- icon('alert') %><span>Ada data yang perlu diperbaiki.</span></div><% } %>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'name', label: 'Nama hama', value: pest.name, error: errors.name, required: true }) %>
+    <%- include('../partials/field', { name: 'scientific_name', label: 'Nama ilmiah', value: pest.scientific_name, error: errors.scientific_name, optional: true }) %>
+  </div>
+  <%- include('../partials/field', { name: 'aliases', label: 'Nama lain (pisahkan koma)', value: pest.aliases, error: errors.aliases, optional: true, hint: 'Dipakai untuk mencocokkan pertanyaan petani dan hasil scan.' }) %>
+  <%- include('../partials/field', { name: 'symptoms', label: 'Gejala pada tanaman', type: 'textarea', rows: 3, value: pest.symptoms, error: errors.symptoms }) %>
+  <%- include('../partials/field', { name: 'visual_signs', label: 'Ciri visual hama', type: 'textarea', rows: 3, value: pest.visual_signs, error: errors.visual_signs }) %>
+  <%- include('../partials/field', { name: 'ipm_control', label: 'Pengendalian hama terpadu', type: 'textarea', rows: 3, value: pest.ipm_control, error: errors.ipm_control, hint: 'Jangan cantumkan dosis pestisida. Rujuk label resmi dan penyuluh.' }) %>
+  <%- include('../partials/field', { name: 'prevention', label: 'Pencegahan', type: 'textarea', rows: 3, value: pest.prevention, error: errors.prevention }) %>
+  <%- include('../partials/field', { name: 'when_to_consult', label: 'Kapan perlu ke penyuluh', type: 'textarea', rows: 2, value: pest.when_to_consult, error: errors.when_to_consult }) %>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'source_name', label: 'Nama sumber rujukan', value: pest.source_name, error: errors.source_name, hint: 'Wajib sebelum ditandai terverifikasi.' }) %>
+    <%- include('../partials/field', { name: 'source_url', label: 'Tautan sumber', value: pest.source_url, error: errors.source_url, optional: true }) %>
+  </div>
+  <button class="btn btn-lg" type="submit">Simpan</button>
+</form>
+<%- include('../partials/foot') %>

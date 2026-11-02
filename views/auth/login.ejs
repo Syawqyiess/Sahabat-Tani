@@ -1,0 +1,28 @@
+<%- include('../partials/head') %>
+<div class="auth-wrap">
+  <%- include('../partials/auth-art') %>
+  <div class="auth">
+    <h1>Masuk</h1>
+    <p class="muted">Gunakan nomor HP atau email yang terdaftar.</p>
+    <% if (inactive) { %><div class="alert alert-error" role="alert"><%- icon('alert') %><span>Akun Anda dinonaktifkan. Hubungi admin.</span></div><% } %>
+    <% if (resetDone) { %><div class="alert alert-success" role="status"><%- icon('check') %><span>Kata sandi berhasil diganti. Silakan masuk.</span></div><% } %>
+    <% if (errors.form) { %><div class="alert alert-error" role="alert"><%- icon('alert') %><span><%= errors.form %></span></div><% } %>
+    <form method="post" action="/masuk" class="form" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('../partials/field', { name: 'identifier', label: 'Nomor HP atau email', value: values.identifier, autocomplete: 'username', required: true, placeholder: '0812xxxxxxx' }) %>
+      <%- include('../partials/field', { name: 'password', label: 'Kata sandi', type: 'password', value: '', autocomplete: 'current-password', required: true }) %>
+      <button class="btn btn-lg btn-block" type="submit" data-busy="Memeriksa…">Masuk</button>
+    </form>
+    <div class="auth-links"><a href="/lupa-sandi">Lupa kata sandi?</a><span>Belum punya akun? <a href="/daftar">Daftar</a></span></div>
+    <details class="demo-box">
+      <summary>Akun demo untuk mencoba</summary>
+      <ul>
+        <li>Petani 1: <code>081200000001</code> / <code>tani12345</code></li>
+        <li>Petani 2: <code>081200000002</code> / <code>tani12345</code></li>
+        <li>Admin: <code>admin@sahabattani.test</code> / <code>admin12345</code></li>
+      </ul>
+      <p class="small" style="margin:0">Hanya untuk demo. Hapus akun demo sebelum digunakan dengan data asli.</p>
+    </details>
+  </div>
+</div>
+<%- include('../partials/foot') %>

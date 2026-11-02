@@ -1,0 +1,17 @@
+<%- include('../partials/head') %>
+<h1>Dashboard Admin</h1>
+<p class="muted small">Statistik agregat. Isi percakapan pribadi petani tidak ditampilkan di panel admin.</p>
+<% const byStatus = (rows, s) => (rows.find((r) => r.status === s) || { n: 0 }).n; %>
+<div class="stat-grid">
+  <div class="card stat"><span class="stat-num"><%= stats.farmers.n %></span><span>Akun petani</span><span class="small muted"><%= stats.farmers.active || 0 %> aktif · <%= stats.incomplete %> profil belum lengkap</span></div>
+  <div class="card stat"><span class="stat-num"><%= stats.lands.n %></span><span>Lahan</span><span class="small muted"><%= stats.lands.geo || 0 %> berkoordinat · <%= stats.lands.demo || 0 %> demo</span></div>
+  <div class="card stat"><span class="stat-num"><%= byStatus(stats.scans, 'completed') + byStatus(stats.scans, 'failed') + byStatus(stats.scans, 'processing') + byStatus(stats.scans, 'pending') %></span><span>Scan</span><span class="small muted"><%= stats.scans7 %> dalam 7 hari · <%= byStatus(stats.scans, 'failed') %> gagal</span></div>
+  <div class="card stat"><span class="stat-num"><%= stats.sessions %></span><span>Sesi chat</span><span class="small muted"><%= stats.messages %> pesan petani</span></div>
+  <div class="card stat"><span class="stat-num"><%= byStatus(stats.articles, 'published') %></span><span>Artikel terbit</span><span class="small muted"><%= byStatus(stats.articles, 'draft') %> draft · <%= byStatus(stats.articles, 'archived') %> arsip</span></div>
+</div>
+<div class="row wrap-row">
+  <a class="btn" href="/admin/pengguna/baru"><%- icon('plus', 18) %> Tambah akun petani</a>
+  <a class="btn btn-ghost" href="/admin/artikel/baru"><%- icon('edit', 18) %> Tulis artikel</a>
+  <a class="btn btn-ghost" href="/admin/integrasi"><%- icon('settings', 18) %> Status integrasi</a>
+</div>
+<%- include('../partials/foot') %>

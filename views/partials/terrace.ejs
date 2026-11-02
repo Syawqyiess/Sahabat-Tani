@@ -1,0 +1,40 @@
+<%
+  // Ilustrasi terasering: lapisan petak sawah berundak dengan garis kontur, matahari, dan bulir padi.
+  // variant: 'day' (latar terang), 'night' (di atas hijau tua), 'soft' (empty state)
+  const v = typeof variant !== 'undefined' ? variant : 'day';
+  const pal = {
+    day:   ['#d7ead0', '#b3d69e', '#82bb68', '#4e9a3a', '#2f6f2e'],
+    night: ['#2a6a3d', '#337a45', '#3f8a4c', '#4e9a3a', '#5fae48'],
+    soft:  ['#e7f2df', '#d3e8c6', '#b9d9a6', '#97c47f', '#77ad5f'],
+    // padi menguning menjelang panen
+    dusk:  ['#f7e8bf', '#efd590', '#dcb862', '#bf9744', '#94722d'],
+    // tanah olahan
+    soil:  ['#f1e6d8', '#e2ccb2', '#cbac8b', '#ab8866', '#8a5a35'],
+  }[v] || ['#d7ead0', '#b3d69e', '#82bb68', '#4e9a3a', '#2f6f2e'];
+  const line = v === 'night' ? 'rgba(255,255,255,.18)' : 'rgba(255,255,255,.55)';
+  const flip = typeof mirror !== 'undefined' && mirror;
+%>
+<svg class="terrace <%= typeof cls !== 'undefined' ? cls : '' %>" viewBox="0 0 640 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false"<% if (flip) { %> style="transform:scaleX(-1)"<% } %>>
+  <circle cx="512" cy="74" r="34" fill="<%= v === 'dusk' ? '#f6f8f1' : '#e3b23c' %>" opacity="<%= v === 'soft' ? '.55' : '.95' %>"/>
+  <path d="M0 132C96 108 170 122 262 100S452 62 640 80V300H0Z" fill="<%= pal[0] %>"/>
+  <path d="M0 170C110 144 200 162 300 138S500 108 640 118V300H0Z" fill="<%= pal[1] %>"/>
+  <path d="M0 208C120 184 226 204 336 178S530 152 640 160V300H0Z" fill="<%= pal[2] %>"/>
+  <path d="M0 246C130 224 250 244 370 220S556 198 640 204V300H0Z" fill="<%= pal[3] %>"/>
+  <path d="M0 282C140 264 270 282 396 262S570 244 640 248V300H0Z" fill="<%= pal[4] %>"/>
+  <g fill="none" stroke="<%= line %>" stroke-width="1.6" stroke-linecap="round">
+    <path d="M0 146C100 122 176 136 268 114S456 78 640 94"/>
+    <path d="M0 186C112 160 204 178 304 154S502 124 640 134"/>
+    <path d="M0 224C122 200 230 220 340 194S532 168 640 176"/>
+    <path d="M0 262C132 240 254 260 374 236S558 214 640 220"/>
+  </g>
+  <g stroke="<%= v === 'night' ? '#e3b23c' : '#2f6f2e' %>" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".9">
+    <path d="M86 296c2-18 6-30 14-40M98 296c0-16-2-28-8-38M110 296c3-14 8-24 16-30"/>
+    <path d="M472 296c2-16 6-26 13-34M484 296c0-14-2-24-7-32M495 296c3-12 7-20 14-25"/>
+  </g>
+  <g fill="#e3b23c">
+    <ellipse cx="101" cy="254" rx="3.2" ry="6" transform="rotate(30 101 254)"/>
+    <ellipse cx="127" cy="265" rx="3" ry="5.5" transform="rotate(50 127 265)"/>
+    <ellipse cx="486" cy="261" rx="3" ry="5.5" transform="rotate(32 486 261)"/>
+    <ellipse cx="510" cy="270" rx="2.8" ry="5" transform="rotate(52 510 270)"/>
+  </g>
+</svg>

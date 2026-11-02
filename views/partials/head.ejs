@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#1e5631">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title><%= title %> · Sahabat Tani</title>
+  <link rel="icon" href="/static/img/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/js/app.js" defer></script>
+</head>
+<%
+  const me = currentUser;
+  const isFarmer = me && me.role === 'farmer';
+  const isAdmin = me && me.role === 'admin';
+  const active = (p) => (path === p || (p !== '/' && p !== '/admin' && path.startsWith(p + '/'))) ? 'is-active' : '';
+  const aria = (p) => active(p) ? 'aria-current="page"' : '';
+  const farmerNav = [['/dashboard', 'home', 'Dashboard'], ['/lahan', 'field', 'Lahan Saya'], ['/asisten', 'chat', 'Asisten AI'], ['/artikel', 'article', 'Artikel'], ['/profil', 'user', 'Profil']];
+  const farmerExtra = [['/lahan/peta', 'map', 'Peta Lahan'], ['/udara', 'air', 'Kualitas Udara'], ['/scan/riwayat', 'history', 'Riwayat Scan'], ['/artikel-tersimpan', 'bookmark', 'Artikel Tersimpan']];
+  const adminNav = [
+    ['/admin', 'home', 'Dashboard'], ['/admin/pengguna', 'users', 'Pengguna'], ['/admin/lahan', 'field', 'Lahan'],
+    ['/admin/artikel', 'article', 'Artikel'], ['/admin/kategori', 'tag', 'Kategori'], ['/admin/sumber-berita', 'news', 'Sumber Berita'],
+    ['/admin/referensi-hama', 'bug', 'Referensi Hama'], ['/admin/integrasi', 'settings', 'Integrasi'],
+  ];
+  const navList = isAdmin ? adminNav : farmerNav;
+  const initial = me ? ((me.full_name || me.phone || me.email || '?').trim()[0] || '?').toUpperCase() : '';
+%>
+<body class="<%= me ? 'is-app' : 'is-public' %>">
+<a class="skip" href="#isi">Lewati ke isi</a>
+<% if (me) { %>
+<div class="app">
+  <aside class="sidebar" aria-label="Navigasi utama">
+    <a class="sidebar-brand" href="<%= isAdmin ? '/admin' : '/dashboard' %>">
+      <img src="/static/img/logo.svg" alt="" width="38" height="38">
+      <span>Sahabat Tani<% if (isAdmin) { %><small>Panel Admin</small><% } %></span>
+    </a>
+    <% if (isFarmer) { %>
+      <a class="btn btn-scan btn-block <%= active('/scan') && path === '/scan' ? 'is-active' : '' %>" href="/scan"><%- icon('camera', 22) %><span class="label-long">Scan Hama Padi</span><span class="label-short">Scan</span></a>
+    <% } %>
+    <nav class="side-nav">
+      <% navList.forEach(([href, ic, label]) => { %>
+        <a class="<%= active(href) || (href === '/admin' && (path === '/admin' || path === '/admin/') ? 'is-active' : '') %>" href="<%= href %>" <%- aria(href) %>><%- icon(ic, 22) %><span><%= label %></span></a>
+      <% }) %>
+      <% if (isFarmer) { %>
+        <span class="side-nav-label nav-extra">Lainnya</span>
+        <% farmerExtra.forEach(([href, ic, label]) => { %>
+          <a class="nav-extra <%= path === href ? 'is-active' : '' %>" href="<%= href %>"><%- icon(ic, 22) %><span><%= label %></span></a>
+        <% }) %>
+        <a class="nav-more" href="#menu-lainnya" data-sheet-open="menu-lainnya"><%- icon('menu', 22) %><span>Lainnya</span></a>
+      <% } %>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="user-chip" href="<%= isFarmer ? '/profil' : '/admin' %>" title="<%= me.full_name || 'Akun' %>">
+        <% if (me.photo_path) { %><img class="avatar-mini" src="/media/<%= me.photo_path %>" alt="" width="36" height="36"><% } else { %><span class="avatar-mini" aria-hidden="true"><%= initial %></span><% } %>
+        <span><%= me.full_name || 'Akun saya' %><small><%= me.phone || me.email %></small></span>
+      </a>
+      <form method="post" action="/keluar" class="side-nav">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit"><%- icon('logout', 22) %><span>Keluar</span></button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <header class="appbar" data-appbar>
+      <a class="appbar-brand" href="<%= isAdmin ? '/admin' : '/dashboard' %>"><img src="/static/img/logo.svg" alt="" width="32" height="32"> Sahabat Tani</a>
+      <% if (isAdmin) { %>
+        <a class="icon-btn" href="#menu-lainnya" data-sheet-open="menu-lainnya" aria-label="Buka menu admin"><%- icon('menu') %></a>
+      <% } else { %>
+        <a class="icon-btn" href="/profil" aria-label="Profil saya">
+          <% if (me.photo_path) { %><img class="avatar-mini" src="/media/<%= me.photo_path %>" alt="" width="36" height="36"><% } else { %><span class="avatar-mini" aria-hidden="true"><%= initial %></span><% } %>
+        </a>
+      <% } %>
+    </header>
+
+    <div id="menu-lainnya" class="sheet" role="dialog" aria-modal="true" aria-labelledby="menu-lainnya-title">
+      <a class="sheet-backdrop" href="#" data-sheet-close aria-label="Tutup menu"></a>
+      <div class="sheet-panel" tabindex="-1">
+        <div class="sheet-grip" aria-hidden="true"></div>
+        <div class="sheet-head"><h2 class="h4" id="menu-lainnya-title" style="margin:0">Menu</h2><a href="#" class="icon-btn" data-sheet-close aria-label="Tutup menu"><%- icon('close') %></a></div>
+        <% (isAdmin ? adminNav : [['/artikel', 'article', 'Artikel & Berita'], ['/profil', 'user', 'Profil Saya'], ...farmerExtra]).forEach(([href, ic, label]) => { %>
+          <a href="<%= href %>"><%- icon(ic) %> <%= label %></a>
+        <% }) %>
+        <form method="post" action="/keluar">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button type="submit"><%- icon('logout') %> Keluar</button>
+        </form>
+      </div>
+    </div>
+
+    <main id="isi" class="content">
+<% } else { %>
+<header class="pubbar">
+  <div class="container pubbar-in">
+    <a class="appbar-brand" href="/"><img src="/static/img/logo.svg" alt="" width="36" height="36"> Sahabat Tani</a>
+    <nav aria-label="Navigasi">
+      <a class="btn btn-ghost btn-sm pub-articles" href="/artikel" aria-label="Artikel"><%- icon('article', 18) %> <span class="pub-label">Artikel</span></a>
+      <a class="btn btn-tonal btn-sm" href="/masuk">Masuk</a>
+      <a class="btn btn-sm" href="/daftar">Daftar</a>
+    </nav>
+  </div>
+</header>
+<main id="isi" class="container pub-main">
+<% } %>
+<div class="toast-region" aria-live="polite">
+  <% if (flash) { %>
+    <div class="toast <%= flash.type === 'error' ? 'toast-error' : '' %>" role="<%= flash.type === 'error' ? 'alert' : 'status' %>" data-toast="<%= flash.type %>">
+      <%- icon(flash.type === 'error' ? 'alert' : 'check') %><span><%= flash.text %></span>
+      <button type="button" class="icon-btn" data-toast-close aria-label="Tutup pemberitahuan"><%- icon('close', 18) %></button>
+    </div>
+  <% } %>
+</div>

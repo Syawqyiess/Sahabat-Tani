@@ -1,0 +1,28 @@
+<%- include('../partials/head') %>
+<div class="auth-wrap">
+<%- include('../partials/auth-art') %>
+<div class="auth">
+  <h1>Lupa Kata Sandi</h1>
+  <% if (sent) { %>
+    <div class="alert alert-success" role="status"><%- icon('check') %><span>Jika akun terdaftar, tautan untuk mengatur ulang kata sandi telah dibuat. Tautan berlaku 30 menit.</span></div>
+    <% if (demoLink) { %>
+      <div class="demo-box">
+        <p><span class="badge badge-demo">Mode Demo</span> Layanan email/SMS belum terhubung, jadi tautan ditampilkan di sini:</p>
+        <p><a class="break" href="<%= demoLink %>"><%= demoLink %></a></p>
+      </div>
+    <% } else { %>
+      <p class="muted">Jika tidak menerima tautan, hubungi admin atau penyuluh yang mengelola aplikasi.</p>
+    <% } %>
+    <p><a href="/masuk">Kembali ke halaman masuk</a></p>
+  <% } else { %>
+    <p class="muted">Masukkan nomor HP atau email akun Anda.</p>
+    <form method="post" action="/lupa-sandi" class="form" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('../partials/field', { name: 'identifier', label: 'Nomor HP atau email', value: values.identifier, required: true }) %>
+      <button class="btn btn-lg btn-block" type="submit">Kirim tautan reset</button>
+    </form>
+    <p class="auth-links"><a href="/masuk">Kembali</a></p>
+  <% } %>
+</div>
+</div>
+<%- include('../partials/foot') %>

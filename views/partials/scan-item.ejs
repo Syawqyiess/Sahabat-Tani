@@ -1,0 +1,22 @@
+<%
+  const r = s.result || {};
+  const label = s.status === 'failed' ? 'Foto belum berhasil dianalisis'
+    : s.status !== 'completed' ? 'Sedang diproses'
+    : s.mode === 'demo' ? 'Belum dianalisis (mode demo)'
+    : (r.identified && r.suspected_pest_name ? 'Dugaan: ' + r.suspected_pest_name : 'Hama belum teridentifikasi');
+%>
+<li class="scan-item">
+  <a href="/asisten/<%= s.chat_session_id %>">
+    <% if (s.image_path) { %><img src="/media/<%= s.image_path %>" alt="Foto scan #<%= s.id %>" width="60" height="60" loading="lazy"><% } %>
+    <div>
+      <strong><%= label %></strong>
+      <span class="small muted">Scan #<%= s.id %> · <%= u.timeAgo(s.created_at) %><% if (s.land_name) { %> · <%= s.land_name %><% } %></span>
+      <% if (s.mode === 'demo' || s.status === 'failed') { %>
+        <span class="badges" style="margin:2px 0 0">
+          <% if (s.mode === 'demo') { %><span class="badge badge-demo">Simulasi</span><% } %>
+          <% if (s.status === 'failed') { %><span class="badge badge-error">Gagal</span><% } %>
+        </span>
+      <% } %>
+    </div>
+  </a>
+</li>

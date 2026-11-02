@@ -1,0 +1,29 @@
+<%- include('../partials/head') %>
+<a class="back-link" href="/profil"><%- icon('arrowLeft', 18) %> Kembali ke profil</a>
+<div class="page-head"><div><h1>Ubah Profil</h1><p class="muted">Semua kolom boleh diisi nanti, kecuali nomor HP atau email untuk masuk.</p></div></div>
+
+<div class="form-card">
+  <section class="card">
+    <h2 class="h4">Foto profil</h2>
+    <form method="post" action="/profil/foto" enctype="multipart/form-data" class="photo-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% if (values.photo_path) { %><img class="avatar avatar-lg" src="/media/<%= values.photo_path %>" alt="Foto profil saat ini" width="104" height="104"><% } else { %><div class="avatar avatar-lg avatar-ph" aria-hidden="true"><%- icon('user', 44) %></div><% } %>
+      <div>
+        <label class="btn btn-tonal file-btn"><%- icon('image', 20) %> Pilih foto<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-autosubmit class="visually-hidden"></label>
+        <p class="hint">JPG, PNG, atau WEBP. Maksimal 8 MB. Langsung tersimpan setelah dipilih.</p>
+        <noscript><button class="btn btn-sm" type="submit">Unggah</button></noscript>
+      </div>
+    </form>
+  </section>
+
+  <form method="post" action="/profil/ubah" class="form card" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% if (Object.keys(errors).length) { %><div class="alert alert-error" role="alert"><%- icon('alert') %><span>Ada data yang perlu diperbaiki. Lihat pesan di bawah kolom bertanda merah.</span></div><% } %>
+    <%- include('profile-fields') %>
+    <div class="form-actions">
+      <button class="btn btn-lg" type="submit" data-busy="Menyimpan…"><%- icon('check', 20) %> Simpan Perubahan</button>
+      <a class="btn btn-lg btn-ghost" href="/profil">Batal</a>
+    </div>
+  </form>
+</div>
+<%- include('../partials/foot') %>

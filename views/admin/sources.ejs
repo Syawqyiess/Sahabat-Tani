@@ -1,0 +1,37 @@
+<%- include('../partials/head') %>
+<h1>Sumber Berita (RSS)</h1>
+<p class="small muted">Tambahkan hanya feed dari penerbit tepercaya yang mengizinkan penggunaannya. Aplikasi menyimpan judul, ringkasan pendek (≤ 280 karakter), tanggal asli, nama sumber, dan tautan — tidak menyalin isi artikel. Berita diurutkan menurut tanggal terbit sumber, dan duplikat dicegah.</p>
+<% if (!sources.length) { %>
+  <div class="state state-inline"><%- icon('news') %><p>Belum ada sumber berita. Sampai sumber dikonfigurasi, hanya artikel berlabel “Konten Demo” yang tampil.</p></div>
+<% } else { %>
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Sumber</th><th>Status</th><th>Terakhir diambil</th><th>Aksi</th></tr></thead>
+  <tbody>
+  <% sources.forEach((s) => { %>
+    <tr>
+      <td><strong><%= s.name %></strong><br><span class="small break"><%= s.feed_url %></span><br><span class="small muted">Izin: <%= s.usage_note %></span></td>
+      <td><%= s.is_active ? 'Aktif' : 'Nonaktif' %><br><span class="small"><%= s.n %> berita</span></td>
+      <td class="small"><%= s.last_fetched_at ? u.fmtDate(s.last_fetched_at, true) : 'Belum pernah' %><% if (s.last_error) { %><br><span class="warn"><%= s.last_error %></span><% } %></td>
+      <td class="actions">
+        <form method="post" action="/admin/sumber-berita/<%= s.id %>/ambil"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm" data-busy="Mengambil…">Ambil sekarang</button></form>
+        <form method="post" action="/admin/sumber-berita/<%= s.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-ghost"><%= s.is_active ? 'Nonaktifkan' : 'Aktifkan' %></button></form>
+        <form method="post" action="/admin/sumber-berita/<%= s.id %>/hapus" data-confirm="Hapus sumber ini?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-ghost btn-danger">Hapus</button></form>
+      </td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+</div>
+<% } %>
+<form method="post" action="/admin/sumber-berita" class="form card" novalidate>
+  <h2 class="h3">Tambah sumber</h2>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- include('../partials/field', { name: 'name', label: 'Nama penerbit', value: values.name, error: errors.name, required: true }) %>
+  <%- include('../partials/field', { name: 'feed_url', label: 'URL feed RSS', type: 'url', value: values.feed_url, error: errors.feed_url, required: true }) %>
+  <%- include('../partials/field', { name: 'homepage_url', label: 'Situs penerbit', type: 'url', value: values.homepage_url, error: errors.homepage_url, optional: true }) %>
+  <%- include('../partials/field', { name: 'usage_note', label: 'Dasar izin penggunaan', type: 'textarea', rows: 2, value: values.usage_note, error: errors.usage_note, required: true, hint: 'Contoh: syarat penggunaan RSS dari halaman penerbit (tautan), atau izin tertulis.' }) %>
+  <%- include('../partials/field', { name: 'category_id', label: 'Kategori berita', type: 'select', options: categories.map((c) => [c.id, c.name]), value: values.category_id, error: errors.category_id }) %>
+  <button class="btn" type="submit">Tambah sumber</button>
+</form>
+<%- include('../partials/foot') %>

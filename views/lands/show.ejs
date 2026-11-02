@@ -1,0 +1,42 @@
+<%- include('../partials/head') %>
+<% const show = (v) => (v === null || v === undefined || v === '') ? '<span class="empty-val">Belum diisi</span>' : u.stripHtml(String(v)); %>
+<div class="page-head">
+  <h1><%= land.name %></h1>
+  <a class="btn" href="/lahan/<%= land.id %>/ubah"><%- icon('edit', 18) %> Ubah</a>
+</div>
+<p><% if (land.data_source === 'demo') { %><span class="badge badge-demo">Lahan Demo — Bukan Batas Lahan Asli</span><% } else { %><span class="badge badge-real">Data asli</span><% } %></p>
+
+<div class="card">
+  <dl class="dl">
+    <dt>Lokasi</dt><dd><%- show(land.address_desc) %></dd>
+    <dt>Luas</dt><dd><%- land.area_ha != null ? land.area_ha.toLocaleString('id-ID') + ' ha' : show(null) %></dd>
+    <dt>Komoditas</dt><dd><%- show(land.commodity) %></dd>
+    <dt>Varietas</dt><dd><%- show(land.variety) %></dd>
+    <dt>Tanggal tanam</dt><dd><%- land.planting_date ? u.fmtDate(land.planting_date) : show(null) %></dd>
+    <dt>Status musim</dt><dd><%- show(land.season_status) %></dd>
+    <dt>Koordinat</dt><dd><%- land.lat != null ? `${land.lat}, ${land.lng}` : show(null) %></dd>
+    <dt>Batas lahan</dt><dd><%- land.polygon ? `${land.polygon.length} titik` : show(null) %></dd>
+  </dl>
+</div>
+
+<% if (land.lat != null || land.polygon) { %>
+  <div class="card"><%- include('../partials/map', { lands: [land], compactMap: true, selected: land.id }) %>
+    <p><a href="/lahan/peta?pilih=<%= land.id %>">Buka di peta lahan</a> · <a href="/udara?lahan=<%= land.id %>">Kualitas udara di lokasi ini</a></p></div>
+<% } %>
+
+<section class="card">
+  <div class="section-head"><h2 class="h3">Scan di lahan ini</h2><a href="/scan">Scan baru</a></div>
+  <% if (scans.length) { %>
+    <ul class="link-list">
+      <% scans.forEach((s) => { %>
+        <li><a href="/scan/<%= s.id %>">Scan #<%= s.id %></a> <span class="small muted">· <%= u.fmtDate(s.created_at, true) %> · <%= s.status === 'failed' ? 'gagal' : s.mode === 'demo' ? 'simulasi' : (s.result && s.result.suspected_pest_name ? s.result.suspected_pest_name : 'belum teridentifikasi') %></span></li>
+      <% }) %>
+    </ul>
+  <% } else { %><p class="muted">Belum ada scan untuk lahan ini.</p><% } %>
+</section>
+
+<form method="post" action="/lahan/<%= land.id %>/hapus" data-confirm="Hapus lahan ini? Riwayat scan tetap tersimpan.">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <button class="btn btn-danger btn-ghost" type="submit">Hapus lahan</button>
+</form>
+<%- include('../partials/foot') %>

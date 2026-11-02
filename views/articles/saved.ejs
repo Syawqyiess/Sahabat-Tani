@@ -1,0 +1,11 @@
+<%- include('../partials/head') %>
+<div class="page-head"><div><h1>Artikel Tersimpan</h1><p class="muted">Bacaan yang Anda simpan untuk dibaca lagi.</p></div><a class="btn btn-ghost" href="/artikel">Semua artikel</a></div>
+<% if (!articles.length) { %>
+  <%- include('../partials/empty', { heading: 'Belum ada artikel tersimpan', text: 'Tekan “Simpan” pada artikel untuk membacanya lagi nanti.', actions: [{ href: '/artikel', label: 'Jelajahi Artikel', icon: 'article' }] }) %>
+<% } else { %>
+  <div class="article-grid">
+    <% const savedSet = new Set(articles.map((a) => a.id)); %>
+    <% articles.forEach((a) => { %><%- include('../partials/article-card', { a, saved: savedSet, back: '/artikel-tersimpan', feature: false }) %><% }) %>
+  </div>
+<% } %>
+<%- include('../partials/foot') %>

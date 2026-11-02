@@ -1,0 +1,98 @@
+'use strict';
+
+const SAFETY_RULES = `Aturan wajib:
+- Gunakan bahasa Indonesia yang sederhana, ramah, kalimat pendek, mudah dipahami petani.
+- Hasil identifikasi foto adalah DUGAAN AWAL, bukan diagnosis pasti. Pemeriksaan lapangan bisa diperlukan.
+- Jangan pernah membuat persentase atau skor keyakinan.
+- Utamakan Pengendalian Hama Terpadu (PHT): pengamatan rutin, sanitasi, varietas tahan, pengaturan air dan tanam serempak, musuh alami, cara fisik/mekanis.
+- JANGAN menyebut dosis, takaran, campuran, merek, atau cara pakai pestisida. Bila pengendalian kimia mungkin diperlukan, katakan bahwa petani harus mengikuti label resmi produk terdaftar dan berkonsultasi dengan penyuluh pertanian (PPL) atau petugas POPT setempat.
+- Jangan mengarang sumber, kutipan, atau tautan. Hanya rujuk "Referensi internal" yang diberikan di konteks; jika referensi bertanda BELUM DIVERIFIKASI, sebutkan bahwa informasinya belum diverifikasi penyuluh.
+- Jika foto lebih menunjukkan penyakit (jamur/bakteri/virus) atau kekurangan hara daripada hama, katakan dengan jelas.
+- Jangan menyimpulkan serangan hama dari data kualitas udara.`;
+
+const VISION_SYSTEM = `Anda adalah asisten identifikasi awal hama padi untuk aplikasi "Sahabat Tani".
+Tugas: amati SATU foto tanaman padi dari petani dan isi hasil terstruktur sesuai skema.
+${SAFETY_RULES}
+Petunjuk pengisian:
+- photo_quality.is_clear=false bila foto buram, gelap, terlalu jauh, atau objek tertutup; isi issues dengan alasan singkat.
+- subject: pilih kategori yang paling sesuai dengan isi foto.
+- identified=true hanya bila ada ciri visual yang cukup untuk menduga satu hama tertentu. Bila tidak, isi suspected_pest_name dengan string kosong.
+- visual_evidence: ciri yang benar-benar terlihat di foto (bukan pengetahuan umum).
+- alternatives: kemungkinan lain bila foto ambigu (boleh kosong).
+- non_pest_note: isi bila foto lebih mengarah ke penyakit/kekurangan hara, selain itu string kosong.
+- follow_up_questions: 2–4 pertanyaan untuk membantu identifikasi.
+- initial_steps: 3–6 langkah pemeriksaan dan penanganan awal berbasis PHT, tanpa dosis pestisida.
+- farmer_message: pesan pembuka untuk petani (3–6 kalimat) yang menjelaskan dugaan awal, ciri yang terlihat, dan pengingat bahwa ini bantuan awal.`;
+
+const VISION_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['photo_quality', 'subject', 'identified', 'suspected_pest_name', 'suspected_pest_scientific', 'visual_evidence',
+    'alternatives', 'non_pest_note', 'follow_up_questions', 'initial_steps', 'farmer_message'],
+  properties: {
+    photo_quality: {
+      type: 'object', additionalProperties: false, required: ['is_clear', 'issues'],
+      properties: { is_clear: { type: 'boolean' }, issues: { type: 'array', items: { type: 'string' } } },
+    },
+    subject: {
+      type: 'string',
+      enum: ['hama_padi', 'gejala_penyakit', 'kekurangan_hara', 'padi_tanpa_gejala_jelas', 'tidak_relevan', 'tidak_jelas'],
+    },
+    identified: { type: 'boolean' },
+    suspected_pest_name: { type: 'string' },
+    suspected_pest_scientific: { type: 'string' },
+    visual_evidence: { type: 'array', items: { type: 'string' } },
+    alternatives: {
+      type: 'array',
+      items: { type: 'object', additionalProperties: false, required: ['name', 'reason'], properties: { name: { type: 'string' }, reason: { type: 'string' } } },
+    },
+    non_pest_note: { type: 'string' },
+    follow_up_questions: { type: 'array', items: { type: 'string' } },
+    initial_steps: { type: 'array', items: { type: 'string' } },
+    farmer_message: { type: 'string' },
+  },
+};
+
+const CHAT_SYSTEM = `Anda adalah "Asisten Tani", asisten AI pertanian di aplikasi "Sahabat Tani" untuk petani padi di Indonesia.
+${SAFETY_RULES}
+- Jawab ringkas (umumnya 3–8 kalimat atau daftar poin pendek). Akhiri dengan satu pertanyaan atau saran langkah berikut bila membantu.
+- Jika petani mengirim foto tambahan, amati foto tersebut dan kaitkan dengan hasil scan sebelumnya.
+- Jika ragu, sarankan pemeriksaan langsung oleh penyuluh/POPT.`;
+
+function notesText(notes) {
+  return [
+    notes.land_name && `Lahan: ${notes.land_name}`,
+    notes.plant_age_days != null && `Umur tanaman: ${notes.plant_age_days} hari setelah tanam`,
+    notes.affected_part && `Bagian terdampak menurut petani: ${notes.affected_part}`,
+    notes.symptoms && `Gejala menurut petani: ${notes.symptoms}`,
+  ].filter(Boolean).join('\n') || 'Petani tidak menambahkan keterangan.';
+}
+
+// Menyeragamkan hasil analisis dari penyedia mana pun ke bentuk VISION_SCHEMA.
+function normalizeVisionResult(r) {
+  if (!r || typeof r !== 'object') throw new Error('Hasil analisis kosong');
+  const arr = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()) : []);
+  const str = (v) => (typeof v === 'string' ? v.trim() : '');
+  const subjects = VISION_SCHEMA.properties.subject.enum;
+  const pq = r.photo_quality && typeof r.photo_quality === 'object' ? r.photo_quality : {};
+  const out = {
+    photo_quality: { is_clear: typeof pq.is_clear === 'boolean' ? pq.is_clear : null, issues: arr(pq.issues) },
+    subject: subjects.includes(r.subject) ? r.subject : 'tidak_jelas',
+    identified: r.identified === true,
+    suspected_pest_name: str(r.suspected_pest_name),
+    suspected_pest_scientific: str(r.suspected_pest_scientific),
+    visual_evidence: arr(r.visual_evidence),
+    alternatives: Array.isArray(r.alternatives)
+      ? r.alternatives.filter((a) => a && str(a.name)).map((a) => ({ name: str(a.name), reason: str(a.reason) }))
+      : [],
+    non_pest_note: str(r.non_pest_note),
+    follow_up_questions: arr(r.follow_up_questions),
+    initial_steps: arr(r.initial_steps),
+    farmer_message: str(r.farmer_message),
+  };
+  if (!out.suspected_pest_name) out.identified = false;
+  if (!out.farmer_message) throw new Error('Hasil analisis tidak lengkap');
+  return out;
+}
+
+module.exports = { VISION_SYSTEM, VISION_SCHEMA, CHAT_SYSTEM, SAFETY_RULES, notesText, normalizeVisionResult };

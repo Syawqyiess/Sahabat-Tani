@@ -1,0 +1,34 @@
+<%- include('../partials/head') %>
+<div class="page-head"><h1>Manajemen Artikel</h1><a class="btn" href="/admin/artikel/baru"><%- icon('plus', 18) %> Tulis artikel</a></div>
+<nav class="chips" aria-label="Filter status">
+  <% [['', 'Semua'], ['draft', 'Draft'], ['published', 'Terbit'], ['archived', 'Arsip']].forEach(([s, l]) => { %>
+    <a class="chip <%= status === s ? 'is-active' : '' %>" href="/admin/artikel<%= s ? '?status=' + s : '' %>"><%= l %></a>
+  <% }) %>
+</nav>
+<% const statusLabel = { draft: 'Draft', published: 'Terbit', archived: 'Arsip' }; %>
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Judul</th><th>Kategori</th><th>Status</th><th>Terbit</th><th>Aksi</th></tr></thead>
+  <tbody>
+  <% articles.forEach((a) => { %>
+    <tr>
+      <td><a href="/artikel/<%= a.slug %>"><%= a.title %></a>
+        <% if (a.is_demo) { %><span class="badge badge-demo">Demo</span><% } %>
+        <% if (a.origin === 'external') { %><span class="badge badge-ext">RSS · <%= a.source_name %></span><% } %></td>
+      <td><%= a.category_name || '—' %></td>
+      <td><%= statusLabel[a.status] %></td>
+      <td class="small"><%= u.fmtDate(a.published_at) %></td>
+      <td class="actions">
+        <% if (a.origin === 'internal') { %><a class="btn btn-sm btn-ghost" href="/admin/artikel/<%= a.id %>/ubah">Ubah</a><% } %>
+        <form method="post" action="/admin/artikel/<%= a.id %>/status">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <% if (a.status !== 'published') { %><button class="btn btn-sm" name="action" value="publish">Terbitkan</button><% } %>
+          <% if (a.status !== 'archived') { %><button class="btn btn-sm btn-ghost" name="action" value="archive">Arsipkan</button><% } %>
+        </form>
+      </td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+</div>
+<%- include('../partials/foot') %>

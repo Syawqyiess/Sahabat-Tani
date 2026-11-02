@@ -1,0 +1,33 @@
+<%
+  const mins = a.origin === 'internal' ? u.readMinutes(a.body_md) : null;
+  const featured = typeof feature !== 'undefined' && feature;
+%>
+<article class="article-card <%= featured ? 'article-featured' : '' %>">
+  <div class="article-media">
+    <% if (a.image_url) { %>
+      <img src="<%= a.image_url %>" alt="<%= a.image_alt || '' %>" loading="lazy" width="640" height="360">
+    <% } else { %>
+      <%- include('terrace', { variant: ['day', 'dusk', 'soft', 'soil'][a.id % 4], mirror: a.id % 2 === 1 }) %>
+    <% } %>
+  </div>
+  <div class="article-body">
+    <div class="badges">
+      <% if (a.category_name) { %><span class="badge"><%= a.category_name %></span><% } %>
+      <% if (a.is_demo) { %><span class="badge badge-demo">Konten Demo</span><% } %>
+      <% if (a.origin === 'external') { %><span class="badge badge-ext">Berita · <%= a.source_name %></span><% } %>
+    </div>
+    <h3><a href="/artikel/<%= a.slug %>"><%= a.title %></a></h3>
+    <% if (a.summary) { %><p><%= a.summary %></p><% } %>
+    <div class="article-meta">
+      <span><%= u.fmtDate(a.published_at) %><% if (a.origin === 'external') { %> (tanggal sumber)<% } %></span>
+      <% if (mins) { %><span><%- icon('clock', 16) %> <%= mins %> menit baca</span><% } %>
+    </div>
+  </div>
+  <% if (typeof saved !== 'undefined' && saved) { %>
+    <form method="post" action="/artikel/<%= a.id %>/simpan">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="back" value="<%= typeof back !== 'undefined' ? back : '/artikel' %>">
+      <button class="btn btn-sm <%= saved.has(a.id) ? 'btn-tonal' : 'btn-ghost' %>" type="submit"><%- icon('bookmark', 18) %> <%= saved.has(a.id) ? 'Tersimpan — hapus' : 'Simpan' %></button>
+    </form>
+  <% } %>
+</article>

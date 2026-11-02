@@ -1,0 +1,19 @@
+<%- include('../partials/head') %>
+<div class="auth-wrap">
+<%- include('../partials/auth-art') %>
+<div class="auth">
+  <h1>Daftar Akun Petani</h1>
+  <p class="muted">Cukup nama, nomor HP, dan kata sandi. Data lain bisa dilengkapi nanti.</p>
+  <form method="post" action="/daftar" class="form" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- include('../partials/field', { name: 'full_name', label: 'Nama lengkap', value: values.full_name, error: errors.full_name, autocomplete: 'name', required: true }) %>
+    <%- include('../partials/field', { name: 'phone', label: 'Nomor HP', type: 'tel', inputmode: 'tel', value: values.phone, error: errors.phone, autocomplete: 'tel', required: true, placeholder: '0812xxxxxxx' }) %>
+    <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', value: values.email, error: errors.email, autocomplete: 'email', optional: true }) %>
+    <%- include('../partials/field', { name: 'password', label: 'Kata sandi', type: 'password', value: '', error: errors.password, autocomplete: 'new-password', required: true, hint: 'Minimal 8 karakter.' }) %>
+    <%- include('../partials/field', { name: 'password_confirm', label: 'Ulangi kata sandi', type: 'password', value: '', error: errors.password_confirm, autocomplete: 'new-password', required: true }) %>
+    <button class="btn btn-lg btn-block" type="submit" data-busy="Membuat akun…">Daftar</button>
+  </form>
+  <p class="auth-links"><a href="/masuk">Sudah punya akun? Masuk</a></p>
+</div>
+</div>
+<%- include('../partials/foot') %>

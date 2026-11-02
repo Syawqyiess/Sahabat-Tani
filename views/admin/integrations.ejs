@@ -1,0 +1,15 @@
+<%- include('../partials/head') %>
+<h1>Status Integrasi Layanan</h1>
+<p class="small muted">Nilai API key tidak pernah ditampilkan. Ubah konfigurasi lewat file <code>.env</code> di server lalu mulai ulang aplikasi. Panduan: <code>docs/INTEGRASI.md</code>.</p>
+<% const tone = { aktif: 'badge-real', demo: 'badge-demo', belum: 'badge-demo', galat: 'badge-error', perhatian: 'badge-demo', 'belum dipakai': '' }; %>
+<ul class="cards-list">
+  <% items.forEach((it) => { %>
+    <li class="card">
+      <div class="section-head"><h2 class="h3"><%= it.name %></h2><span class="badge <%= tone[it.status] || '' %>"><%= it.status %></span></div>
+      <p class="small"><%= it.detail %></p>
+      <p class="small muted"><%= it.secret %></p>
+      <% if (it.last) { %><p class="small muted"><%= it.last %></p><% } %>
+    </li>
+  <% }) %>
+</ul>
+<%- include('../partials/foot') %>

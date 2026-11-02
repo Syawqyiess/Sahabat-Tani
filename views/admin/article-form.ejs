@@ -1,0 +1,30 @@
+<%- include('../partials/head') %>
+<div class="page-head"><h1><%= title %></h1><a href="/admin/artikel">Kembali</a></div>
+<% if (article.id) { %><p class="small">Status: <strong><%= { draft: 'Draft', published: 'Terbit', archived: 'Arsip' }[article.status] %></strong> · <a href="/artikel/<%= article.slug %>" target="_blank">Pratinjau</a>
+  <% if (article.is_demo) { %><span class="badge badge-demo">Konten Demo</span><% } %></p><% } %>
+<form method="post" action="<%= article.id ? '/admin/artikel/' + article.id : '/admin/artikel' %>" class="form card" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% if (Object.keys(errors).length) { %><div class="alert alert-error" role="alert"><%- icon('alert') %><span>Ada data yang perlu diperbaiki.</span></div><% } %>
+  <%- include('../partials/field', { name: 'title', label: 'Judul', value: article.title, error: errors.title, required: true }) %>
+  <%- include('../partials/field', { name: 'summary', label: 'Ringkasan', type: 'textarea', rows: 2, value: article.summary, error: errors.summary }) %>
+  <%- include('../partials/field', { name: 'body_md', label: 'Isi (Markdown)', type: 'textarea', rows: 14, value: article.body_md, error: errors.body_md, hint: 'Gunakan ## untuk subjudul, - untuk daftar, **tebal**. HTML berbahaya otomatis dibersihkan.' }) %>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'category_id', label: 'Kategori', type: 'select', options: categories.map((c) => [c.id, c.name]), value: article.category_id, error: errors.category_id }) %>
+    <%- include('../partials/field', { name: 'tags', label: 'Tag (pisahkan dengan koma)', value: article.tags, error: errors.tags, optional: true }) %>
+  </div>
+  <%- include('../partials/field', { name: 'author_name', label: 'Penulis', value: article.author_name, error: errors.author_name }) %>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'image_url', label: 'URL gambar (https)', value: article.image_url, error: errors.image_url, optional: true, hint: 'Gunakan gambar berukuran kecil (≤ 200 KB) agar ringan di koneksi terbatas.' }) %>
+    <%- include('../partials/field', { name: 'image_alt', label: 'Teks alternatif gambar', value: article.image_alt, error: errors.image_alt, optional: true }) %>
+  </div>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'source_name', label: 'Nama sumber (bila dari luar)', value: article.source_name, error: errors.source_name, optional: true }) %>
+    <%- include('../partials/field', { name: 'source_url', label: 'Tautan sumber asli', value: article.source_url, error: errors.source_url, optional: true }) %>
+  </div>
+  <div class="row wrap-row">
+    <button class="btn btn-ghost" type="submit" name="action" value="draft">Simpan sebagai draft</button>
+    <button class="btn" type="submit" name="action" value="publish">Terbitkan</button>
+    <% if (article.id && article.status !== 'archived') { %><button class="btn btn-ghost btn-danger" type="submit" name="action" value="archive">Arsipkan</button><% } %>
+  </div>
+</form>
+<%- include('../partials/foot') %>

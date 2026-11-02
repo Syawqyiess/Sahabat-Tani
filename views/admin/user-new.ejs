@@ -1,0 +1,17 @@
+<%- include('../partials/head') %>
+<div class="page-head"><h1>Tambah Akun Petani</h1><a href="/admin/pengguna">Kembali</a></div>
+<% if (created) { %>
+  <div class="alert alert-success" role="status"><%- icon('check') %>
+    <span>Akun <strong><%= created.name %></strong> dibuat. Kata sandi sementara: <code><%= created.tempPassword %></code><br>
+    Sampaikan langsung ke petani secara pribadi; kata sandi ini tidak ditampilkan lagi. Petani dapat menggantinya lewat “Lupa kata sandi”.</span>
+  </div>
+  <p><a class="btn" href="/admin/pengguna/<%= created.id %>">Lengkapi profil petani</a> <a class="btn btn-ghost" href="/admin/lahan/baru?user=<%= created.id %>">Tambah lahan</a></p>
+<% } %>
+<form method="post" action="/admin/pengguna" class="form card" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- include('../partials/field', { name: 'full_name', label: 'Nama lengkap', value: values.full_name, error: errors.full_name, required: true }) %>
+  <%- include('../partials/field', { name: 'phone', label: 'Nomor HP', type: 'tel', value: values.phone, error: errors.phone }) %>
+  <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', value: values.email, error: errors.email, optional: true, hint: 'Isi minimal nomor HP atau email.' }) %>
+  <button class="btn btn-lg" type="submit">Buat akun</button>
+</form>
+<%- include('../partials/foot') %>

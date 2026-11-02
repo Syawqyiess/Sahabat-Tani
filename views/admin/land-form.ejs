@@ -1,0 +1,11 @@
+<%- include('../partials/head') %>
+<div class="page-head"><h1><%= title %></h1><a href="/admin/lahan">Kembali</a></div>
+<form method="post" action="<%= action %>" class="form card" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% if (Object.keys(errors).length) { %><div class="alert alert-error" role="alert"><%- icon('alert') %><span>Ada data yang perlu diperbaiki.</span></div><% } %>
+  <%- include('../partials/field', { name: 'user_id', label: 'Pemilik lahan', type: 'select', options: owners.map((o) => [o.id, o.name]), value: land.user_id, error: errors.user_id, required: true }) %>
+  <%- include('../lands/land-fields') %>
+  <%- include('../partials/field', { name: 'data_source', label: 'Jenis data', type: 'select', options: [['real', 'Data asli (diisi dari lapangan)'], ['demo', 'Data demo (contoh)']], value: land.data_source || 'real' }) %>
+  <button class="btn btn-lg" type="submit">Simpan lahan</button>
+</form>
+<%- include('../partials/foot') %>

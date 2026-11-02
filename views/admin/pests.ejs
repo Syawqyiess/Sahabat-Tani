@@ -1,0 +1,30 @@
+<%- include('../partials/head') %>
+<div class="page-head"><h1>Referensi Hama</h1><a class="btn" href="/admin/referensi-hama/baru"><%- icon('plus', 18) %> Tambah</a></div>
+<p class="small muted">Referensi ini dikirim ke Asisten AI sebagai konteks dan ditampilkan sebagai “Sumber yang digunakan”. Tandai terverifikasi hanya setelah diperiksa penyuluh/POPT dan sumber rujukan resmi diisi. Mengubah isi akan mereset status verifikasi.</p>
+<ul class="cards-list">
+  <% pests.forEach((p) => { %>
+    <li class="card">
+      <div class="badges">
+        <% if (p.is_verified) { %><span class="badge badge-real">Terverifikasi oleh <%= p.verified_by %></span><% } else { %><span class="badge badge-demo">Belum diverifikasi</span><% } %>
+        <% if (p.is_demo) { %><span class="badge badge-demo">Data Demo</span><% } %>
+      </div>
+      <h2 class="h3"><%= p.name %> <% if (p.scientific_name) { %><em class="muted">(<%= p.scientific_name %>)</em><% } %></h2>
+      <p class="small"><%= u.truncate(p.symptoms, 160) %></p>
+      <p class="small muted">Sumber: <%= p.source_name || 'belum diisi' %></p>
+      <div class="row wrap-row">
+        <a class="btn btn-sm btn-ghost" href="/admin/referensi-hama/<%= p.id %>/ubah">Ubah</a>
+        <form method="post" action="/admin/referensi-hama/<%= p.id %>/verifikasi" class="row">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <% if (!p.is_verified) { %>
+            <label class="visually-hidden" for="vb-<%= p.id %>">Diverifikasi oleh</label>
+            <input id="vb-<%= p.id %>" name="verified_by" placeholder="Diverifikasi oleh (nama/instansi)" maxlength="120">
+            <button class="btn btn-sm" type="submit">Tandai terverifikasi</button>
+          <% } else { %>
+            <button class="btn btn-sm btn-ghost" type="submit">Cabut verifikasi</button>
+          <% } %>
+        </form>
+      </div>
+    </li>
+  <% }) %>
+</ul>
+<%- include('../partials/foot') %>

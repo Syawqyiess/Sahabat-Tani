@@ -1,0 +1,119 @@
+<%- include('../partials/head') %>
+<div class="chat-layout">
+  <aside class="chat-history panel" aria-labelledby="riwayat-chat">
+    <div class="section-head"><h2 id="riwayat-chat">Percakapan</h2>
+      <form method="post" action="/asisten/baru">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="idempotency_key" value="<%= Date.now().toString(36) + Math.random().toString(36).slice(2) %>">
+        <button class="icon-btn" type="submit" aria-label="Percakapan baru" title="Percakapan baru"><%- icon('plus') %></button>
+      </form>
+    </div>
+    <ul class="conv-list">
+      <% sessions.forEach((s) => { %>
+        <li><a class="<%= s.id === session.id ? 'is-active' : '' %>" href="/asisten/<%= s.id %>" <%- s.id === session.id ? 'aria-current="page"' : '' %>>
+          <strong><%= s.title %></strong><span><%= s.scan_id ? 'Dari scan · ' : '' %><%= u.timeAgo(s.updated_at) %></span>
+        </a></li>
+      <% }) %>
+    </ul>
+  </aside>
+
+  <div class="chat-col">
+    <div class="chat-head">
+      <a class="icon-btn chat-history-link" href="/asisten" aria-label="Semua percakapan"><%- icon('arrowLeft') %></a>
+      <h1><%= session.title %></h1>
+    </div>
+
+    <% if (scan) { %>
+      <details class="card scan-context details-box" <%= messages.length <= 3 ? 'open' : '' %>>
+        <summary><%- icon('scan', 20) %> Foto &amp; hasil scan #<%= scan.id %> <span class="opt">— otomatis dibagikan ke asisten</span></summary>
+        <%- include('../partials/scan-result') %>
+      </details>
+    <% } %>
+
+    <ol class="messages" aria-live="polite" data-messages>
+      <% if (!messages.length) { %>
+        <li class="msg msg-assistant"><span class="msg-avatar" aria-hidden="true"><%- icon('leaf', 18) %></span><div class="bubble"><p style="margin:0">Halo! Tanyakan apa saja tentang padi Anda — hama, pemupukan, atau perawatan. Anda juga bisa melampirkan foto.</p></div></li>
+      <% } %>
+      <% messages.forEach((m) => { %>
+        <% if (m.role === 'system') { %>
+          <li class="msg-system" role="status"><%- icon('alert', 18) %> <span><%= m.content %></span></li>
+        <% } else { %>
+          <li class="msg msg-<%= m.role %>">
+            <% if (m.role === 'assistant') { %><span class="msg-avatar" aria-hidden="true"><%- icon('leaf', 18) %></span><% } %>
+            <div class="bubble">
+              <% if (m.role === 'assistant') { %>
+                <div class="msg-meta">Asisten Tani <% if (m.mode === 'demo') { %><span class="badge badge-demo">Simulasi respons AI</span><% } %></div>
+              <% } %>
+              <% if (m.image_path) { %><img class="msg-img" src="/media/<%= m.image_path %>" alt="Foto yang dikirim" loading="lazy"><% } %>
+              <% if (m.role === 'assistant') { %>
+                <div class="prose"><%- u.renderMarkdown(m.content) %></div>
+              <% } else { %>
+                <p class="pre"><%= m.content %></p>
+              <% } %>
+              <% if (m.sources && m.sources.length) { %>
+                <div class="sources">
+                  <strong class="small">Sumber yang digunakan</strong>
+                  <ul>
+                    <% m.sources.forEach((s) => { %>
+                      <li class="small">
+                        <%= s.title %>
+                        <% if (s.source_url) { %> — <a href="<%= s.source_url %>" target="_blank" rel="noopener"><%= s.source_name || 'tautan' %> <%- icon('external', 12) %></a>
+                        <% } else if (s.source_name) { %> — <%= s.source_name %><% } %>
+                        <% if (!s.verified) { %><span class="badge badge-demo">Belum diverifikasi penyuluh</span><% } else { %><span class="badge badge-real">Terverifikasi</span><% } %>
+                      </li>
+                    <% }) %>
+                  </ul>
+                </div>
+              <% } %>
+              <div class="msg-foot">
+                <time datetime="<%= m.created_at %>"><%= u.fmtDate(m.created_at, true) %></time>
+                <% if (m.role === 'user') { %><span class="msg-status"><%- icon('check', 14) %> Terkirim</span><% } %>
+              </div>
+            </div>
+          </li>
+        <% } %>
+      <% }) %>
+    </ol>
+    <div id="akhir"></div>
+
+    <% if (scanFailed || replyFailed) { %>
+      <div class="retry-box" role="status">
+        <p><%= scanFailed ? 'Foto belum berhasil dianalisis. Coba lagi tanpa mengunggah ulang, atau tulis pertanyaan di bawah.' : 'Asisten belum berhasil menjawab pesan terakhir.' %></p>
+        <form method="post" action="/asisten/<%= session.id %>/ulang">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn" type="submit" data-busy="Memproses…"><%- icon('refresh', 20) %> Coba Lagi</button>
+        </form>
+      </div>
+    <% } %>
+
+    <div class="quick" aria-label="Pertanyaan cepat">
+      <% quick.forEach((q) => { %>
+        <form method="post" action="/asisten/<%= session.id %>/pesan" enctype="multipart/form-data" class="quick-form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="chip" type="submit" name="message" value="<%= q %>"><%= q %></button>
+        </form>
+      <% }) %>
+    </div>
+
+    <form id="composer" class="composer" method="post" action="/asisten/<%= session.id %>/pesan" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="composer-attach" data-attach-preview hidden>
+        <img alt="Foto tambahan yang akan dikirim"><span class="small muted">Foto siap dikirim</span>
+        <button type="button" class="icon-btn" data-attach-clear aria-label="Hapus foto"><%- icon('close', 18) %></button>
+      </div>
+      <div class="composer-row">
+        <label class="icon-btn attach-btn" title="Lampirkan foto"><%- icon('image') %><span class="visually-hidden">Lampirkan foto</span>
+          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" class="visually-hidden" data-attach>
+        </label>
+        <label for="message" class="visually-hidden">Tulis pesan</label>
+        <textarea id="message" name="message" rows="1" maxlength="2000" placeholder="Tulis pertanyaan…" enterkeyhint="send"></textarea>
+        <button class="btn send-btn" type="submit"><%- icon('send', 20) %><span>Kirim</span></button>
+      </div>
+      <p class="field-error" data-composer-msg role="alert" hidden></p>
+      <p class="xs muted" style="margin:var(--s-2) var(--s-3) 0">Identifikasi foto adalah bantuan awal dan bisa memerlukan pemeriksaan lapangan. Untuk pestisida, ikuti label resmi dan saran penyuluh.</p>
+    </form>
+  </div>
+</div>
+<button type="button" class="btn btn-tonal btn-sm jump-latest" data-jump hidden><%- icon('down', 18) %> Pesan terbaru</button>
+<script src="/static/js/chat.js" defer></script>
+<%- include('../partials/foot') %>

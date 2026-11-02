@@ -1,0 +1,10 @@
+<%- include('../partials/head') %>
+<div class="page-head"><h1>Riwayat Scan</h1><a class="btn" href="/scan"><%- icon('scan', 18) %> Scan Baru</a></div>
+<% if (!scans.length) { %>
+  <div class="state"><%- icon('scan', 40) %><h2>Belum ada riwayat</h2><p>Hasil scan Anda akan tersimpan di sini.</p><a class="btn" href="/scan">Mulai Scan</a></div>
+<% } else { %>
+  <ul class="scan-list scan-list-lg">
+    <% scans.forEach((s) => { %><%- include('../partials/scan-item', { s }) %><% }) %>
+  </ul>
+<% } %>
+<%- include('../partials/foot') %>

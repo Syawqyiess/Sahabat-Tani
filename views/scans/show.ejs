@@ -1,0 +1,13 @@
+<%- include('../partials/head') %>
+<div class="page-head"><h1>Scan #<%= scan.id %></h1><a href="/scan/riwayat">Riwayat</a></div>
+<div class="card"><%- include('../partials/scan-result') %></div>
+<div class="stack">
+  <a class="btn btn-lg btn-block" href="/asisten/<%= scan.chat_session_id %>"><%- icon('chat', 20) %> Buka percakapan scan ini</a>
+  <% if (scan.status === 'failed') { %>
+    <form method="post" action="/scan/<%= scan.id %>/ulang">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn btn-ghost btn-block" type="submit" data-busy="Menganalisis…"><%- icon('refresh', 18) %> Coba analisis lagi</button>
+    </form>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

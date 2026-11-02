@@ -1,0 +1,11 @@
+<%- include('../partials/head') %>
+<div class="state state-error" style="max-width:720px;margin:var(--s-8) auto">
+  <div class="state-art"><%- include('../partials/terrace', { variant: 'soil' }) %></div>
+  <h1 class="h2"><%= title %></h1>
+  <p><%= message %></p>
+  <div class="state-actions">
+    <a class="btn" href="<%= currentUser ? (currentUser.role === 'admin' ? '/admin' : '/dashboard') : '/' %>">Kembali ke beranda</a>
+  </div>
+  <p class="small muted" style="margin-top:var(--s-4)">Kode: <%= status %></p>
+</div>
+<%- include('../partials/foot') %>

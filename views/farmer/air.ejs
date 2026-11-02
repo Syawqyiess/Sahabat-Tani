@@ -1,0 +1,128 @@
+<%- include('../partials/head') %>
+<%
+  const EXPLAIN = {
+    pm2_5: 'Debu sangat halus (lebih kecil dari 2,5 mikrometer), misalnya dari asap pembakaran jerami atau kendaraan. Bisa masuk dalam ke paru-paru.',
+    pm10: 'Debu kasar (lebih kecil dari 10 mikrometer), misalnya debu jalan atau tanah kering yang terbawa angin.',
+    nitrogen_dioxide: 'Gas dari pembakaran mesin dan kendaraan. Kadar tinggi dapat mengiritasi saluran napas.',
+    ozone: 'Gas yang terbentuk saat sinar matahari bereaksi dengan polutan lain; biasanya lebih tinggi siang hari.',
+    carbon_monoxide: 'Gas tak berwarna dari pembakaran tidak sempurna, misalnya asap pembakaran terbuka.',
+  };
+%>
+<div class="page-head">
+  <div>
+    <h1>Kualitas Udara</h1>
+    <p class="muted measure">Estimasi kualitas udara wilayah dari model atmosfer — <strong>bukan pengukuran langsung sensor di lahan</strong>.</p>
+  </div>
+</div>
+
+<form method="get" action="/udara" class="card loc-form">
+  <div class="field">
+    <label for="lahan">Lokasi</label>
+    <select id="lahan" name="lahan" data-autosubmit-select>
+      <% if (!lands.length) { %><option value="">Lokasi demo (belum ada lahan berkoordinat)</option><% } %>
+      <% lands.forEach((l) => { %>
+        <option value="<%= l.id %>" <%= loc.landId === l.id ? 'selected' : '' %>><%= l.name %><%= l.data_source === 'demo' ? ' — koordinat demo' : '' %></option>
+      <% }) %>
+    </select>
+  </div>
+  <noscript><button class="btn" type="submit">Tampilkan</button></noscript>
+  <button class="btn btn-ghost" type="button" data-geolocate="/udara"><%- icon('location', 20) %> Pakai lokasi perangkat</button>
+  <p class="small muted" data-geo-msg role="status" style="margin:0;grid-column:1/-1"></p>
+</form>
+
+<% if (typeof error !== 'undefined' && error) { %>
+  <div class="state state-error" role="alert">
+    <span class="state-icon"><%- icon('alert', 40) %></span>
+    <h2 class="h3">Data belum dapat dimuat</h2>
+    <p><%= error %></p>
+    <div class="state-actions"><a class="btn" href="?<%= loc.landId ? 'lahan=' + loc.landId + '&' : '' %>segarkan=1"><%- icon('refresh', 20) %> Coba Lagi</a></div>
+  </div>
+<% } else if (data.empty) { %>
+  <div class="state"><span class="state-icon"><%- icon('info', 40) %></span><h2 class="h3">Belum ada data</h2><p>Open-Meteo belum memiliki data kualitas udara untuk titik ini, sehingga status tidak ditampilkan.</p></div>
+<% } else {
+  const tone = data.category ? data.category.tone : 'none';
+  const catIcon = { good: 'smile', moderate: 'info', none: 'info' }[tone] || 'alert'; %>
+  <% if (typeof warning !== 'undefined' && warning) { %><div class="alert alert-warn" role="status"><%- icon('alert') %><span><%= warning %></span></div><% } %>
+
+  <section class="card aq-hero tone-<%= tone %>" aria-labelledby="aq-title">
+    <div class="aq-hero-num">
+      <span class="aq-num" aria-describedby="aq-index"><%= data.aqi != null ? Math.round(data.aqi) : '—' %></span>
+      <span class="small muted" id="aq-index"><%= data.indexName %></span>
+    </div>
+    <div>
+      <h2 id="aq-title" style="margin-bottom:var(--s-3)"><span class="aq-cat" style="font-size:var(--fs-h4)"><%- icon(catIcon, 24) %> <%= data.category ? data.category.label : 'Kategori tidak tersedia' %></span></h2>
+      <p style="font-size:var(--fs-lg)"><%= data.category ? data.category.advice : '' %></p>
+      <div class="aq-meta">
+        <span><%- icon('location', 18) %> <%= loc.label %> (<%= loc.lat.toFixed(4) %>, <%= loc.lng.toFixed(4) %>)</span>
+        <% if (loc.kind === 'demo') { %><span class="badge badge-demo">Lokasi Demo</span><% } %>
+        <% if (loc.kind === 'land-demo') { %><span class="badge badge-demo">Koordinat Lahan Demo</span><% } %>
+        <% if (loc.kind === 'device') { %><span class="badge">Lokasi perangkat</span><% } %>
+      </div>
+      <div class="aq-meta" style="margin-top:var(--s-2)">
+        <span><%- icon('clock', 18) %> Waktu data: <%= data.dataTime ? data.dataTime.replace('T', ' ') : '—' %> <%= data.tzAbbr || '' %> (waktu setempat)</span>
+        <span>Diperbarui: <%= u.fmtDate(data.fetchedAt, true) %><% if (data.stale) { %> <span class="badge badge-error">Data lama</span><% } %></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="h3">Parameter</h2>
+    <div class="param-grid">
+      <% data.params.forEach((p) => { %>
+        <div class="param">
+          <div class="param-name"><span><%= p.label %></span>
+            <details class="info">
+              <summary aria-label="Apa itu <%= p.label %>?"><%- icon('info', 14) %> Apa itu?</summary>
+              <div class="info-body"><%= EXPLAIN[p.key] %></div>
+            </details>
+          </div>
+          <div class="param-val"><%= p.value != null ? p.value : '—' %> <small><%= p.value != null ? p.unit : 'tidak tersedia' %></small></div>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+
+  <% if (data.series.filter((p) => p.us_aqi != null).length > 1) {
+    const pts = data.series.filter((p) => p.us_aqi != null);
+    const W = 900, H = 260, padL = 52, padR = 16, padT = 16, padB = 40;
+    const max = Math.max(60, ...pts.map((p) => p.us_aqi)) * 1.1;
+    const x = (i) => padL + (i * (W - padL - padR)) / (pts.length - 1);
+    const y = (vv) => H - padB - (vv / max) * (H - padT - padB);
+    const line = pts.map((p, i) => `${x(i).toFixed(1)},${y(p.us_aqi).toFixed(1)}`).join(' ');
+    const area = `${padL},${H - padB} ${line} ${x(pts.length - 1).toFixed(1)},${H - padB}`;
+    const lastP = pts[pts.length - 1];
+  %>
+  <section class="card">
+    <h2 class="h3">Perubahan 24 jam terakhir</h2>
+    <p class="small muted">US AQI per jam, dari <%= Math.round(pts[0].us_aqi) %> menjadi <%= Math.round(lastP.us_aqi) %>.</p>
+    <svg class="chart" viewBox="0 0 <%= W %> <%= H %>" role="img" aria-label="Grafik US AQI per jam selama 24 jam terakhir, dari <%= Math.round(pts[0].us_aqi) %> sampai <%= Math.round(lastP.us_aqi) %>">
+      <defs><linearGradient id="aqfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4e9a3a" stop-opacity=".28"/><stop offset="1" stop-color="#4e9a3a" stop-opacity="0"/></linearGradient></defs>
+      <% [50, 100, 150, 200].filter((t) => t <= max).forEach((t) => { %>
+        <line x1="<%= padL %>" x2="<%= W - padR %>" y1="<%= y(t) %>" y2="<%= y(t) %>" class="chart-grid"/>
+        <text x="<%= padL - 10 %>" y="<%= y(t) + 6 %>" text-anchor="end" class="chart-label"><%= t %></text>
+      <% }) %>
+      <polygon points="<%= area %>" class="chart-area"/>
+      <polyline points="<%= line %>" class="chart-line"/>
+      <circle cx="<%= x(pts.length - 1) %>" cy="<%= y(lastP.us_aqi) %>" r="6" class="chart-dot"/>
+      <% pts.forEach((p, i) => { if (i % 6 === 0 || i === pts.length - 1) { %>
+        <text x="<%= x(i) %>" y="<%= H - 10 %>" text-anchor="middle" class="chart-label"><%= p.time.slice(11, 16) %></text>
+      <% } }) %>
+    </svg>
+  </section>
+  <% } %>
+<% } %>
+
+<section class="card card-flat">
+  <h2 class="h4">Tentang data ini</h2>
+  <ul class="measure">
+    <li>Indeks yang dipakai: <strong>US AQI</strong> dengan kategori standar US EPA. Nilai ini <strong>tidak sama</strong> dengan ISPU Indonesia dan tidak dikonversi.</li>
+    <li>Kualitas udara tidak dapat dipakai untuk menyimpulkan kesehatan tanaman atau serangan hama.</li>
+    <li>Data disimpan sementara sekitar 30 menit untuk menghemat permintaan.</li>
+  </ul>
+  <details class="details-box">
+    <summary>Lihat semua kategori US AQI</summary>
+    <ul><% categories.forEach((c, i) => { %><li><%= i === 0 ? 0 : categories[i - 1].max + 1 %>–<%= c.max === Infinity ? '500' : c.max %>: <%= c.label %></li><% }) %></ul>
+  </details>
+  <p class="attribution" style="margin:var(--s-3) 0 0">Sumber data: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather data by Open-Meteo.com</a> (CC BY 4.0), berbasis data <a href="https://atmosphere.copernicus.eu/" target="_blank" rel="noopener">Copernicus Atmosphere Monitoring Service (CAMS)</a>.</p>
+</section>
+<%- include('../partials/foot') %>

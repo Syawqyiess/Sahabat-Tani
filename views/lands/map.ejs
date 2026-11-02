@@ -1,0 +1,39 @@
+<%- include('../partials/head') %>
+<div class="page-head">
+  <div>
+    <h1>Peta Lahan</h1>
+    <p class="muted measure">Hanya lahan milik Anda yang tampil. Batas digambar dari data yang Anda atau admin isi — Google Maps tidak mengetahui kepemilikan lahan.</p>
+  </div>
+  <a class="btn btn-ghost" href="/lahan"><%- icon('field', 20) %> Daftar Lahan</a>
+</div>
+<% if (!lands.length) { %>
+  <%- include('../partials/empty', { heading: 'Belum ada lahan', text: 'Tambahkan lahan dan isi koordinatnya agar tampil di peta.', actions: [{ href: '/lahan/baru', label: 'Tambahkan Lahan', icon: 'plus' }] }) %>
+<% } else { %>
+<div class="map-layout">
+  <aside class="map-side" aria-labelledby="pilih-lahan">
+    <h2 class="h4" id="pilih-lahan">Pilih lahan</h2>
+    <ul class="land-pick" data-land-list>
+      <% lands.forEach((l) => { const hasGeo = l.lat != null || l.polygon; %>
+        <li data-land-item="<%= l.id %>" class="<%= selected === l.id ? 'is-selected' : '' %>">
+          <div class="badges">
+            <% if (l.data_source === 'demo') { %><span class="badge badge-demo">Lahan Demo</span><% } else { %><span class="badge badge-real">Data asli</span><% } %>
+            <% if (l.season_status) { %><span class="badge"><%= l.season_status %></span><% } %>
+          </div>
+          <h3><%= l.name %></h3>
+          <p class="meta"><%= l.area_ha != null ? l.area_ha.toLocaleString('id-ID') + ' ha' : 'Luas belum diisi' %><%= l.variety ? ' · ' + l.variety : '' %><%= hasGeo ? '' : ' · belum ada koordinat' %></p>
+          <div class="row">
+            <% if (hasGeo && maps.browserKey) { %>
+              <button type="button" class="btn btn-sm" data-focus-land="<%= l.id %>" aria-pressed="<%= selected === l.id %>"><%- icon('focus', 18) %> Fokus ke Lahan</button>
+            <% } %>
+            <a class="btn btn-sm btn-ghost" href="/lahan/<%= l.id %>">Detail</a>
+            <% if (!hasGeo) { %><a class="btn btn-sm btn-ghost" href="/lahan/<%= l.id %>/ubah">Isi koordinat</a><% } %>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+    <div id="map-detail" class="card small map-sheet" aria-live="polite" hidden></div>
+  </aside>
+  <div class="map-main"><%- include('../partials/map', { compactMap: false }) %></div>
+</div>
+<% } %>
+<%- include('../partials/foot') %>

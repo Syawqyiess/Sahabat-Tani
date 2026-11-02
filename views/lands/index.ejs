@@ -1,0 +1,35 @@
+<%- include('../partials/head') %>
+<div class="page-head">
+  <div><h1>Lahan Saya</h1><p class="muted">Luas, varietas, dan koordinat boleh dilengkapi kapan saja.</p></div>
+  <div class="row wrap-row">
+    <% if (lands.length) { %><a class="btn btn-ghost" href="/lahan/peta"><%- icon('map', 20) %> Lihat di Peta</a><% } %>
+    <a class="btn" href="/lahan/baru"><%- icon('plus', 20) %> Tambah Lahan</a>
+  </div>
+</div>
+<% if (!lands.length) { %>
+  <%- include('../partials/empty', { heading: 'Belum ada lahan', text: 'Tambahkan lahan pertama Anda. Luas dan koordinat boleh diisi nanti.', actions: [{ href: '/lahan/baru', label: 'Tambahkan Lahan', icon: 'plus' }] }) %>
+<% } else { %>
+  <ul class="land-grid">
+    <% lands.forEach((l) => { %>
+      <li class="card land-card">
+        <div class="badges">
+          <% if (l.data_source === 'demo') { %><span class="badge badge-demo">Lahan Demo — Bukan Batas Lahan Asli</span><% } else { %><span class="badge badge-real">Data asli</span><% } %>
+          <% if (l.season_status) { %><span class="badge"><%= l.season_status %></span><% } %>
+        </div>
+        <h2><a href="/lahan/<%= l.id %>"><%= l.name %></a></h2>
+        <p class="small muted" style="margin:0"><%= l.address_desc || 'Lokasi belum diisi' %></p>
+        <dl class="land-facts">
+          <div><dt>Luas</dt><dd><%- l.area_ha != null ? l.area_ha.toLocaleString('id-ID') + ' ha' : '<span class="empty-val">Belum diisi</span>' %></dd></div>
+          <div><dt>Varietas</dt><dd><%- l.variety ? u.stripHtml(l.variety) : '<span class="empty-val">Belum diisi</span>' %></dd></div>
+          <div><dt>Scan</dt><dd><%= l.scan_count %> kali</dd></div>
+        </dl>
+        <p class="small muted" style="margin:0"><%- icon('location', 16) %> <%= l.lat != null ? 'Koordinat tersimpan' : 'Koordinat belum ada' %><%= l.polygon ? ' · batas lahan tersimpan' : '' %></p>
+        <div class="row wrap-row" style="margin-top:var(--s-3)">
+          <a class="btn btn-sm btn-tonal" href="/lahan/<%= l.id %>">Lihat detail</a>
+          <% if (l.lat != null || l.polygon) { %><a class="btn btn-sm btn-ghost" href="/lahan/peta?pilih=<%= l.id %>"><%- icon('map', 18) %> Di peta</a><% } else { %><a class="btn btn-sm btn-ghost" href="/lahan/<%= l.id %>/ubah">Isi koordinat</a><% } %>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+<%- include('../partials/foot') %>

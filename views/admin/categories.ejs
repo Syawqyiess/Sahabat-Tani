@@ -1,0 +1,26 @@
+<%- include('../partials/head') %>
+<h1>Kategori Artikel</h1>
+<form method="post" action="/admin/kategori" class="card row">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label for="new-cat" class="visually-hidden">Nama kategori baru</label>
+  <input id="new-cat" name="name" placeholder="Nama kategori baru" maxlength="60" required>
+  <button class="btn" type="submit"><%- icon('plus', 18) %> Tambah</button>
+</form>
+<ul class="cards-list">
+  <% categories.forEach((c) => { %>
+    <li class="card row wrap-row">
+      <form method="post" action="/admin/kategori/<%= c.id %>" class="row grow">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label class="visually-hidden" for="cat-<%= c.id %>">Nama kategori</label>
+        <input id="cat-<%= c.id %>" name="name" value="<%= c.name %>" maxlength="60">
+        <button class="btn btn-sm btn-ghost" type="submit">Simpan</button>
+      </form>
+      <span class="small muted"><%= c.n %> artikel</span>
+      <form method="post" action="/admin/kategori/<%= c.id %>/hapus" data-confirm="Hapus kategori ini?">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn-sm btn-ghost btn-danger" type="submit">Hapus</button>
+      </form>
+    </li>
+  <% }) %>
+</ul>
+<%- include('../partials/foot') %>

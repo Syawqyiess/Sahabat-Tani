@@ -1,0 +1,136 @@
+<%- include('../partials/head') %>
+<div class="page-head">
+  <div>
+    <h1>Scan Hama Padi</h1>
+    <p class="muted">Foto bagian tanaman yang bergejala, periksa fotonya, lalu analisis.</p>
+  </div>
+  <a class="btn btn-ghost" href="/scan/riwayat"><%- icon('history', 20) %> Riwayat Scan</a>
+</div>
+<% if (aiMode.vision === 'demo') { %>
+  <div class="alert alert-warn" role="note"><%- icon('info') %><span><strong>Mode demo:</strong> layanan AI belum diaktifkan. Foto disimpan dan dibuka di percakapan, tetapi <strong>tidak dianalisis oleh model</strong> (Simulasi respons AI).</span></div>
+<% } %>
+
+<ol class="stepper" data-stepper aria-label="Langkah scan">
+  <li data-s="pick" class="is-current" aria-current="step">Ambil atau unggah foto</li>
+  <li data-s="check">Periksa foto</li>
+  <li data-s="analyze">Analisis &amp; lanjut ke chat</li>
+</ol>
+
+<form id="scan-form" method="post" action="/scan" enctype="multipart/form-data" novalidate data-max-bytes="<%= maxMb * 1048576 %>" data-demo="<%= aiMode.vision === 'demo' ? '1' : '' %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input type="hidden" name="idempotency_key" value="<%= idemKey %>">
+
+  <div class="scan-layout">
+    <div class="scan-main">
+      <!-- Langkah 1 -->
+      <section class="dropzone" data-step="pick" data-dropzone aria-labelledby="pick-title">
+        <%- include('../partials/terrace', { variant: 'soft' }) %>
+        <h2 id="pick-title">Foto daun, batang, atau serangganya</h2>
+        <p class="muted" style="margin:0">Ambil foto langsung, pilih dari galeri, atau seret foto ke kotak ini.</p>
+        <div class="pick-buttons">
+          <button type="button" class="btn btn-lg pick-btn" data-action="camera"><%- icon('camera', 24) %> Ambil Foto</button>
+          <label class="btn btn-lg btn-tonal pick-btn"><%- icon('image', 24) %> Pilih dari Galeri
+            <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-input="gallery" class="visually-hidden">
+          </label>
+          <!-- Cadangan bila kamera langsung tidak bisa dipakai: membuka aplikasi kamera ponsel -->
+          <input type="file" accept="image/*" capture="environment" data-input="capture" class="visually-hidden" tabindex="-1" aria-hidden="true">
+        </div>
+        <p class="small muted" style="margin:0">Format JPG, PNG, atau WEBP. Maksimal <%= maxMb %> MB.</p>
+        <p class="field-error" data-msg="pick" role="alert" hidden style="justify-content:center"></p>
+      </section>
+
+      <!-- Kamera langsung -->
+      <section class="camera-panel" data-step="camera" hidden aria-label="Kamera">
+        <video playsinline muted autoplay aria-label="Pratinjau kamera"></video>
+        <div class="camera-actions">
+          <button type="button" class="btn btn-scan btn-lg" data-action="shoot"><%- icon('camera', 22) %> Potret</button>
+          <button type="button" class="btn btn-ghost btn-lg" data-action="cancel-camera">Batal</button>
+        </div>
+      </section>
+
+      <!-- Langkah 2 -->
+      <section class="preview-card" data-step="preview" hidden aria-labelledby="preview-title">
+        <h2 class="h3" id="preview-title" style="margin:var(--s-2) var(--s-2) var(--s-4)">Periksa foto</h2>
+        <img class="preview-img" alt="Pratinjau foto yang akan dianalisis" data-preview>
+        <ul class="quality" data-quality aria-live="polite"></ul>
+        <div class="preview-actions">
+          <button type="button" class="btn btn-ghost" data-action="replace"><%- icon('image', 20) %> Ganti Foto</button>
+          <button type="button" class="btn btn-ghost" data-action="retake"><%- icon('camera', 20) %> Ambil Ulang</button>
+        </div>
+      </section>
+    </div>
+
+    <aside class="scan-aside">
+      <section class="card">
+        <h2 class="h4">Agar foto mudah dikenali</h2>
+        <ul class="tips">
+          <li><span class="ic-wrap"><%- icon('sun', 22) %></span><span><strong>Cukup terang</strong><span class="small muted">Foto di tempat terang, hindari bayangan tangan.</span></span></li>
+          <li><span class="ic-wrap"><%- icon('focus', 22) %></span><span><strong>Fokus dan tajam</strong><span class="small muted">Ketuk layar pada bagian bergejala sebelum memotret.</span></span></li>
+          <li><span class="ic-wrap"><%- icon('ruler', 22) %></span><span><strong>Dekat, 20–30 cm</strong><span class="small muted">Gejala atau serangga memenuhi sebagian besar foto.</span></span></li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <details class="details-box">
+          <summary>Tambah keterangan <span class="opt">(opsional, membantu analisis)</span></summary>
+          <div style="padding-top:var(--s-3)">
+            <div class="field">
+              <label for="land_id">Lahan terkait</label>
+              <select id="land_id" name="land_id">
+                <option value="">— Tidak dipilih —</option>
+                <% lands.forEach((l) => { %><option value="<%= l.id %>"><%= l.name %></option><% }) %>
+              </select>
+            </div>
+            <div class="field">
+              <label for="plant_age_days">Umur tanaman (hari setelah tanam)</label>
+              <input id="plant_age_days" name="plant_age_days" type="number" inputmode="numeric" min="0" max="200" placeholder="Contoh: 35">
+            </div>
+            <div class="field">
+              <label for="affected_part">Bagian tanaman yang terdampak</label>
+              <select id="affected_part" name="affected_part">
+                <option value="">— Pilih —</option>
+                <% parts.forEach((p) => { %><option><%= p %></option><% }) %>
+              </select>
+            </div>
+            <div class="field" style="margin:0">
+              <label for="symptoms">Gejala yang terlihat</label>
+              <textarea id="symptoms" name="symptoms" rows="2" maxlength="500" placeholder="Contoh: daun menguning, ada serangga kecil cokelat di pangkal batang"></textarea>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <button type="submit" class="btn btn-lg btn-block" data-action="analyze"><%- icon('scan', 22) %> Analisis Foto</button>
+      <p class="small muted" style="margin-top:var(--s-3);text-align:center">Hasilnya langsung terbuka di percakapan bersama Asisten AI.</p>
+    </aside>
+  </div>
+
+  <!-- Status proses / hasil gagal -->
+  <div class="overlay" data-overlay hidden role="dialog" aria-modal="true" aria-labelledby="ov-title">
+    <div class="overlay-card" tabindex="-1">
+      <img class="overlay-photo" alt="" data-ov-photo>
+      <div data-ov="busy">
+        <h2 id="ov-title" class="h3">Memproses foto</h2>
+        <div class="progress-indeterminate" aria-hidden="true"></div>
+        <ol class="status-list" aria-live="polite">
+          <li data-st="upload"><span class="dot" aria-hidden="true"></span> Mengunggah foto</li>
+          <li data-st="ai"><span class="dot" aria-hidden="true"></span> <%= aiMode.vision === 'demo' ? 'Menyimpan foto (mode demo, tanpa analisis)' : 'AI sedang memeriksa foto' %></li>
+          <li data-st="chat"><span class="dot" aria-hidden="true"></span> Membuka percakapan</li>
+        </ol>
+        <p class="small muted" style="margin:var(--s-5) 0 0">Biasanya selesai dalam beberapa detik sampai satu menit. Jangan tutup halaman ini.</p>
+      </div>
+      <div data-ov="fail" hidden>
+        <span class="state-icon"><%- icon('alert', 40) %></span>
+        <h2 class="h3">Foto belum berhasil dianalisis</h2>
+        <p data-ov-msg></p>
+        <div class="stack">
+          <button type="button" class="btn btn-block" data-action="retry"><%- icon('refresh', 20) %> Coba Lagi</button>
+          <a class="btn btn-ghost btn-block" data-ov-chat href="/asisten">Buka chat dengan status “Foto belum berhasil dianalisis”</a>
+          <button type="button" class="btn btn-ghost btn-block" data-action="close-ov">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+<script src="/static/js/scan.js" defer></script>
+<%- include('../partials/foot') %>

@@ -1,0 +1,14 @@
+# Dependensi (pasang ulang dengan npm install)
+node_modules/
+
+# Database & foto unggahan (data, bukan kode)
+storage/
+
+# Rahasia: kunci API & konfigurasi lokal
+.env
+.env.*
+!.env.example
+
+# Pengaturan lokal & log
+.claude/settings.local.json
+*.log

@@ -1,0 +1,22 @@
+<%- include('../partials/field', { name: 'name', label: 'Nama lahan', value: land.name, error: errors.name, required: true, placeholder: 'Contoh: Sawah dekat sungai' }) %>
+<%- include('../partials/field', { name: 'address_desc', label: 'Lokasi / deskripsi alamat', type: 'textarea', rows: 2, value: land.address_desc, error: errors.address_desc, optional: true }) %>
+<%- include('../partials/field', { name: 'area_ha', label: 'Luas (hektare)', type: 'number', step: 'any', inputmode: 'decimal', value: land.area_ha, error: errors.area_ha, optional: true, hint: '1 hektare = 10.000 m². Boleh dikosongkan bila belum tahu.' }) %>
+<div class="grid-2">
+  <%- include('../partials/field', { name: 'commodity', label: 'Komoditas', value: land.commodity || 'Padi', error: errors.commodity, optional: true }) %>
+  <%- include('../partials/field', { name: 'variety', label: 'Varietas', value: land.variety, error: errors.variety, optional: true, placeholder: 'Contoh: Inpari 32' }) %>
+</div>
+<div class="grid-2">
+  <%- include('../partials/field', { name: 'planting_date', label: 'Tanggal tanam', type: 'date', value: land.planting_date, error: errors.planting_date, optional: true }) %>
+  <%- include('../partials/field', { name: 'season_status', label: 'Status musim tanam', type: 'select', options: statuses, value: land.season_status, error: errors.season_status, optional: true }) %>
+</div>
+<fieldset>
+  <legend>Koordinat (opsional)</legend>
+  <p class="small muted">Lahan tetap bisa disimpan tanpa koordinat. Bila berada di lahan, tekan tombol di bawah untuk mengisi otomatis dari lokasi perangkat.</p>
+  <button type="button" class="btn btn-ghost btn-sm" data-fill-coords><%- icon('location', 16) %> Isi dari lokasi saya</button>
+  <p class="small muted" data-geo-msg role="status"></p>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'lat', label: 'Lintang (latitude)', type: 'number', step: 'any', inputmode: 'decimal', value: land.lat, error: errors.lat, placeholder: '-6.3227' }) %>
+    <%- include('../partials/field', { name: 'lng', label: 'Bujur (longitude)', type: 'number', step: 'any', inputmode: 'decimal', value: land.lng, error: errors.lng, placeholder: '107.3376' }) %>
+  </div>
+  <%- include('../partials/field', { name: 'polygon_json', label: 'Batas lahan (poligon)', type: 'textarea', rows: 3, value: land.polygon_json, error: errors.polygon_json, optional: true, hint: 'Format: [[lat,lng],[lat,lng],[lat,lng],...] minimal 3 titik. Bisa diisi admin dari hasil pengukuran.' }) %>
+</fieldset>

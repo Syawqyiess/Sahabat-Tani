@@ -1,0 +1,21 @@
+<%- include('../partials/head') %>
+<div class="page-head"><h1>Data Petani</h1><a href="/admin/pengguna">Kembali</a></div>
+<p><%= profile.full_name || 'Nama belum diisi' %> · bergabung <%= u.fmtDate(profile.joined_at) %> · profil <%= completeness.percent %>% lengkap
+  <% if (profile.is_demo) { %><span class="badge badge-demo">Akun Demo</span><% } %></p>
+<% if (profile.photo_path) { %><img class="avatar avatar-lg" src="/media/<%= profile.photo_path %>" alt="Foto profil petani" width="96" height="96"><% } %>
+<form method="post" action="/admin/pengguna/<%= profile.user_id %>" class="form card" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% if (Object.keys(errors).length) { %><div class="alert alert-error" role="alert"><%- icon('alert') %><span>Ada data yang perlu diperbaiki.</span></div><% } %>
+  <%- include('../farmer/profile-fields') %>
+  <button class="btn btn-lg" type="submit">Simpan data petani</button>
+</form>
+<section class="card">
+  <div class="section-head"><h2 class="h3">Lahan petani</h2><a href="/admin/lahan/baru?user=<%= profile.user_id %>">Tambah lahan</a></div>
+  <% if (!lands.length) { %><p class="muted">Belum ada lahan.</p><% } else { %>
+    <ul class="link-list"><% lands.forEach((l) => { %>
+      <li><a href="/admin/lahan/<%= l.id %>/ubah"><%= l.name %></a> <span class="small muted">· <%= l.area_ha != null ? l.area_ha + ' ha' : 'luas belum diisi' %> · <%= l.lat != null ? 'berkoordinat' : 'tanpa koordinat' %></span>
+        <% if (l.data_source === 'demo') { %><span class="badge badge-demo">Demo</span><% } %></li>
+    <% }) %></ul>
+  <% } %>
+</section>
+<%- include('../partials/foot') %>

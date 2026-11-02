@@ -1,0 +1,50 @@
+<%- include('../partials/head') %>
+<% const a = article; const mins = a.origin === 'internal' ? u.readMinutes(a.body_md) : null; %>
+<article class="article">
+  <a class="back-link" href="/artikel"><%- icon('arrowLeft', 18) %> Artikel &amp; Berita</a>
+  <% if (a.status !== 'published') { %><div class="alert alert-warn"><%- icon('info') %><span>Pratinjau admin — status: <%= a.status %>. Petani tidak dapat melihat artikel ini.</span></div><% } %>
+  <div class="badges">
+    <% if (a.category_name) { %><a class="badge" href="/artikel?kategori=<%= a.category_slug %>"><%= a.category_name %></a><% } %>
+    <% if (a.is_demo) { %><span class="badge badge-demo">Konten Demo</span><% } %>
+    <% if (a.origin === 'external') { %><span class="badge badge-ext">Berita dari <%= a.source_name %></span><% } %>
+  </div>
+  <h1><%= a.title %></h1>
+  <p class="article-meta" style="margin:0 0 var(--s-5)">
+    <% if (a.author_name) { %><span>Oleh <%= a.author_name %></span><% } %>
+    <span>Terbit <%= u.fmtDate(a.published_at) %><% if (a.origin === 'external') { %> (tanggal asli sumber)<% } %></span>
+    <% if (a.origin === 'internal' && a.updated_at && a.published_at && u.toDate(a.updated_at) > u.toDate(a.published_at)) { %><span>Diperbarui <%= u.fmtDate(a.updated_at) %></span><% } %>
+    <% if (mins) { %><span><%- icon('clock', 16) %> <%= mins %> menit baca</span><% } %>
+  </p>
+  <% if (a.image_url) { %><img class="article-hero" src="<%= a.image_url %>" alt="<%= a.image_alt || '' %>" loading="lazy"><% } %>
+  <% if (a.summary) { %><p class="lead"><%= a.summary %></p><% } %>
+
+  <% if (a.origin === 'external') { %>
+    <div class="card card-flat">
+      <p>Ini ringkasan dari sumber luar. Baca artikel lengkapnya di situs penerbit:</p>
+      <a class="btn" href="<%= a.source_url %>" target="_blank" rel="noopener noreferrer">Baca di <%= a.source_name %> <%- icon('external', 18) %></a>
+    </div>
+  <% } else { %>
+    <div class="prose"><%- a.body_html %></div>
+    <% if (a.source_url) { %><p class="small">Sumber: <a href="<%= a.source_url %>" target="_blank" rel="noopener noreferrer"><%= a.source_name || a.source_url %></a></p><% } %>
+  <% } %>
+  <% if (a.tags) { %><p class="tags"><% a.tags.split(',').map((t) => t.trim()).filter(Boolean).forEach((t) => { %><a class="chip" href="/artikel?q=<%= encodeURIComponent(t) %>">#<%= t %></a><% }) %></p><% } %>
+
+  <% if (currentUser && currentUser.role === 'farmer' && a.status === 'published') { %>
+    <form method="post" action="/artikel/<%= a.id %>/simpan">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn <%= isSaved ? 'btn-tonal' : '' %>" type="submit"><%- icon('bookmark', 20) %> <%= isSaved ? 'Hapus dari Tersimpan' : 'Simpan Artikel' %></button>
+    </form>
+  <% } else if (!currentUser) { %>
+    <p class="small"><a href="/masuk">Masuk</a> untuk menyimpan artikel.</p>
+  <% } %>
+
+  <% if (related.length) { %>
+    <section style="margin-top:var(--s-10)">
+      <h2 class="h3">Artikel terkait</h2>
+      <ul class="link-list">
+        <% related.forEach((r) => { %><li><a href="/artikel/<%= r.slug %>"><strong><%= r.title %></strong></a> <span class="small muted">— <%= u.fmtDate(r.published_at) %></span><% if (r.is_demo) { %> <span class="badge badge-demo">Konten Demo</span><% } %></li><% }) %>
+      </ul>
+    </section>
+  <% } %>
+</article>
+<%- include('../partials/foot') %>

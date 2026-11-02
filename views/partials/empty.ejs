@@ -1,0 +1,14 @@
+<%
+  // Empty state bersama: ilustrasi terasering ringan, judul, penjelasan, dan tindakan berikutnya.
+  const acts = typeof actions !== 'undefined' ? actions : [];
+%>
+<div class="state">
+  <div class="state-art"><%- include('terrace', { variant: 'soft' }) %></div>
+  <h2 class="h3"><%= heading %></h2>
+  <% if (typeof text !== 'undefined' && text) { %><p><%= text %></p><% } %>
+  <% if (acts.length) { %>
+    <div class="state-actions">
+      <% acts.forEach((a, i) => { %><a class="btn <%= i ? 'btn-ghost' : '' %>" href="<%= a.href %>"><% if (a.icon) { %><%- icon(a.icon, 20) %><% } %> <%= a.label %></a><% }) %>
+    </div>
+  <% } %>
+</div>

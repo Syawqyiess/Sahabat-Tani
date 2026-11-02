@@ -1,0 +1,52 @@
+<%
+  // Data peta hanya berisi lahan milik petani yang sedang masuk (disiapkan di route).
+  const mapLands = lands.map((l) => ({
+    id: l.id, name: l.name, lat: l.lat, lng: l.lng, polygon: l.polygon || null, demo: l.data_source === 'demo',
+    area: l.area_ha, variety: l.variety, status: l.season_status, address: l.address_desc,
+  }));
+  const geoLands = mapLands.filter((l) => (l.lat != null && l.lng != null) || l.polygon);
+  const compact = typeof compactMap !== 'undefined' && compactMap;
+%>
+<div class="map-wrap <%= compact ? 'map-compact' : '' %>">
+  <% if (geoLands.some((l) => l.demo)) { %>
+    <p class="map-label"><span class="badge badge-demo">Lahan Demo — Bukan Batas Lahan Asli</span></p>
+  <% } %>
+  <% if (maps.browserKey) { %>
+    <div class="map" id="map"
+      data-key="<%= maps.browserKey %>" data-map-id="<%= maps.mapId %>"
+      data-center="<%= JSON.stringify(maps.demoCenter) %>"
+      data-lands="<%= JSON.stringify(geoLands) %>"
+      data-selected="<%= typeof selected !== 'undefined' && selected ? selected : '' %>"
+      role="region" aria-label="Peta lahan">
+      <div class="state-inline" style="background:transparent"><span class="spinner" aria-hidden="true"></span> Memuat Google Maps…</div>
+    </div>
+    <% if (geoLands.length) { %>
+      <div class="map-legend" aria-label="Legenda peta">
+        <% if (geoLands.some((l) => !l.demo)) { %><span class="legend-item"><span class="legend-swatch legend-real"></span> Lahan asli (penanda L)</span><% } %>
+        <% if (geoLands.some((l) => l.demo)) { %><span class="legend-item"><span class="legend-swatch legend-demo"></span> Lahan demo (penanda D)</span><% } %>
+      </div>
+    <% } %>
+    <noscript><p class="notice">Peta membutuhkan JavaScript.</p></noscript>
+  <% } else { %>
+    <div class="map-placeholder" role="note">
+      <%- include('terrace', { variant: 'soft' }) %>
+      <p style="display:flex;gap:10px;align-items:flex-start"><%- icon('map', 26) %> <span><strong>Peta belum aktif.</strong> Admin belum memasang Google Maps API key, sehingga peta tidak ditampilkan.</span></p>
+      <% if (geoLands.length) { %>
+        <p class="small" style="margin-bottom:4px">Koordinat yang sudah tersimpan:</p>
+        <ul class="coord-list small">
+          <% geoLands.forEach((l) => { %>
+            <li><strong><%= l.name %></strong><% if (l.demo) { %> <span class="badge badge-demo">Demo</span><% } %> —
+              <% if (l.lat != null) { %><a href="https://www.google.com/maps/search/?api=1&query=<%= l.lat %>,<%= l.lng %>" target="_blank" rel="noopener">buka <%= l.lat.toFixed(4) %>, <%= l.lng.toFixed(4) %> di Google Maps <%- icon('external', 14) %></a><% } else { %>batas poligon tersimpan<% } %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <p class="small" style="margin:0">Belum ada lahan dengan koordinat.</p>
+      <% } %>
+    </div>
+  <% } %>
+  <% if (!geoLands.length && lands.length) { %>
+    <p class="small muted" style="margin-top:var(--s-3)">Lahan Anda belum memiliki koordinat. Tambahkan koordinat di halaman ubah lahan agar tampil di peta.</p>
+  <% } %>
+</div>
+<% if (maps.browserKey) { %><script src="/static/js/map.js" defer></script><% } %>

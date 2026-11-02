@@ -1,0 +1,26 @@
+<% const r = scan.result || {}; %>
+<div class="scan-result">
+  <img class="scan-photo" src="/media/<%= scan.image_path %>" alt="Foto yang dipindai" loading="lazy">
+  <div>
+    <div class="badges">
+      <% if (scan.status === 'failed') { %><span class="badge badge-error">Foto belum berhasil dianalisis</span>
+      <% } else if (scan.status !== 'completed') { %><span class="badge">Sedang diproses</span>
+      <% } else if (scan.mode === 'demo') { %><span class="badge badge-demo">Simulasi respons AI — tidak dianalisis model</span>
+      <% } else { %><span class="badge badge-real">Dianalisis AI · dugaan awal</span><% } %>
+    </div>
+    <% if (scan.status === 'completed' && scan.mode === 'ai') { %>
+      <p><strong>Dugaan:</strong> <%= r.identified && r.suspected_pest_name ? r.suspected_pest_name : 'Belum dapat diidentifikasi' %><% if (r.suspected_pest_scientific) { %> <em>(<%= r.suspected_pest_scientific %>)</em><% } %></p>
+      <% if (SUBJECT_LABEL[r.subject]) { %><p class="small"><%= SUBJECT_LABEL[r.subject] %></p><% } %>
+      <% if (r.photo_quality && r.photo_quality.is_clear === false) { %><p class="small warn"><%- icon('alert', 14) %> Foto kurang jelas: <%= (r.photo_quality.issues || []).join('; ') %></p><% } %>
+      <p class="small muted">Tanpa skor keyakinan: model tidak menghasilkan skor yang bermakna untuk foto tunggal.</p>
+    <% } else if (scan.status === 'failed') { %>
+      <p class="small"><%= scan.error_message %></p>
+    <% } %>
+    <p class="small muted">
+      <%= u.fmtDate(scan.created_at, true) %><% if (scan.land_name) { %> · <%= scan.land_name %><% } %>
+      <% if (scan.plant_age_days != null) { %> · umur <%= scan.plant_age_days %> hari<% } %>
+      <% if (scan.affected_part) { %> · <%= scan.affected_part %><% } %>
+    </p>
+    <% if (scan.provider) { %><p class="small muted">Penyedia: <%= scan.provider %><%= scan.model ? ' · ' + scan.model : '' %><%= scan.processing_ms != null ? ' · ' + (scan.processing_ms / 1000).toFixed(1) + ' dtk' : '' %></p><% } %>
+  </div>
+</div>

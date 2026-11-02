@@ -1,0 +1,66 @@
+<%- include('../partials/head') %>
+<%
+  const show = (v) => (v === null || v === undefined || v === '') ? '<span class="empty-val">Belum diisi</span>' : u.stripHtml(String(v));
+  const place = [profile.village, profile.district, profile.regency, profile.province].filter(Boolean).join(', ');
+%>
+<section class="profile-hero">
+  <%- include('../partials/terrace', { variant: 'night' }) %>
+  <div class="profile-hero-in">
+    <% if (profile.photo_path) { %>
+      <img class="avatar avatar-lg" src="/media/<%= profile.photo_path %>" alt="Foto profil" width="104" height="104">
+    <% } else { %>
+      <div class="avatar avatar-lg avatar-ph" aria-hidden="true"><%- icon('user', 44) %></div>
+    <% } %>
+    <div>
+      <h1><%- show(profile.full_name) %></h1>
+      <p><%- icon('location', 18) %> <%= place || 'Lokasi belum diisi' %></p>
+      <p class="small" style="margin-top:6px">Bergabung <%= u.fmtDate(profile.joined_at) %><% if (profile.is_demo) { %> · <span class="badge badge-demo">Akun Demo</span><% } %></p>
+    </div>
+    <a class="btn btn-paddy" href="/profil/ubah"><%- icon('edit', 20) %> Ubah Profil</a>
+  </div>
+</section>
+
+<div class="profile-grid">
+  <div>
+    <section class="card">
+      <h2 class="h3">Kontak</h2>
+      <dl class="dl">
+        <dt>Nomor telepon</dt><dd><%- show(profile.phone) %></dd>
+        <dt>Email</dt><dd><%- show(profile.email) %></dd>
+      </dl>
+    </section>
+    <section class="card">
+      <h2 class="h3">Alamat</h2>
+      <dl class="dl">
+        <dt>Desa/kelurahan</dt><dd><%- show(profile.village) %></dd>
+        <dt>Kecamatan</dt><dd><%- show(profile.district) %></dd>
+        <dt>Kabupaten/kota</dt><dd><%- show(profile.regency) %></dd>
+        <dt>Provinsi</dt><dd><%- show(profile.province) %></dd>
+      </dl>
+    </section>
+    <section class="card">
+      <h2 class="h3">Usaha tani</h2>
+      <dl class="dl">
+        <dt>Kelompok tani</dt><dd><%- show(profile.farmer_group) %></dd>
+        <dt>Pengalaman bertani</dt><dd><%- profile.experience_years != null ? profile.experience_years + ' tahun' : show(null) %></dd>
+        <dt>Komoditas utama</dt><dd><%- show(profile.main_commodity) %></dd>
+        <dt>Lahan</dt><dd><%= summary.count %> lahan<% if (summary.totalArea != null) { %>, total <%= (+summary.totalArea.toFixed(2)).toLocaleString('id-ID') %> ha<% } %><% if (summary.noArea) { %> (<%= summary.noArea %> belum diisi luasnya)<% } %> — <a href="/lahan">lihat lahan</a></dd>
+      </dl>
+    </section>
+  </div>
+  <div>
+    <section class="card complete-card">
+      <div class="ring" style="--p: <%= completeness.percent %>" role="img" aria-label="Profil <%= completeness.percent %> persen lengkap"><span><%= completeness.percent %>%</span></div>
+      <% if (completeness.percent < 100) { %>
+        <h2 class="h4">Hampir lengkap</h2>
+        <p class="muted">Lengkapi data berikut agar penyuluh dan admin lebih mudah membantu:</p>
+        <ul class="small"><% completeness.missing.forEach((m) => { %><li><%= m %></li><% }) %></ul>
+        <a class="btn btn-block" href="/profil/ubah"><%- icon('edit', 20) %> Lengkapi Profil</a>
+      <% } else { %>
+        <h2 class="h4">Profil sudah lengkap</h2>
+        <p class="muted" style="margin:0">Terima kasih. Data Anda bisa diperbarui kapan saja.</p>
+      <% } %>
+    </section>
+  </div>
+</div>
+<%- include('../partials/foot') %>

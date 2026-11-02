@@ -1,0 +1,33 @@
+<%- include('../partials/head') %>
+<div class="page-head">
+  <div><h1>Asisten AI</h1><p class="muted">Lanjutkan percakapan atau mulai pertanyaan baru.</p></div>
+  <form method="post" action="/asisten/baru">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="idempotency_key" value="<%= Date.now().toString(36) + Math.random().toString(36).slice(2) %>">
+    <button class="btn" type="submit" data-busy="Membuka…"><%- icon('plus', 20) %> Percakapan Baru</button>
+  </form>
+</div>
+<% if (aiMode.chat === 'demo') { %><div class="alert alert-warn"><%- icon('info') %><span><strong>Mode demo:</strong> jawaban berupa “Simulasi respons AI”, bukan dari model.</span></div><% } %>
+<% if (!sessions.length) { %>
+  <%- include('../partials/empty', { heading: 'Belum ada percakapan', text: 'Mulai dengan Scan Hama Padi — hasilnya otomatis masuk ke percakapan.', actions: [{ href: '/scan', label: 'Scan Hama Padi', icon: 'camera' }] }) %>
+<% } else { %>
+  <ul class="cards-list" style="max-width:900px">
+    <% sessions.forEach((s) => { %>
+      <li>
+        <a class="continue-chat" href="/asisten/<%= s.id %>" style="background:var(--c-surface);box-shadow:var(--sh-1)">
+          <span class="ic-wrap"><%- icon(s.scan_id ? 'scan' : 'chat', 20) %></span>
+          <span class="grow">
+            <span class="badges" style="margin-bottom:4px">
+              <% if (s.scan_id) { %><span class="badge">Dari scan</span><% } %>
+              <% if (s.scan_status === 'failed') { %><span class="badge badge-error">Foto belum berhasil dianalisis</span><% } %>
+            </span>
+            <strong><%= s.title %></strong>
+            <p><%= u.truncate(u.stripHtml(s.last_message || ''), 140) %></p>
+            <span class="xs muted"><%= s.message_count %> pesan · <%= u.timeAgo(s.updated_at) %></span>
+          </span>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+<%- include('../partials/foot') %>
