@@ -660,6 +660,12 @@ a.tile:active { transform: scale(.99); }
 .status-list li.is-done .dot { background: var(--leaf); border-color: var(--leaf); }
 .status-list li.is-done .dot::after { content: "✓"; color: #fff; font-size: 12px; font-weight: 800; }
 .scan-result { display: grid; gap: var(--s-5); }
+.score-list { list-style: none; padding: 0; margin: var(--s-2) 0 var(--s-3); display: grid; gap: var(--s-2); }
+.score-list li { display: grid; grid-template-columns: minmax(0, 1fr) 90px 44px; gap: var(--s-3); align-items: center; font-size: var(--fs-sm); }
+.score-list li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.score-list strong { text-align: right; }
+.score-bar { height: 8px; border-radius: 8px; background: var(--c-surface-2); overflow: hidden; }
+.score-bar i { display: block; height: 100%; background: var(--leaf); border-radius: 8px; }
 .scan-photo { width: 100%; max-height: 360px; object-fit: contain; background: #0c1a10; border-radius: var(--r-lg); display: block; }
 @media (min-width: 720px) { .scan-result { grid-template-columns: 260px 1fr; } }
 @media (max-width: 1023px) {

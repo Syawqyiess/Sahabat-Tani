@@ -1,0 +1,95 @@
+{
+  "name": "Sahabat Tani — scanner hama padi (EfficientNet-B0)",
+  "trained_at": "2026-11-02T06:31:54.987497+00:00",
+  "dataset": "IP102 v1.1 (klasifikasi), 14 kelas hama padi + sampel serangga lain; pembagian train/val/test resmi IP102. Lisensi dataset: bebas untuk penggunaan akademik.",
+  "metrics": {
+    "test_images": 3131,
+    "test_accuracy": 0.6714,
+    "test_macro_f1": 0.6444,
+    "test_top3_accuracy": 0.8646,
+    "test_ece_calibrated": 0.0408,
+    "threshold": 0.6,
+    "test_coverage_at_threshold": 0.671,
+    "test_accuracy_at_threshold": 0.8106,
+    "best_epoch": 11,
+    "val_macro_f1_best": 0.664
+  },
+  "threshold_curve_val": [
+    {
+      "threshold": 0.3,
+      "coverage": 0.9405,
+      "accuracy": 0.7386
+    },
+    {
+      "threshold": 0.35,
+      "coverage": 0.9125,
+      "accuracy": 0.7507
+    },
+    {
+      "threshold": 0.4,
+      "coverage": 0.8784,
+      "accuracy": 0.7679
+    },
+    {
+      "threshold": 0.45,
+      "coverage": 0.8224,
+      "accuracy": 0.7926
+    },
+    {
+      "threshold": 0.5,
+      "coverage": 0.7725,
+      "accuracy": 0.8199
+    },
+    {
+      "threshold": 0.55,
+      "coverage": 0.7209,
+      "accuracy": 0.841
+    },
+    {
+      "threshold": 0.6,
+      "coverage": 0.671,
+      "accuracy": 0.8553
+    },
+    {
+      "threshold": 0.65,
+      "coverage": 0.6063,
+      "accuracy": 0.8788
+    },
+    {
+      "threshold": 0.7,
+      "coverage": 0.5512,
+      "accuracy": 0.8952
+    },
+    {
+      "threshold": 0.75,
+      "coverage": 0.5092,
+      "accuracy": 0.9021
+    },
+    {
+      "threshold": 0.8,
+      "coverage": 0.4357,
+      "accuracy": 0.9157
+    },
+    {
+      "threshold": 0.85,
+      "coverage": 0.3657,
+      "accuracy": 0.933
+    },
+    {
+      "threshold": 0.9,
+      "coverage": 0.2791,
+      "accuracy": 0.9436
+    },
+    {
+      "threshold": 0.95,
+      "coverage": 0.1505,
+      "accuracy": 0.9477
+    }
+  ],
+  "limitations": [
+    "Hanya mengenali 14 hama padi dari IP102; walang sangit, keong mas, dan tikus belum termasuk.",
+    "Foto IP102 sebagian besar dari internet, bukan foto lapangan Indonesia; akurasi di sawah bisa lebih rendah.",
+    "Kelas 'bukan hama padi' hanya berisi serangga lain; foto daun/penyakit/non-serangga bisa tetap diberi skor tinggi untuk salah satu kelas.",
+    "Skor adalah keyakinan model setelah kalibrasi pada data validasi, bukan peluang pasti benar."
+  ]
+}

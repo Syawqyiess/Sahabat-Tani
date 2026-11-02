@@ -57,6 +57,12 @@ function composeInitialMessage(result, mode) {
       L.push('', '**Kemungkinan lain:**', ...result.alternatives.map((a) => `- ${a.name} — ${a.reason}`));
     }
     if (result.non_pest_note) L.push('', `**Catatan:** ${result.non_pest_note}`);
+    if (result.scores && result.scores.length && result.model_info) {
+      const mi = result.model_info;
+      L.push('', '**Skor model scanner lokal (3 teratas):**', ...result.scores.map((s) => `- ${s.name} — ${Math.round(s.score * 100)}%`));
+      const acc = mi.test_accuracy != null ? ` Pada ${mi.test_images || 'sejumlah'} foto uji IP102, ketepatan tebakan pertama model ${Math.round(mi.test_accuracy * 100)}%${mi.test_top3_accuracy != null ? ` dan jawaban benar ada di 3 teratas ${Math.round(mi.test_top3_accuracy * 100)}%` : ''}.` : '';
+      L.push('', `_${mi.note}${acc} Foto lapangan Indonesia bisa memberi hasil berbeda._`);
+    }
   }
   if (result.initial_steps && result.initial_steps.length) {
     L.push('', '**Langkah pemeriksaan dan penanganan awal:**', ...result.initial_steps.map((x, i) => `${i + 1}. ${x}`));

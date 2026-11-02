@@ -12,7 +12,19 @@
       <p><strong>Dugaan:</strong> <%= r.identified && r.suspected_pest_name ? r.suspected_pest_name : 'Belum dapat diidentifikasi' %><% if (r.suspected_pest_scientific) { %> <em>(<%= r.suspected_pest_scientific %>)</em><% } %></p>
       <% if (SUBJECT_LABEL[r.subject]) { %><p class="small"><%= SUBJECT_LABEL[r.subject] %></p><% } %>
       <% if (r.photo_quality && r.photo_quality.is_clear === false) { %><p class="small warn"><%- icon('alert', 14) %> Foto kurang jelas: <%= (r.photo_quality.issues || []).join('; ') %></p><% } %>
-      <p class="small muted">Tanpa skor keyakinan: model tidak menghasilkan skor yang bermakna untuk foto tunggal.</p>
+      <% if (r.scores && r.scores.length && r.model_info) { %>
+        <ul class="score-list" aria-label="Skor model scanner lokal">
+          <% r.scores.forEach((s) => { const p = Math.round(s.score * 100); %>
+            <li><span><%= s.name %></span><span class="score-bar" aria-hidden="true"><i style="width: <%= p %>%"></i></span><strong><%= p %>%</strong></li>
+          <% }) %>
+        </ul>
+        <details class="info">
+          <summary><%- icon('info', 14) %> Tentang skor ini</summary>
+          <div class="info-body"><%= r.model_info.note %><% if (r.model_info.test_accuracy != null) { %> Ketepatan tebakan pertama pada <%= r.model_info.test_images %> foto uji: <%= Math.round(r.model_info.test_accuracy * 100) %>%.<% } %> Ambang “cukup yakin”: <%= Math.round(r.model_info.threshold * 100) %>%.</div>
+        </details>
+      <% } else { %>
+        <p class="small muted">Tanpa skor keyakinan: model tidak menghasilkan skor yang bermakna untuk foto tunggal.</p>
+      <% } %>
     <% } else if (scan.status === 'failed') { %>
       <p class="small"><%= scan.error_message %></p>
     <% } %>

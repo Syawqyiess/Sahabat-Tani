@@ -1,0 +1,88 @@
+'use strict';
+const { test, before, after, describe } = require('node:test');
+const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
+const sharp = require('sharp');
+const h = require('./helpers');
+const config = require('../src/config');
+const ai = require('../src/services/ai');
+const storage = require('../src/services/storage');
+const local = require('../src/services/ai/local-scanner');
+
+// Model mini (test/fixtures/scanner-mini) memilih kelas dari warna rata-rata gambar:
+// merah → kelas 0, hijau → "wereng batang cokelat", biru → "bukan hama padi".
+async function colorImage(r, g, b, size = 400) {
+  const buffer = await sharp({ create: { width: size, height: size, channels: 3, background: { r, g, b } } }).jpeg().toBuffer();
+  return storage.saveImage({ buffer, size: buffer.length }, 777, 'scan').relPath;
+}
+
+before(async () => {
+  await h.setup();
+  config.ai.localScannerDir = 'test/fixtures/scanner-mini';
+  local._reset();
+});
+after(() => {
+  config.ai.visionProvider = 'demo';
+  config.ai.localScannerMinScore = null;
+  config.ai.localScannerDir = 'models/scanner-padi';
+  local._reset();
+});
+
+describe('Penyedia scanner lokal (ONNX)', () => {
+  test('aktif hanya bila berkas model tersedia', () => {
+    config.ai.visionProvider = 'lokal';
+    assert.equal(ai.vision().name, 'lokal');
+    config.ai.localScannerDir = 'tidak/ada';
+    assert.equal(ai.vision().name, 'demo');
+    config.ai.localScannerDir = 'test/fixtures/scanner-mini';
+  });
+
+  test('yakin: nama hama, skor 3 teratas, langkah dari referensi hama di database', async () => {
+    const { result, model } = await local.vision.analyze({ imagePath: await colorImage(20, 230, 40), notes: {}, references: [] });
+    assert.match(model, /scanner-padi fixture/);
+    assert.equal(result.identified, true);
+    assert.equal(result.suspected_pest_name, 'Wereng batang cokelat');
+    assert.equal(result.suspected_pest_scientific, 'Nilaparvata lugens');
+    assert.equal(result.scores.length, 3);
+    assert.ok(result.scores[0].score > 0.6 && result.scores[0].score <= 1);
+    assert.ok(result.initial_steps.some((s) => /pangkal batang/i.test(s)), 'langkah diambil dari referensi wereng');
+    assert.deepEqual(result.visual_evidence, [], 'model klasifikasi tidak mengarang ciri visual');
+    assert.match(result.model_info.note, /bukan peluang pasti benar/);
+  });
+
+  test('serangga lain: tidak dipaksakan menjadi hama padi', async () => {
+    const { result } = await local.vision.analyze({ imagePath: await colorImage(20, 40, 230), notes: {}, references: [] });
+    assert.equal(result.identified, false);
+    assert.equal(result.subject, 'tidak_relevan');
+    assert.equal(result.suspected_pest_name, '');
+  });
+
+  test('di bawah ambang: belum teridentifikasi, hanya kemungkinan', async () => {
+    config.ai.localScannerMinScore = 0.9;
+    const { result } = await local.vision.analyze({ imagePath: await colorImage(100, 140, 120), notes: {}, references: [] });
+    config.ai.localScannerMinScore = null;
+    assert.equal(result.identified, false);
+    assert.equal(result.subject, 'tidak_jelas');
+    assert.match(result.farmer_message, /belum cukup yakin/);
+    assert.ok(result.alternatives.length >= 1);
+  });
+
+  test('alur aplikasi: scan dengan model lokal → chat menampilkan skor beserta penjelasan batasannya', async () => {
+    config.ai.visionProvider = 'lokal';
+    const f1 = await h.agentFor(...h.FARMER1);
+    const buffer = await sharp({ create: { width: 500, height: 500, channels: 3, background: { r: 20, g: 230, b: 40 } } }).png().toBuffer();
+    const res = await f1.post('/scan').set('Accept', 'application/json').set('X-CSRF-Token', f1.csrf)
+      .field('_csrf', f1.csrf).field('idempotency_key', crypto.randomUUID())
+      .attach('photo', buffer, { filename: 'hijau.png', contentType: 'image/png' });
+    assert.equal(res.body.ok, true, JSON.stringify(res.body));
+    const scan = h.db.get('SELECT provider, mode, model FROM pest_scans WHERE id = ?', res.body.scanId);
+    assert.equal(scan.provider, 'lokal');
+    assert.equal(scan.mode, 'ai');
+    const page = await f1.get(res.body.redirect);
+    assert.match(page.text, /Dugaan awal:<\/strong> Wereng batang cokelat/);
+    assert.match(page.text, /Skor model scanner lokal/);
+    assert.match(page.text, /class="score-list"/);
+    assert.match(page.text, /bukan peluang pasti benar/);
+    config.ai.visionProvider = 'demo';
+  });
+});

@@ -90,6 +90,12 @@ function normalizeVisionResult(r) {
     initial_steps: arr(r.initial_steps),
     farmer_message: str(r.farmer_message),
   };
+  // Skor hanya diteruskan dari model yang benar-benar menghasilkan skor terkalibrasi (scanner lokal).
+  if (Array.isArray(r.scores) && r.model_info) {
+    out.scores = r.scores.filter((s) => s && str(s.name) && Number.isFinite(s.score)).slice(0, 3)
+      .map((s) => ({ key: str(s.key), name: str(s.name), score: Math.max(0, Math.min(1, s.score)) }));
+    out.model_info = r.model_info;
+  }
   if (!out.suspected_pest_name) out.identified = false;
   if (!out.farmer_message) throw new Error('Hasil analisis tidak lengkap');
   return out;

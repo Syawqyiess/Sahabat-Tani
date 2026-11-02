@@ -10,7 +10,7 @@ Sistem informasi pertanian berbahasa Indonesia untuk petani padi: akun pribadi, 
 | Tampilan | EJS (server-rendered) + JS kecil tanpa framework | Ringan untuk koneksi terbatas, tetap berfungsi tanpa JS untuk alur inti |
 | Database | SQLite (`node:sqlite` bawaan Node) + migrasi SQL | Tanpa kompilasi native; bisa dipindah ke PostgreSQL dengan skema yang sama |
 | Autentikasi | Sesi server (express-session, disimpan di SQLite) + bcrypt | Cookie httpOnly/SameSite, regenerasi sesi saat login |
-| AI | Anthropic Claude (SDK resmi) atau Google Gemini (REST, free tier) — modul analisis gambar & percakapan terpisah | Mendukung input gambar; penyedia dipilih lewat `.env` |
+| AI | Analisis foto: **model scanner buatan sendiri** (EfficientNet-B0 → ONNX, `onnxruntime-node`), atau Gemini/Claude. Percakapan: Gemini (free tier) atau Claude | Modul analisis gambar & percakapan terpisah; penyedia dipilih lewat `.env` |
 | Kualitas udara | Open-Meteo Air Quality API | Gratis untuk non-komersial, tanpa kunci |
 | Peta | Google Maps JavaScript API | Sesuai permintaan |
 | Berita | RSS (rss-parser) | Hanya judul/ringkasan/tautan |
@@ -95,6 +95,14 @@ Foto disimpan di `storage/uploads/<user_id>/` (di luar folder publik) dan hanya 
 - Artikel: daftar, detail, pencarian, filter kategori, pagination, artikel terkait, simpan artikel; Markdown disanitasi.
 - Admin: statistik agregat (tanpa isi chat), kelola akun & status aktif (sesi langsung diputus), bantu isi profil & lahan, artikel (draft/terbit/arsip), kategori, sumber RSS, referensi hama + verifikasi, status integrasi tanpa nilai kunci.
 - Keamanan: bcrypt, sesi aman, CSRF, Helmet + CSP, validasi input server, batas unggahan, rate limit (login, reset, scan, chat), pemeriksaan kepemilikan di setiap query, pemisahan data demo.
+
+### Model scanner hama padi buatan sendiri (`AI_VISION_PROVIDER=lokal`)
+- Dilatih dengan `ml/` pada 14 hama padi IP102 + kelas “bukan hama padi”; berjalan di server tanpa internet (±15 ms/foto).
+- Hasil data uji (3.131 foto IP102 yang tidak dipakai melatih): **ketepatan 67,1%**, macro-F1 64,4%, **benar di 3 teratas 86,5%**.
+  Pada ambang yakin 0,60, model menjawab untuk 67% foto dengan ketepatan 81%; sisanya dinyatakan “belum teridentifikasi”.
+- Skor dikalibrasi (temperature scaling) dan selalu ditampilkan bersama penjelasan batasannya.
+- Paling sering tertukar: tiga jenis wereng (F1 ±0,5) dan hama kulit gabah. Belum mencakup walang sangit, keong mas, tikus,
+  penyakit, atau kekurangan hara. Wajib diuji ulang dengan foto lapangan Indonesia. Panduan: [ml/README.md](ml/README.md).
 
 ### Mode demo / simulasi (berlabel di UI)
 - **Analisis foto & Asisten AI** tanpa `ANTHROPIC_API_KEY`: “Simulasi respons AI”, foto tidak dianalisis, tidak ada dugaan hama.

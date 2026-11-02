@@ -1,0 +1,10 @@
+# Pasang PyTorch versi CUDA lebih dulu (untuk GPU NVIDIA):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+# Tanpa GPU: pip install torch torchvision
+onnx
+onnxscript
+onnxruntime
+gdown
+pillow
+tqdm
+scikit-learn

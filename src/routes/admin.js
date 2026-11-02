@@ -447,6 +447,18 @@ router.get('/integrasi', (req, res) => {
         secret: aiKeys,
         last: lastScanAi ? `Scan AI terakhir: ${lastScanAi.status}${lastScanAi.error_message ? ` (${lastScanAi.error_message})` : ''}` : 'Belum ada scan dengan AI.',
       },
+      (() => {
+        const info = require('../services/ai/local-scanner').modelInfo();
+        const m = info && info.metrics;
+        return {
+          name: 'Model scanner lokal (buatan sendiri)',
+          status: !info ? 'belum' : (vision.name === 'lokal' ? 'aktif' : 'perhatian'),
+          detail: !info ? 'Belum ada model hasil latih di models/scanner-padi. Lihat ml/README.md untuk melatih.'
+            : `Versi ${info.version}, ${info.classes} kelas.` + (m ? ` Data uji: ketepatan ${Math.round(m.test_accuracy * 100)}%, macro-F1 ${Math.round(m.test_macro_f1 * 100)}%, top-3 ${Math.round(m.test_top3_accuracy * 100)}% (${m.test_images} foto).` : '')
+              + (vision.name === 'lokal' ? '' : ' Tersedia tetapi belum dipakai — set AI_VISION_PROVIDER=lokal di .env.'),
+          secret: 'Tidak memerlukan kunci; berjalan di server tanpa internet',
+        };
+      })(),
       {
         name: 'Asisten percakapan (AI)', status: chat.mode === 'ai' ? 'aktif' : 'demo',
         detail: chat.mode === 'ai' ? `Penyedia: ${chat.name}, model: ${chat.model}, dukung gambar: ${chat.supportsImages ? 'ya' : 'tidak'}` : 'Mode demo — "Simulasi respons AI".',

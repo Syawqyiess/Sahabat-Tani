@@ -1,0 +1,129 @@
+{
+  "version": "20261102-0631",
+  "classes": [
+    {
+      "key": "penggulung_daun",
+      "name_id": "Hama putih palsu (penggulung daun)",
+      "scientific": "Cnaphalocrocis medinalis",
+      "ip102_name": "rice leaf roller",
+      "is_rice_pest": true
+    },
+    {
+      "key": "ulat_daun_padi",
+      "name_id": "Ulat daun padi (rice leaf caterpillar)",
+      "scientific": "",
+      "ip102_name": "rice leaf caterpillar",
+      "is_rice_pest": true
+    },
+    {
+      "key": "belatung_batang_padi",
+      "name_id": "Belatung batang padi (paddy stem maggot)",
+      "scientific": "",
+      "ip102_name": "paddy stem maggot",
+      "is_rice_pest": true
+    },
+    {
+      "key": "penggerek_batang_asia",
+      "name_id": "Penggerek batang padi bergaris",
+      "scientific": "Chilo suppressalis",
+      "ip102_name": "asiatic rice borer",
+      "is_rice_pest": true
+    },
+    {
+      "key": "penggerek_batang_kuning",
+      "name_id": "Penggerek batang padi kuning",
+      "scientific": "Scirpophaga incertulas",
+      "ip102_name": "yellow rice borer",
+      "is_rice_pest": true
+    },
+    {
+      "key": "ganjur",
+      "name_id": "Ganjur (hama gall midge)",
+      "scientific": "Orseolia oryzae",
+      "ip102_name": "rice gall midge",
+      "is_rice_pest": true
+    },
+    {
+      "key": "lalat_batang_padi",
+      "name_id": "Lalat batang padi (rice stem fly)",
+      "scientific": "",
+      "ip102_name": "Rice Stemfly",
+      "is_rice_pest": true
+    },
+    {
+      "key": "wereng_batang_cokelat",
+      "name_id": "Wereng batang cokelat",
+      "scientific": "Nilaparvata lugens",
+      "ip102_name": "brown plant hopper",
+      "is_rice_pest": true
+    },
+    {
+      "key": "wereng_punggung_putih",
+      "name_id": "Wereng punggung putih",
+      "scientific": "Sogatella furcifera",
+      "ip102_name": "white backed plant hopper",
+      "is_rice_pest": true
+    },
+    {
+      "key": "wereng_cokelat_kecil",
+      "name_id": "Wereng cokelat kecil",
+      "scientific": "Laodelphax striatellus",
+      "ip102_name": "small brown plant hopper",
+      "is_rice_pest": true
+    },
+    {
+      "key": "kumbang_air_padi",
+      "name_id": "Kumbang air padi",
+      "scientific": "Lissorhoptrus oryzophilus",
+      "ip102_name": "rice water weevil",
+      "is_rice_pest": true
+    },
+    {
+      "key": "wereng_daun",
+      "name_id": "Wereng daun padi (rice leafhopper)",
+      "scientific": "",
+      "ip102_name": "rice leafhopper",
+      "is_rice_pest": true
+    },
+    {
+      "key": "thrips_padi",
+      "name_id": "Thrips padi (grain spreader thrips)",
+      "scientific": "",
+      "ip102_name": "grain spreader thrips",
+      "is_rice_pest": true
+    },
+    {
+      "key": "hama_kulit_gabah",
+      "name_id": "Hama kulit gabah (rice shell pest)",
+      "scientific": "",
+      "ip102_name": "rice shell pest",
+      "is_rice_pest": true
+    },
+    {
+      "key": "bukan_hama_padi",
+      "name_id": "Bukan hama padi (serangga lain)",
+      "scientific": "",
+      "ip102_name": "classes 15-102 (sampel)",
+      "is_rice_pest": false
+    }
+  ],
+  "input": {
+    "name": "input",
+    "size": 224,
+    "resize_short": 256,
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ],
+    "layout": "NCHW",
+    "color": "RGB"
+  },
+  "temperature": 0.9407,
+  "min_score": 0.6
+}

@@ -5,12 +5,22 @@ const demo = require('./demo');
 // Registry penyedia. Tambahkan penyedia baru (mis. model identifikasi hama khusus)
 // dengan objek { name, mode, model, supportsImages, analyze() } atau { ..., reply() }.
 const providers = {
-  vision: { demo: demo.vision, anthropic: () => require('./anthropic').vision, gemini: () => require('./gemini').vision },
+  vision: {
+    demo: demo.vision,
+    anthropic: () => require('./anthropic').vision,
+    gemini: () => require('./gemini').vision,
+    lokal: () => require('./local-scanner').vision,
+  },
   chat: { demo: demo.chat, anthropic: () => require('./anthropic').chat, gemini: () => require('./gemini').chat },
 };
 
 // Penyedia hanya aktif bila kuncinya terpasang; bila tidak, kembali ke mode demo.
-const keyFor = { anthropic: () => config.ai.anthropicKey, gemini: () => config.ai.geminiKey };
+const keyFor = {
+  anthropic: () => config.ai.anthropicKey,
+  gemini: () => config.ai.geminiKey,
+  // Model lokal "tersedia" bila berkas model hasil latih sudah ada.
+  lokal: () => require('./local-scanner').isAvailable(),
+};
 
 let overrides = {};
 

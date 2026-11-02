@@ -48,6 +48,9 @@ const config = {
     geminiVisionModels: list(env.GEMINI_VISION_MODEL || env.GEMINI_MODEL || 'gemini-3.5-flash,gemini-flash-lite-latest'),
     geminiChatModels: list(env.GEMINI_CHAT_MODEL || env.GEMINI_MODEL || 'gemini-flash-lite-latest,gemini-3.5-flash'),
     geminiTimeoutMs: Number(env.GEMINI_TIMEOUT_MS || 50000),
+    // Model scanner buatan sendiri (ml/train.py). Aktifkan dengan AI_VISION_PROVIDER=lokal.
+    localScannerDir: env.LOCAL_SCANNER_DIR || 'models/scanner-padi',
+    localScannerMinScore: env.LOCAL_SCANNER_MIN_SCORE ? Number(env.LOCAL_SCANNER_MIN_SCORE) : null,
   },
 
   maps: {

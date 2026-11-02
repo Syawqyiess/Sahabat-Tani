@@ -1,0 +1,11 @@
+{
+  "metrics": {
+    "test_accuracy": 0.5,
+    "test_top3_accuracy": 0.8,
+    "test_macro_f1": 0.4,
+    "test_images": 10
+  },
+  "limitations": [
+    "fixture"
+  ]
+}

@@ -12,3 +12,8 @@ storage/
 # Pengaturan lokal & log
 .claude/settings.local.json
 *.log
+
+# Machine learning: lingkungan Python, dataset, dan hasil latih sementara
+ml/.venv/
+ml/data/
+ml/runs/
