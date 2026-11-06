@@ -46,10 +46,14 @@ function composeInitialMessage(result, mode) {
     if (result.photo_quality && result.photo_quality.is_clear === false) {
       L.push(`**Foto kurang jelas:** ${(result.photo_quality.issues || []).join('; ') || 'detail sulit dilihat'}. Hasil di bawah perlu dikonfirmasi dengan foto yang lebih jelas.`, '');
     }
-    L.push(`**Dugaan awal:** ${result.identified && result.suspected_pest_name
-      ? `${result.suspected_pest_name}${result.suspected_pest_scientific ? ` (*${result.suspected_pest_scientific}*)` : ''}`
-      : 'Hama belum dapat diidentifikasi dari foto ini.'}`);
-    if (SUBJECT_LABEL[result.subject]) L.push(`**Kategori foto:** ${SUBJECT_LABEL[result.subject]}`);
+    const sci = result.suspected_pest_scientific ? ` (*${result.suspected_pest_scientific}*)` : '';
+    if (result.confidence) {
+      // Model dengan tingkat keyakinan terukur: satu baris hasil yang tegas, tanpa daftar persen.
+      if (result.identified && result.suspected_pest_name) L.push(`**Hasil:** ${result.suspected_pest_name}${sci} — **${result.confidence.label}**`);
+    } else {
+      L.push(`**Dugaan awal:** ${result.identified && result.suspected_pest_name ? `${result.suspected_pest_name}${sci}` : 'Hama belum dapat diidentifikasi dari foto ini.'}`);
+      if (SUBJECT_LABEL[result.subject]) L.push(`**Kategori foto:** ${SUBJECT_LABEL[result.subject]}`);
+    }
     if (result.visual_evidence && result.visual_evidence.length) {
       L.push('', '**Ciri yang terlihat di foto:**', ...result.visual_evidence.map((x) => `- ${x}`));
     }
@@ -57,20 +61,15 @@ function composeInitialMessage(result, mode) {
       L.push('', '**Kemungkinan lain:**', ...result.alternatives.map((a) => `- ${a.name} — ${a.reason}`));
     }
     if (result.non_pest_note) L.push('', `**Catatan:** ${result.non_pest_note}`);
-    if (result.scores && result.scores.length && result.model_info) {
-      const mi = result.model_info;
-      L.push('', '**Skor model scanner lokal (3 teratas):**', ...result.scores.map((s) => `- ${s.name} — ${Math.round(s.score * 100)}%`));
-      const acc = mi.test_accuracy != null ? ` Pada ${mi.test_images || 'sejumlah'} foto uji IP102, ketepatan tebakan pertama model ${Math.round(mi.test_accuracy * 100)}%${mi.test_top3_accuracy != null ? ` dan jawaban benar ada di 3 teratas ${Math.round(mi.test_top3_accuracy * 100)}%` : ''}.` : '';
-      L.push('', `_${mi.note}${acc} Foto lapangan Indonesia bisa memberi hasil berbeda._`);
-    }
   }
+  const firm = result.confidence && result.confidence.key !== 'rendah';
   if (result.initial_steps && result.initial_steps.length) {
-    L.push('', '**Langkah pemeriksaan dan penanganan awal:**', ...result.initial_steps.map((x, i) => `${i + 1}. ${x}`));
+    L.push('', firm ? '**Yang bisa dilakukan sekarang:**' : '**Langkah pemeriksaan dan penanganan awal:**', ...result.initial_steps.map((x, i) => `${i + 1}. ${x}`));
   }
   if (result.follow_up_questions && result.follow_up_questions.length) {
-    L.push('', '**Agar dugaan lebih tepat, mohon jawab:**', ...result.follow_up_questions.map((x) => `- ${x}`));
+    L.push('', firm ? '**Supaya sarannya lebih pas:**' : '**Agar dugaan lebih tepat, mohon jawab:**', ...result.follow_up_questions.map((x) => `- ${x}`));
   }
-  L.push('', '_Identifikasi dari foto adalah bantuan awal dan bisa keliru. Pemeriksaan langsung di lahan oleh penyuluh (PPL/POPT) tetap disarankan. Untuk pestisida, selalu ikuti label resmi dan saran penyuluh._');
+  L.push('', '_Hasil foto adalah bantuan awal — bila ragu atau serangan meluas, minta penyuluh (PPL/POPT) memeriksa langsung. Untuk pestisida, ikuti label resmi._');
   return L.join('\n');
 }
 
@@ -98,7 +97,7 @@ async function analyzeAndPost(scanId) {
         refs.length ? JSON.stringify(toSources(refs)) : null,
       );
       if (result.identified && result.suspected_pest_name) {
-        db.run("UPDATE chat_sessions SET title = ?, updated_at = datetime('now') WHERE id = ?", `Scan: dugaan ${result.suspected_pest_name}`, scan.chat_session_id);
+        db.run("UPDATE chat_sessions SET title = ?, updated_at = datetime('now') WHERE id = ?", `Scan: ${result.confidence && result.confidence.key === 'tinggi' ? '' : 'dugaan '}${result.suspected_pest_name}`, scan.chat_session_id);
       }
     });
     return { ok: true };

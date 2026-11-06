@@ -2,8 +2,9 @@
 
 const SAFETY_RULES = `Aturan wajib:
 - Gunakan bahasa Indonesia yang sederhana, ramah, kalimat pendek, mudah dipahami petani.
-- Hasil identifikasi foto adalah DUGAAN AWAL, bukan diagnosis pasti. Pemeriksaan lapangan bisa diperlukan.
-- Jangan pernah membuat persentase atau skor keyakinan.
+- Hasil identifikasi foto adalah bantuan awal, bukan diagnosis laboratorium. Ingatkan hal ini cukup SEKALI dan singkat; jangan diulang di setiap jawaban.
+- Sampaikan hasil sesuai tingkat keyakinan: bila "Hampir pasti", sebut nama hamanya dengan tegas tanpa kalimat ragu-ragu; bila "Kemungkinan besar", sebut sebagai kemungkinan besar; bila "Belum yakin" atau tidak ada hasil, jangan menebak dan minta foto atau ciri tambahan.
+- Jangan pernah membuat persentase atau skor keyakinan sendiri, dan jangan mengulang tingkat keyakinan atau skor kecuali petani menanyakannya. Langsung jawab pertanyaannya.
 - Utamakan Pengendalian Hama Terpadu (PHT): pengamatan rutin, sanitasi, varietas tahan, pengaturan air dan tanam serempak, musuh alami, cara fisik/mekanis.
 - JANGAN menyebut dosis, takaran, campuran, merek, atau cara pakai pestisida. Bila pengendalian kimia mungkin diperlukan, katakan bahwa petani harus mengikuti label resmi produk terdaftar dan berkonsultasi dengan penyuluh pertanian (PPL) atau petugas POPT setempat.
 - Jangan mengarang sumber, kutipan, atau tautan. Hanya rujuk "Referensi internal" yang diberikan di konteks; jika referensi bertanda BELUM DIVERIFIKASI, sebutkan bahwa informasinya belum diverifikasi penyuluh.
@@ -59,6 +60,28 @@ ${SAFETY_RULES}
 - Jika petani mengirim foto tambahan, amati foto tersebut dan kaitkan dengan hasil scan sebelumnya.
 - Jika ragu, sarankan pemeriksaan langsung oleh penyuluh/POPT.`;
 
+// Tingkat keyakinan berupa kata. Batas dipilih dari data validasi model scanner lokal:
+// skor >= 0,85 benar ±93%, skor >= 0,60 (ambang) benar ±85%; di bawah ambang model tidak menebak.
+const CONFIDENCE_LEVELS = [
+  { min: 0.85, key: 'tinggi', label: 'Hampir pasti' },
+  { min: 0, key: 'sedang', label: 'Kemungkinan besar' },
+];
+
+function confidenceLevel(score, threshold = 0.6) {
+  if (!Number.isFinite(score) || score < threshold) return { key: 'rendah', label: 'Belum yakin' };
+  const { key, label } = CONFIDENCE_LEVELS.find((l) => score >= l.min);
+  return { key, label };
+}
+
+// Hasil scan untuk model percakapan: tanpa angka skor (agar tidak diulang-ulang), cukup tingkat keyakinan berupa kata.
+function chatScanView(result) {
+  if (!result) return result;
+  const { scores, model_info: _info, ...rest } = result;
+  if (rest.confidence) rest.tingkat_keyakinan = rest.confidence.label;
+  delete rest.confidence;
+  return rest;
+}
+
 function notesText(notes) {
   return [
     notes.land_name && `Lahan: ${notes.land_name}`,
@@ -95,10 +118,11 @@ function normalizeVisionResult(r) {
     out.scores = r.scores.filter((s) => s && str(s.name) && Number.isFinite(s.score)).slice(0, 3)
       .map((s) => ({ key: str(s.key), name: str(s.name), score: Math.max(0, Math.min(1, s.score)) }));
     out.model_info = r.model_info;
+    if (r.confidence && ['tinggi', 'sedang', 'rendah'].includes(r.confidence.key)) out.confidence = { key: r.confidence.key, label: str(r.confidence.label) };
   }
   if (!out.suspected_pest_name) out.identified = false;
   if (!out.farmer_message) throw new Error('Hasil analisis tidak lengkap');
   return out;
 }
 
-module.exports = { VISION_SYSTEM, VISION_SCHEMA, CHAT_SYSTEM, SAFETY_RULES, notesText, normalizeVisionResult };
+module.exports = { VISION_SYSTEM, VISION_SCHEMA, CHAT_SYSTEM, SAFETY_RULES, notesText, normalizeVisionResult, confidenceLevel, chatScanView };

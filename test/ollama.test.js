@@ -36,7 +36,7 @@ after(() => { config.ai.chatProvider = 'demo'; });
 
 const scan = () => ({
   status: 'completed', image_path: imgRel, image_mime: 'image/png', notes: { symptoms: 'daun menguning' },
-  result: { identified: true, suspected_pest_name: 'Wereng batang cokelat', suspected_pest_scientific: 'Nilaparvata lugens', scores: [{ name: 'Wereng batang cokelat', score: 0.82 }], alternatives: [] },
+  result: { identified: true, suspected_pest_name: 'Wereng batang cokelat', suspected_pest_scientific: 'Nilaparvata lugens', scores: [{ name: 'Wereng batang cokelat', score: 0.82 }], confidence: { key: 'sedang', label: 'Kemungkinan besar' }, alternatives: [] },
 });
 
 describe('Penyedia chat Ollama (lokal)', () => {
@@ -60,7 +60,10 @@ describe('Penyedia chat Ollama (lokal)', () => {
     assert.equal(body.messages[0].role, 'system');
     assert.match(body.messages[0].content, /JANGAN menyebut dosis/);
     assert.match(body.messages[0].content, /bahasa Indonesia/);
-    assert.match(body.messages[1].content, /Wereng batang cokelat.*82%/s);
+    assert.match(body.messages[1].content, /Hasil scan: Wereng batang cokelat/);
+    assert.match(body.messages[1].content, /Tingkat keyakinan scanner: Kemungkinan besar/);
+    assert.doesNotMatch(body.messages[1].content, /82|%/, 'angka skor tidak dikirim ke chatbot');
+    assert.match(body.messages[0].content, /jangan mengulang tingkat keyakinan/i);
     assert.equal(body.messages[1].images.length, 1, 'foto scan dikirim sekali');
     const imgCount = body.messages.reduce((n, m) => n + (m.images ? m.images.length : 0), 0);
     assert.equal(imgCount, 1, 'foto yang sama tidak dikirim berulang');

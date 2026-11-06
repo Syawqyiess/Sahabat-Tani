@@ -64,8 +64,19 @@ function scanSummary(scan) {
   const L = [`Status scan: ${scan.status}${scan.error_message ? ` (${scan.error_message})` : ''}`];
   if (scan.status === 'completed') {
     if (r.simulated) L.push('Foto TIDAK dianalisis (mode demo).');
-    L.push(`Dugaan: ${r.identified && r.suspected_pest_name ? `${r.suspected_pest_name}${r.suspected_pest_scientific ? ` (${r.suspected_pest_scientific})` : ''}` : 'belum teridentifikasi'}`);
-    if (r.scores && r.scores.length) L.push(`Skor model scanner: ${r.scores.map((s) => `${s.name} ${Math.round(s.score * 100)}%`).join('; ')} (skor model, bukan kepastian)`);
+    L.push(`Hasil scan: ${r.identified && r.suspected_pest_name ? `${r.suspected_pest_name}${r.suspected_pest_scientific ? ` (${r.suspected_pest_scientific})` : ''}` : 'belum teridentifikasi'}`);
+    // Hanya tingkat keyakinan berupa kata; angka skor tidak dikirim agar tidak diulang-ulang dalam jawaban.
+    if (r.confidence) {
+      L.push(`Tingkat keyakinan scanner: ${r.confidence.label} (sudah ditampilkan ke petani; jangan disebut ulang kecuali ditanya)`);
+      // Model kecil butuh contoh kalimat yang konkret agar nadanya sesuai tingkat keyakinan.
+      if (r.confidence.key === 'tinggi' && r.suspected_pest_name) {
+        L.push(`Cara menyebut hasil: tegas, misalnya "Ini ${r.suspected_pest_name}." Jangan memakai kata "mungkin", "kemungkinan", atau "diduga" untuk hama ini.`);
+      } else if (r.confidence.key === 'sedang' && r.suspected_pest_name) {
+        L.push(`Cara menyebut hasil: "Kemungkinan besar ini ${r.suspected_pest_name}." Sarankan mencocokkan ciri di lahan.`);
+      } else {
+        L.push('Cara menyebut hasil: jangan menebak nama hama; minta foto lebih dekat atau ciri tambahan.');
+      }
+    }
     if (r.alternatives && r.alternatives.length) L.push(`Kemungkinan lain: ${r.alternatives.map((a) => a.name).join(', ')}`);
     if (r.visual_evidence && r.visual_evidence.length) L.push(`Ciri terlihat: ${r.visual_evidence.join('; ')}`);
     if (r.non_pest_note) L.push(`Catatan: ${r.non_pest_note}`);

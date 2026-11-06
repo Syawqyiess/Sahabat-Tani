@@ -3,7 +3,7 @@
 // Catatan privasi: pada free tier, Google dapat memakai data yang dikirim untuk meningkatkan produknya.
 const config = require('../../config');
 const storage = require('../storage');
-const { VISION_SYSTEM, VISION_SCHEMA, CHAT_SYSTEM, notesText, normalizeVisionResult } = require('./prompts');
+const { VISION_SYSTEM, VISION_SCHEMA, CHAT_SYSTEM, notesText, normalizeVisionResult, chatScanView } = require('./prompts');
 const { referenceText } = require('./references');
 const { AIServiceError } = require('./errors');
 
@@ -114,7 +114,7 @@ const chat = {
       else contents.push({ role, parts });
     };
     if (scan) {
-      const ctx = [{ text: `Konteks hasil scan (otomatis dari aplikasi, status: ${scan.status}):\n${JSON.stringify(scan.result || { error: scan.error_message }, null, 1)}\n\nKeterangan petani:\n${notesText(scan.notes)}` }];
+      const ctx = [{ text: `Konteks hasil scan (otomatis dari aplikasi, status: ${scan.status}):\n${JSON.stringify(chatScanView(scan.result) || { error: scan.error_message }, null, 1)}\n\nKeterangan petani:\n${notesText(scan.notes)}` }];
       if (scan.image_path) ctx.unshift(imagePart(scan.image_path, scan.image_mime));
       push('user', ctx);
     }

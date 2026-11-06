@@ -2,7 +2,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const config = require('../../config');
 const storage = require('../storage');
-const { VISION_SYSTEM, VISION_SCHEMA, CHAT_SYSTEM, notesText, normalizeVisionResult } = require('./prompts');
+const { VISION_SYSTEM, VISION_SCHEMA, CHAT_SYSTEM, notesText, normalizeVisionResult, chatScanView } = require('./prompts');
 const { referenceText } = require('./references');
 
 let client;
@@ -77,7 +77,7 @@ const chat = {
   async reply({ scan, history, references }) {
     const ctx = [];
     if (scan) {
-      ctx.push({ type: 'text', text: `Konteks hasil scan (otomatis dari aplikasi, status: ${scan.status}):\n${JSON.stringify(scan.result || { error: scan.error_message }, null, 1)}\n\nKeterangan petani:\n${notesText(scan.notes)}` });
+      ctx.push({ type: 'text', text: `Konteks hasil scan (otomatis dari aplikasi, status: ${scan.status}):\n${JSON.stringify(chatScanView(scan.result) || { error: scan.error_message }, null, 1)}\n\nKeterangan petani:\n${notesText(scan.notes)}` });
       if (scan.image_path) ctx.unshift(imageBlock(scan.image_path, scan.image_mime));
     }
     const messages = [];

@@ -100,7 +100,9 @@ Foto disimpan di `storage/uploads/<user_id>/` (di luar folder publik) dan hanya 
 - Dilatih dengan `ml/` pada 14 hama padi IP102 + kelas “bukan hama padi”; berjalan di server tanpa internet (±15 ms/foto).
 - Hasil data uji (3.131 foto IP102 yang tidak dipakai melatih): **ketepatan 67,1%**, macro-F1 64,4%, **benar di 3 teratas 86,5%**.
   Pada ambang yakin 0,60, model menjawab untuk 67% foto dengan ketepatan 81%; sisanya dinyatakan “belum teridentifikasi”.
-- Skor dikalibrasi (temperature scaling) dan selalu ditampilkan bersama penjelasan batasannya.
+- Skor dikalibrasi (temperature scaling), lalu disampaikan sebagai kata: **“Hampir pasti”** (skor ≥ 85%, benar ±93% pada validasi),
+  **“Kemungkinan besar”** (60–85%, ±85%), atau **“Belum yakin”** (< 60%, tidak menebak). AI menjawab tegas sesuai tingkat ini;
+  angka persen hanya ada di “Lihat skor model” dan tidak diulang oleh chatbot.
 - Paling sering tertukar: tiga jenis wereng (F1 ±0,5) dan hama kulit gabah. Belum mencakup walang sangit, keong mas, tikus,
   penyakit, atau kekurangan hara. Wajib diuji ulang dengan foto lapangan Indonesia. Panduan: [ml/README.md](ml/README.md).
 

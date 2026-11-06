@@ -7,6 +7,7 @@ const config = require('../../config');
 const storage = require('../storage');
 const { findReferences } = require('./references');
 const { AIServiceError } = require('./errors');
+const { confidenceLevel } = require('./prompts');
 
 let state; // { session, labels, card }
 
@@ -71,7 +72,6 @@ function softmax(logits, T) {
   return e.map((v) => v / s);
 }
 
-const pct = (p) => `${Math.round(p * 100)}%`;
 
 const GENERIC_STEPS = [
   'Amati beberapa rumpun di beberapa titik lahan, termasuk pangkal batang dan bawah daun.',
@@ -82,7 +82,7 @@ const GENERIC_STEPS = [
 
 function stepsFrom(ref) {
   if (!ref) return GENERIC_STEPS;
-  const split = (t) => String(t || '').split(/;\s*|\.\s+/).map((s) => s.trim().replace(/\.$/, '')).filter((s) => s.length > 3);
+  const split = (t) => String(t || '').split(/;\s*|\.\s+/).map((s) => s.trim().replace(/\.$/, '')).filter((s) => s.length > 3).map((s) => s.charAt(0).toUpperCase() + s.slice(1));
   const steps = [...split(ref.ipm_control), ...split(ref.prevention)].slice(0, 5).map((s) => s + '.');
   if (ref.when_to_consult) steps.push(`Hubungi penyuluh/POPT ${ref.when_to_consult.charAt(0).toLowerCase()}${ref.when_to_consult.slice(1)}`);
   return steps.length ? steps : GENERIC_STEPS;
@@ -117,16 +117,31 @@ const vision = {
     const ref = identified ? findReferences(best.cls.name_id, best.cls.scientific)[0] : null;
 
     const name = best.cls.name_id;
+    // Cara bicara mengikuti tingkat keyakinan yang terukur: tegas bila tinggi, tidak menebak bila rendah.
+    const confidence = isRice ? confidenceLevel(best.p, minScore) : { key: 'rendah', label: 'Belum yakin' };
     let message;
-    if (identified) {
-      message = `Model scanner Sahabat Tani menduga foto ini menunjukkan **${name}** dengan skor keyakinan ${pct(best.p)}. ` +
-        'Skor ini adalah perkiraan model, bukan kepastian — cocokkan dengan kondisi di lahan.';
+    let alternatives;
+    let questions;
+    if (identified && confidence.key === 'tinggi') {
+      message = `Ini **${name}**. Pola pada foto sangat cocok dengan hama tersebut.`;
+      alternatives = [];
+      questions = ['Berapa umur tanaman saat ini, dan seberapa luas serangan di lahan?'];
+    } else if (identified) {
+      message = `Kemungkinan besar ini **${name}**. Cocokkan sebentar dengan kondisi di lahan untuk memastikan.`;
+      alternatives = riceRanked.slice(1, 3).filter((r) => r.p >= 0.1).map((r) => ({ name: r.cls.name_id, reason: 'bisa juga, bila ciri di lahan berbeda' }));
+      questions = [`Apakah yang Anda lihat di lahan cocok dengan ${name}?`, 'Berapa umur tanaman saat ini, dan seberapa luas serangan di lahan?'];
     } else if (!isRice) {
-      message = 'Model menilai foto ini lebih mirip serangga lain, bukan salah satu hama padi yang dikenalinya. ' +
-        'Model ini juga belum dilatih untuk penyakit tanaman, kekurangan hara, walang sangit, keong mas, atau tikus.';
+      message = 'Foto ini tidak cocok dengan hama padi yang saya kenali — lebih mirip serangga lain. ' +
+        'Saya juga belum bisa mengenali penyakit tanaman, kekurangan hara, walang sangit, keong mas, atau tikus.';
+      alternatives = [];
+      questions = ['Bisakah Anda memotret bagian tanaman yang bergejala dari jarak 20–30 cm?'];
     } else {
-      message = `Model belum cukup yakin (skor tertinggi ${pct(best.p)}, di bawah ambang ${pct(minScore)}), jadi hama belum dapat diidentifikasi. ` +
-        'Coba foto lebih dekat dan terang, atau lihat kemungkinan di bawah sebagai bahan pemeriksaan.';
+      message = 'Saya belum yakin hama apa ini, jadi tidak akan menebak. Coba foto lebih dekat (20–30 cm) dengan cahaya terang.';
+      alternatives = riceRanked.slice(0, 3).filter((r) => r.p >= 0.05).map((r) => ({ name: r.cls.name_id, reason: 'perlu dicek di lahan' }));
+      questions = [
+        'Di bagian mana serangga atau gejala paling banyak terlihat: daun, batang, pangkal batang, atau malai?',
+        'Bisakah Anda mengirim foto lebih dekat (20–30 cm) dengan cahaya terang?',
+      ];
     }
 
     return {
@@ -138,17 +153,12 @@ const vision = {
         suspected_pest_name: identified ? name : '',
         suspected_pest_scientific: identified ? (best.cls.scientific || '') : '',
         visual_evidence: [],
-        alternatives: (identified ? riceRanked.slice(1, 3) : riceRanked.slice(0, 3))
-          .filter((r) => r.p >= 0.05)
-          .map((r) => ({ name: r.cls.name_id, reason: `skor model ${pct(r.p)}` })),
-        non_pest_note: isRice ? '' : 'Foto lebih mirip serangga lain atau objek yang belum dikenali model.',
-        follow_up_questions: [
-          'Di bagian mana serangga atau gejala paling banyak terlihat: daun, batang, pangkal batang, atau malai?',
-          'Berapa umur tanaman saat ini, dan seberapa luas gejala di lahan?',
-          identified ? `Apakah ciri di lapangan cocok dengan ${name}?` : 'Bisakah Anda mengirim foto lebih dekat (20–30 cm) dengan cahaya terang?',
-        ],
+        alternatives,
+        non_pest_note: '',
+        follow_up_questions: questions,
         initial_steps: stepsFrom(ref),
         farmer_message: message,
+        confidence,
         scores: ranked.slice(0, 3).map((r) => ({ key: r.cls.key, name: r.cls.name_id, score: Math.round(r.p * 1000) / 1000 })),
         model_info: {
           kind: 'Klasifikasi gambar buatan sendiri (EfficientNet-B0, dilatih dengan IP102)',
@@ -157,7 +167,7 @@ const vision = {
           test_accuracy: m.test_accuracy ?? null,
           test_top3_accuracy: m.test_top3_accuracy ?? null,
           test_images: m.test_images ?? null,
-          note: 'Skor sudah dikalibrasi pada data validasi, tetapi bukan peluang pasti benar. Model tidak menjelaskan ciri visual; ia hanya mengenali pola gambar.',
+          note: '“Hampir pasti” berarti skor model ≥ 85% (pada uji, benar ±93%); “Kemungkinan besar” berarti skor 60–85% (benar ±85%); di bawah 60% model tidak menebak. Skor sudah dikalibrasi, tetapi bukan jaminan — model mengenali pola gambar, bukan menjelaskan ciri.',
         },
       },
     };

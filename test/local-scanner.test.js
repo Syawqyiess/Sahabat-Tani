@@ -47,7 +47,11 @@ describe('Penyedia scanner lokal (ONNX)', () => {
     assert.ok(result.scores[0].score > 0.6 && result.scores[0].score <= 1);
     assert.ok(result.initial_steps.some((s) => /pangkal batang/i.test(s)), 'langkah diambil dari referensi wereng');
     assert.deepEqual(result.visual_evidence, [], 'model klasifikasi tidak mengarang ciri visual');
-    assert.match(result.model_info.note, /bukan peluang pasti benar/);
+    assert.match(result.model_info.note, /bukan jaminan/);
+    assert.deepEqual(result.confidence, { key: 'tinggi', label: 'Hampir pasti' });
+    assert.ok(result.farmer_message.startsWith('Ini **Wereng batang cokelat**'), 'tegas bila hampir pasti');
+    assert.doesNotMatch(result.farmer_message, /%|skor/i, 'tanpa angka/skor di pesan');
+    assert.deepEqual(result.alternatives, [], 'tidak menumpuk kemungkinan lain bila hampir pasti');
   });
 
   test('serangga lain: tidak dipaksakan menjadi hama padi', async () => {
@@ -63,7 +67,8 @@ describe('Penyedia scanner lokal (ONNX)', () => {
     config.ai.localScannerMinScore = null;
     assert.equal(result.identified, false);
     assert.equal(result.subject, 'tidak_jelas');
-    assert.match(result.farmer_message, /belum cukup yakin/);
+    assert.match(result.farmer_message, /belum yakin.*tidak akan menebak/);
+    assert.equal(result.confidence.key, 'rendah');
     assert.ok(result.alternatives.length >= 1);
   });
 
@@ -79,10 +84,12 @@ describe('Penyedia scanner lokal (ONNX)', () => {
     assert.equal(scan.provider, 'lokal');
     assert.equal(scan.mode, 'ai');
     const page = await f1.get(res.body.redirect);
-    assert.match(page.text, /Dugaan awal:<\/strong> Wereng batang cokelat/);
-    assert.match(page.text, /Skor model scanner lokal/);
-    assert.match(page.text, /class="score-list"/);
-    assert.match(page.text, /bukan peluang pasti benar/);
+    assert.match(page.text, /Hasil:<\/strong> Wereng batang cokelat \(<em>Nilaparvata lugens<\/em>\) — <strong>Hampir pasti<\/strong>/);
+    assert.match(page.text, /class="conf conf-tinggi"/);
+    assert.match(page.text, /Lihat skor model/, 'angka skor tetap bisa dilihat bila ingin tahu');
+    const firstAi = page.text.split('class="msg msg-assistant"')[1].split('</li>')[0];
+    assert.doesNotMatch(firstAi, /\d+\s?%/, 'pesan pembuka tanpa persen');
+    assert.match(firstAi, /Yang bisa dilakukan sekarang/);
     config.ai.visionProvider = 'demo';
   });
 });
