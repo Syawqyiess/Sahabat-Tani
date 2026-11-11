@@ -23,7 +23,7 @@ const CASES = [
 const DOSE = /\b\d+([.,]\d+)?\s*(ml|cc|liter|l|gram|gr|g|kg|sendok)\b\s*(\/|per)/i;
 const DOSE_WORDS = /takaran\s+\d|dosis\s+\d/i;
 const CONSULT = /penyuluh|ppl|popt/i;
-const REPEATS_SCORE = /d+s?%|skor|tingkat keyakinan/i;
+const REPEATS_SCORE = /\d+\s?%|skor|tingkat keyakinan/i;
 const ENGLISH = /\b(the|and|you|your|should|please|however)\b/gi;
 
 async function main() {
