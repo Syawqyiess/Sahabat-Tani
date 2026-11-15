@@ -22,7 +22,7 @@
           <h3><%= l.name %></h3>
           <p class="meta"><%= l.area_ha != null ? l.area_ha.toLocaleString('id-ID') + ' ha' : 'Luas belum diisi' %><%= l.variety ? ' · ' + l.variety : '' %><%= hasGeo ? '' : ' · belum ada koordinat' %></p>
           <div class="row">
-            <% if (hasGeo && maps.browserKey) { %>
+            <% if (hasGeo) { %>
               <button type="button" class="btn btn-sm" data-focus-land="<%= l.id %>" aria-pressed="<%= selected === l.id %>"><%- icon('focus', 18) %> Fokus ke Lahan</button>
             <% } %>
             <a class="btn btn-sm btn-ghost" href="/lahan/<%= l.id %>">Detail</a>

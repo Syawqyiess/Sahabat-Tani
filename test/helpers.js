@@ -13,7 +13,6 @@ process.env.GEMINI_API_KEY = '';
 // Dikosongkan (bukan dihapus) agar dotenv tidak mengisinya lagi dari .env pengembang.
 process.env.AI_VISION_PROVIDER = '';
 process.env.AI_CHAT_PROVIDER = '';
-process.env.GOOGLE_MAPS_BROWSER_KEY = '';
 process.env.NEWS_AUTO_FETCH = '0';
 
 const request = require('supertest');

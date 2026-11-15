@@ -148,8 +148,30 @@ describe('Lahan & isolasi data antarpetani', () => {
     const page = await f1.get('/lahan/peta');
     assert.match(page.text, /Lahan Demo — Bukan Batas Lahan Asli/);
     assert.doesNotMatch(page.text, /Sawah dekat rumah/);
-    // Tanpa API key: placeholder informatif, bukan peta palsu
-    assert.match(page.text, /Peta belum aktif/);
+    // Leaflet disajikan dari server sendiri; data peta hanya berisi lahan milik petani ini.
+    assert.match(page.text, /<script src="\/static\/vendor\/leaflet\/leaflet\.js"/);
+    const data = JSON.parse(/data-lands="([^"]+)"/.exec(page.text)[1].replace(/&#34;/g, '"').replace(/&quot;/g, '"'));
+    assert.ok(data.length >= 1 && data.every((l) => l.demo === true), 'lahan demo ditandai');
+    assert.ok(!data.some((l) => /Sawah dekat rumah/.test(l.name)));
+    assert.match(page.text, /garis putus-putus, penanda D/, 'legenda membedakan demo selain warna');
+    assert.match(page.text, /Fokus ke Lahan/);
+    const lib = await f1.get('/static/vendor/leaflet/leaflet.js');
+    assert.equal(lib.status, 200);
+  });
+
+  test('kualitas udara menampilkan peta Windy di lokasi yang dipilih, dengan pilihan lapisan', async () => {
+    const page = await f1.get('/udara?lapisan=no2');
+    const src = /<iframe src="([^"]+)" data-windy-frame/.exec(page.text)[1].replace(/&amp;/g, '&');
+    const u = new URL(src);
+    assert.equal(u.origin + u.pathname, 'https://embed.windy.com/embed.html');
+    assert.equal(u.searchParams.get('overlay'), 'no2');
+    assert.equal(u.searchParams.get('product'), 'cams');
+    assert.equal(u.searchParams.get('lat'), '-6.322'); // Sawah Blok A (lahan demo pertama)
+    assert.equal(u.searchParams.get('marker'), 'true');
+    assert.match(page.text, /data-windy-layer="pm2p5"/);
+    // Lapisan tidak dikenal → kembali ke PM2.5, bukan diteruskan apa adanya
+    const bad = await f1.get('/udara?lapisan=%22onload%3Dalert(1)');
+    assert.match(bad.text, /overlay=pm2p5/);
   });
 });
 

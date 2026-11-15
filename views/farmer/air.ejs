@@ -112,6 +112,25 @@
   <% } %>
 <% } %>
 
+<section class="card windy-card" aria-labelledby="windy-title" data-windy>
+  <div class="section-head">
+    <h2 class="h3" id="windy-title"><%- icon('map') %> Peta sebaran polusi</h2>
+  </div>
+  <p class="small muted measure" style="margin-top:0">Perkiraan sebaran polusi di sekitar <strong><%= loc.label %></strong> (penanda di tengah peta). Geser dan perbesar untuk melihat wilayah lain. Angka di atas tetap menjadi acuan utama.</p>
+  <nav class="chips" aria-label="Pilih lapisan peta">
+    <% const base = '/udara?' + new URLSearchParams({ ...(loc.landId && { lahan: String(loc.landId) }), ...(loc.kind === 'device' && { src: 'perangkat', lat: loc.lat.toFixed(4), lng: loc.lng.toFixed(4) }), ...(loc.kind === 'demo' && { src: 'demo' }) }).toString(); %>
+    <% windy.layers.forEach((l) => { %>
+      <a class="chip <%= windy.active.id === l.id ? 'is-active' : '' %>" href="<%= base + (base.endsWith('?') ? '' : '&') + 'lapisan=' + l.id %>#windy-title"
+         data-windy-layer="<%= l.id %>" <%- windy.active.id === l.id ? 'aria-current="true"' : '' %>><%= l.label %></a>
+    <% }) %>
+  </nav>
+  <div class="windy-frame">
+    <iframe src="<%= windy.url %>" data-windy-frame title="Peta sebaran <%= windy.active.label %> dari Windy" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+  </div>
+  <p style="margin:var(--s-3) 0 0"><a class="btn btn-sm btn-ghost" href="<%= windy.url %>" data-windy-open target="_blank" rel="noopener"><%- icon('external', 16) %> Buka peta di Windy</a> <span class="small muted">— bila peta di atas tidak tampil</span></p>
+  <p class="attribution" style="margin:var(--s-3) 0 0">Peta: <a href="https://www.windy.com/" target="_blank" rel="noopener">Windy.com</a>, data model <a href="https://atmosphere.copernicus.eu/" target="_blank" rel="noopener">Copernicus CAMS</a>. Warna menunjukkan perkiraan konsentrasi (µg/m³) di permukaan, bukan pengukuran sensor di lahan. Peta membutuhkan koneksi internet.</p>
+</section>
+
 <section class="card card-flat">
   <h2 class="h4">Tentang data ini</h2>
   <ul class="measure">

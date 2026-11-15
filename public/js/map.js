@@ -1,22 +1,19 @@
-// Google Maps JavaScript API — hanya dimuat bila browser key tersedia.
-// Peta menampilkan lahan milik akun yang masuk saja (data disiapkan server).
+// Peta lahan dengan Leaflet (pustaka peta terbuka, tanpa API key).
+// Hanya menampilkan lahan milik akun yang masuk (data disiapkan server).
 (function () {
   'use strict';
   var el = document.getElementById('map');
-  if (!el) return;
+  if (!el || !window.L) return;
+  var L = window.L;
   var lands = JSON.parse(el.dataset.lands || '[]');
   var center = JSON.parse(el.dataset.center);
   var selected = Number(el.dataset.selected) || null;
   var detail = document.getElementById('map-detail');
+  var msg = el.parentElement.querySelector('[data-map-msg]');
+  el.innerHTML = '';
 
-  function fail(msg) {
-    el.innerHTML = '<div class="map-placeholder"><p><strong>Peta tidak dapat dimuat.</strong> ' + msg + '</p></div>';
-  }
-
-  // Galat autentikasi key (key salah, domain tidak diizinkan, billing belum aktif).
-  window.gm_authFailure = function () {
-    fail('Google Maps menolak API key (periksa pembatasan domain, API yang diaktifkan, dan billing). Hubungi admin.');
-  };
+  var COLOR_REAL = '#1e5631';
+  var COLOR_DEMO = '#c47f17';
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
@@ -29,84 +26,104 @@
       '<br><a href="/lahan/' + l.id + '">Lihat detail lahan</a></div>';
   }
 
-  window.__initSahabatMap = function () {
-    var g = window.google.maps;
-    el.innerHTML = '';
-    var map = new g.Map(el, {
-      center: { lat: center.lat, lng: center.lng }, zoom: 15,
-      mapTypeId: 'hybrid',
-      mapTypeControl: true,
-      mapTypeControlOptions: { mapTypeIds: ['roadmap', 'satellite', 'hybrid'] },
-      streetViewControl: false, fullscreenControl: true, gestureHandling: 'cooperative',
-    });
-    var info = new g.InfoWindow();
-    var bounds = new g.LatLngBounds();
-    var byId = {};
+  // Lapisan dasar: peta jalan OpenStreetMap dan citra satelit Esri (keduanya wajib atribusi).
+  var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+  });
+  var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Citra &copy; Esri, Maxar, Earthstar Geographics',
+  });
 
-    lands.forEach(function (l) {
-      var item = { land: l, bounds: new g.LatLngBounds() };
-      var color = l.demo ? '#c47f17' : '#1e5631';
-      if (l.polygon && l.polygon.length >= 3) {
-        var path = l.polygon.map(function (p) { return { lat: p[0], lng: p[1] }; });
-        item.poly = new g.Polygon({
-          paths: path, map: map, strokeColor: color, strokeWeight: 2, fillColor: color, fillOpacity: l.demo ? 0.18 : 0.28, strokeOpacity: 0.9,
-        });
-        path.forEach(function (p) { item.bounds.extend(p); });
-        item.poly.addListener('click', function () { focus(l.id, false); });
-      }
-      if (l.lat != null && l.lng != null) {
-        var pos = { lat: l.lat, lng: l.lng };
-        item.marker = new g.Marker({ position: pos, map: map, title: l.name + (l.demo ? ' (Demo)' : ''), label: { text: l.demo ? 'D' : 'L', color: '#fff', fontWeight: '700' } });
-        item.marker.addListener('click', function () { focus(l.id, false); });
-        item.bounds.extend(pos);
-        item.anchor = pos;
-      }
-      if (!item.bounds.isEmpty()) { bounds.extend(item.bounds.getNorthEast()); bounds.extend(item.bounds.getSouthWest()); }
-      byId[l.id] = item;
-    });
+  var map = L.map(el, {
+    center: [center.lat, center.lng],
+    zoom: 15,
+    layers: [satellite],
+    scrollWheelZoom: false, // agar halaman tetap mudah digulir; aktif setelah peta diklik
+    tap: true,
+  });
+  L.control.layers({ 'Satelit': satellite, 'Peta jalan': osm }, null, { position: 'topright' }).addTo(map);
+  L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
+  map.on('click', function () { map.scrollWheelZoom.enable(); });
+  el.addEventListener('mouseleave', function () { map.scrollWheelZoom.disable(); });
 
-    // Sorot lahan terpilih: garis lebih tebal & isi lebih pekat; lainnya diredupkan.
-    function highlight(id) {
-      Object.keys(byId).forEach(function (k) {
-        var it = byId[k], on = Number(k) === id, any = !!id;
-        if (it.poly) it.poly.setOptions({ strokeWeight: on ? 4 : 2, fillOpacity: on ? 0.45 : (any ? 0.12 : (it.land.demo ? 0.18 : 0.28)), zIndex: on ? 2 : 1 });
-        if (it.marker) it.marker.setZIndex(on ? 999 : 1);
-      });
-      document.querySelectorAll('[data-land-item]').forEach(function (li) {
-        var on = Number(li.dataset.landItem) === id;
-        li.classList.toggle('is-selected', on);
-        var b = li.querySelector('[data-focus-land]');
-        if (b) b.setAttribute('aria-pressed', String(on));
-      });
+  // Beri tahu bila ubin peta gagal dimuat (mis. koneksi terputus) — bukan menampilkan peta kosong diam-diam.
+  var tileErrors = 0;
+  function onTileError() {
+    tileErrors++;
+    if (tileErrors === 3 && msg) { msg.textContent = 'Sebagian gambar peta gagal dimuat. Periksa koneksi internet, atau coba ganti ke “Peta jalan”.'; msg.hidden = false; }
+  }
+  osm.on('tileerror', onTileError);
+  satellite.on('tileerror', onTileError);
+
+  var bounds = L.latLngBounds([]);
+  var byId = {};
+
+  lands.forEach(function (l) {
+    var color = l.demo ? COLOR_DEMO : COLOR_REAL;
+    var item = { land: l, bounds: L.latLngBounds([]) };
+    if (l.polygon && l.polygon.length >= 3) {
+      item.poly = L.polygon(l.polygon, {
+        color: color, weight: 2, fillColor: color, fillOpacity: l.demo ? 0.18 : 0.3,
+        dashArray: l.demo ? '6 6' : null, // lahan demo bergaris putus-putus: pembeda selain warna
+      }).addTo(map);
+      item.poly.on('click', function () { focus(l.id, false); });
+      item.bounds.extend(item.poly.getBounds());
     }
-
-    function focus(id, move) {
-      var it = byId[id];
-      if (!it || it.bounds.isEmpty()) return;
-      if (move !== false) {
-        map.fitBounds(it.bounds, 60);
-        g.event.addListenerOnce(map, 'idle', function () { if (map.getZoom() > 18) map.setZoom(18); });
-      }
-      info.setContent(infoHtml(it.land)); info.setPosition(it.anchor || it.bounds.getCenter()); info.open({ map: map });
-      if (detail) { detail.innerHTML = infoHtml(it.land); detail.hidden = false; }
-      highlight(id);
-    }
-
-    if (selected && byId[selected]) focus(selected);
-    else if (!bounds.isEmpty()) { map.fitBounds(bounds, 60); g.event.addListenerOnce(map, 'idle', function () { if (map.getZoom() > 17) map.setZoom(17); }); }
-
-    document.querySelectorAll('[data-focus-land]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        focus(Number(b.dataset.focusLand));
-        // Di ponsel peta berada di atas daftar: gulir agar lahan terlihat.
-        if (window.matchMedia('(max-width: 1023px)').matches) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (l.lat != null && l.lng != null) {
+      var icon = L.divIcon({
+        className: '',
+        html: '<span class="lmark ' + (l.demo ? 'lmark-demo' : 'lmark-real') + '" aria-hidden="true">' + (l.demo ? 'D' : 'L') + '</span>',
+        iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -14],
       });
-    });
-  };
+      item.marker = L.marker([l.lat, l.lng], { icon: icon, title: l.name + (l.demo ? ' (Lahan demo)' : ''), alt: l.name, keyboard: true }).addTo(map);
+      item.marker.on('click', function () { focus(l.id, false); });
+      item.bounds.extend([l.lat, l.lng]);
+      item.anchor = L.latLng(l.lat, l.lng);
+    }
+    if (item.bounds.isValid()) bounds.extend(item.bounds);
+    byId[l.id] = item;
+  });
 
-  var s = document.createElement('script');
-  s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(el.dataset.key) + '&callback=__initSahabatMap&loading=async&language=id&region=ID&v=weekly';
-  s.async = true;
-  s.onerror = function () { fail('Periksa koneksi internet Anda.'); };
-  document.head.appendChild(s);
+  // Sorot lahan terpilih: garis lebih tebal & isi lebih pekat; lahan lain diredupkan.
+  function highlight(id) {
+    Object.keys(byId).forEach(function (k) {
+      var it = byId[k], on = Number(k) === id;
+      if (it.poly) {
+        it.poly.setStyle({ weight: on ? 4 : 2, fillOpacity: on ? 0.45 : (id ? 0.1 : (it.land.demo ? 0.18 : 0.3)) });
+        if (on) it.poly.bringToFront();
+      }
+      if (it.marker) it.marker.setZIndexOffset(on ? 1000 : 0);
+    });
+    document.querySelectorAll('[data-land-item]').forEach(function (li) {
+      var on = Number(li.dataset.landItem) === id;
+      li.classList.toggle('is-selected', on);
+      var b = li.querySelector('[data-focus-land]');
+      if (b) b.setAttribute('aria-pressed', String(on));
+    });
+  }
+
+  function focus(id, move) {
+    var it = byId[id];
+    if (!it || !it.bounds.isValid()) return;
+    if (move !== false) map.fitBounds(it.bounds, { padding: [40, 40], maxZoom: 18 });
+    L.popup({ maxWidth: 260 }).setLatLng(it.anchor || it.bounds.getCenter()).setContent(infoHtml(it.land)).openOn(map);
+    if (detail) { detail.innerHTML = infoHtml(it.land); detail.hidden = false; }
+    highlight(id);
+  }
+
+  if (selected && byId[selected]) focus(selected);
+  else if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
+
+  document.querySelectorAll('[data-focus-land]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      focus(Number(b.dataset.focusLand));
+      // Di ponsel peta ada di atas daftar: gulir agar lahan terlihat.
+      if (window.matchMedia('(max-width: 1023px)').matches) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // Peta di dalam kontainer yang ukurannya berubah (mis. layout responsif) perlu dihitung ulang.
+  if (window.ResizeObserver) new ResizeObserver(function () { map.invalidateSize(); }).observe(el);
 })();

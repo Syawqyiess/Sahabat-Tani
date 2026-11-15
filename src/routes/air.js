@@ -32,8 +32,33 @@ function resolveLocation(req) {
 router.get('/udara', farmerOnly, async (req, res) => {
   const { lands, loc } = resolveLocation(req);
   const out = await air.getAirQuality(loc.lat, loc.lng, { force: req.query.segarkan === '1' });
-  res.render('farmer/air', { title: 'Informasi Kualitas Udara', lands, loc, ...out, categories: air.US_AQI_CATEGORIES });
+  const layer = WINDY_LAYERS.find((l) => l.id === req.query.lapisan) || WINDY_LAYERS[0];
+  res.render('farmer/air', {
+    title: 'Informasi Kualitas Udara', lands, loc, ...out, categories: air.US_AQI_CATEGORIES,
+    windy: { layers: WINDY_LAYERS, active: layer, url: windyUrl(loc, layer.id) },
+  });
 });
+
+// Peta sebaran polusi dari widget embed resmi Windy (lapisan data CAMS/Copernicus).
+const WINDY_LAYERS = [
+  { id: 'pm2p5', label: 'PM2.5' },
+  { id: 'no2', label: 'NO₂' },
+  { id: 'cosc', label: 'CO' },
+  { id: 'go3', label: 'Ozon permukaan' },
+  { id: 'dustsm', label: 'Debu' },
+];
+
+function windyUrl(loc, overlay) {
+  const p = new URLSearchParams({
+    type: 'map', location: 'coordinates', metricRain: 'default', metricTemp: 'default', metricWind: 'default',
+    zoom: '8', overlay, product: 'cams', level: 'surface',
+    lat: loc.lat.toFixed(3), lon: loc.lng.toFixed(3), detailLat: loc.lat.toFixed(3), detailLon: loc.lng.toFixed(3),
+    marker: 'true', message: 'true', lang: 'id',
+  });
+  return `https://embed.windy.com/embed.html?${p}`;
+}
+
+router.windyUrl = windyUrl;
 
 // Potongan HTML untuk dashboard (dimuat setelah halaman tampil agar dashboard tetap cepat).
 router.get('/udara/ringkas', farmerOnly, async (req, res) => {

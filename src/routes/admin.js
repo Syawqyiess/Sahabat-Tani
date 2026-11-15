@@ -482,9 +482,14 @@ router.get('/integrasi', async (req, res) => {
         secret: '—',
       },
       {
-        name: 'Google Maps JavaScript API', status: config.maps.browserKey ? 'aktif' : 'belum',
-        detail: config.maps.browserKey ? 'Browser key terpasang. Pastikan dibatasi per domain (HTTP referrer) dan hanya Maps JavaScript API.' : 'Peta menampilkan placeholder informatif.',
-        secret: `GOOGLE_MAPS_BROWSER_KEY: ${maskSecret(config.maps.browserKey)}`,
+        name: 'Peta lahan (Leaflet + OpenStreetMap / Esri)', status: 'aktif',
+        detail: 'Leaflet disajikan dari server sendiri. Ubin peta jalan dari OpenStreetMap dan citra satelit dari Esri World Imagery — wajib atribusi (sudah tampil di pojok peta) dan wajar dipakai untuk demo; untuk lalu lintas tinggi pakai penyedia ubin berbayar atau server ubin sendiri.',
+        secret: 'Tidak memerlukan kunci',
+      },
+      {
+        name: 'Peta kualitas udara (Windy)', status: 'aktif',
+        detail: 'Widget embed resmi Windy (embed.windy.com) dengan lapisan CAMS: PM2.5, NO₂, CO, ozon permukaan, debu. Ditampilkan sebagai iframe di halaman Kualitas Udara.',
+        secret: 'Tidak memerlukan kunci',
       },
       {
         name: 'Open-Meteo Air Quality API', status: lastAir ? (lastAir.ok ? 'aktif' : 'galat') : 'belum dipakai',

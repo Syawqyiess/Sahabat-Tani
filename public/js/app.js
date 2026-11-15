@@ -142,6 +142,31 @@
     input.addEventListener('change', function () { if (input.files.length) input.form.submit(); });
   });
 
+  // Peta Windy: ganti lapisan tanpa memuat ulang halaman (tautan tetap berfungsi tanpa JS).
+  document.querySelectorAll('[data-windy]').forEach(function (card) {
+    var frame = card.querySelector('[data-windy-frame]');
+    var box = frame.parentElement;
+    frame.addEventListener('load', function () { box.classList.remove('is-loading'); });
+    card.querySelectorAll('[data-windy-layer]').forEach(function (chip) {
+      chip.addEventListener('click', function (e) {
+        e.preventDefault();
+        var u = new URL(frame.src);
+        u.searchParams.set('overlay', chip.dataset.windyLayer);
+        box.classList.add('is-loading');
+        frame.src = u.toString();
+        var open = card.querySelector('[data-windy-open]');
+        if (open) open.href = u.toString();
+        frame.title = 'Peta sebaran ' + chip.textContent.trim() + ' dari Windy';
+        card.querySelectorAll('[data-windy-layer]').forEach(function (c) {
+          var on = c === chip;
+          c.classList.toggle('is-active', on);
+          if (on) c.setAttribute('aria-current', 'true'); else c.removeAttribute('aria-current');
+        });
+        history.replaceState(null, '', chip.getAttribute('href'));
+      });
+    });
+  });
+
   // Pilihan lokasi kualitas udara langsung memuat ulang tanpa tombol tambahan.
   document.querySelectorAll('[data-autosubmit-select]').forEach(function (sel) {
     sel.addEventListener('change', function () { sel.form.requestSubmit ? sel.form.requestSubmit() : sel.form.submit(); });

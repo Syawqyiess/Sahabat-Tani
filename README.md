@@ -12,7 +12,7 @@ Sistem informasi pertanian berbahasa Indonesia untuk petani padi: akun pribadi, 
 | Autentikasi | Sesi server (express-session, disimpan di SQLite) + bcrypt | Cookie httpOnly/SameSite, regenerasi sesi saat login |
 | AI | Analisis foto: **model scanner buatan sendiri** (EfficientNet-B0 → ONNX, `onnxruntime-node`), atau Gemini/Claude. Percakapan: Gemini (free tier) atau Claude | Modul analisis gambar & percakapan terpisah; penyedia dipilih lewat `.env` |
 | Kualitas udara | Open-Meteo Air Quality API | Gratis untuk non-komersial, tanpa kunci |
-| Peta | Google Maps JavaScript API | Sesuai permintaan |
+| Peta | Leaflet + ubin OpenStreetMap/Esri; Windy (embed) untuk sebaran polusi | Tanpa API key, kode peta disajikan sendiri |
 | Berita | RSS (rss-parser) | Hanya judul/ringkasan/tautan |
 
 ## Menjalankan
@@ -123,7 +123,6 @@ Foto disimpan di `storage/uploads/<user_id>/` (di luar folder publik) dan hanya 
 | Fitur | Yang dibutuhkan |
 |---|---|
 | Analisis foto & chat AI nyata | `GEMINI_API_KEY` (free tier, untuk demo) atau `ANTHROPIC_API_KEY` (berbayar); uji dengan `npm run cek-ai` |
-| Peta Google Maps | `GOOGLE_MAPS_BROWSER_KEY` + billing Google Cloud, dibatasi domain & API |
 | Berita eksternal | URL RSS dari penerbit yang mengizinkan (diisi admin) |
 | Pengiriman tautan reset | Penyedia email/SMS (belum diimplementasikan) |
 | Kualitas udara komersial | Langganan Open-Meteo (gratis hanya non-komersial) |
@@ -145,7 +144,7 @@ Pemeriksaan manual tambahan:
 - Panggilan **nyata** ke Open-Meteo berhasil (contoh titik demo Karawang: US AQI 177 “Tidak sehat”, 24 titik grafik).
 - Di browser ukuran ponsel (375×812): login → dashboard → scan (berkas uji disuntikkan ke input galeri) → otomatis masuk chatroom → pertanyaan cepat → halaman kualitas udara → menu “Lainnya”.
 
-Belum diuji: panggilan langsung ke API Claude (belum ada API key), Google Maps dengan key asli, kamera fisik pada ponsel sungguhan, dan feed RSS nyata.
+Belum diuji: panggilan langsung ke API Claude (belum ada API key), kamera fisik pada ponsel sungguhan, dan feed RSS nyata.
 
 ## Catatan pengembangan lanjut
 - Ganti data demo dengan data asli lewat panel admin (profil & lahan) atau impor ke tabel `farmer_profiles`/`lands`; struktur koordinat & poligon sudah siap.

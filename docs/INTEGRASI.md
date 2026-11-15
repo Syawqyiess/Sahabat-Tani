@@ -1,6 +1,6 @@
 # Panduan Menghubungkan Layanan Eksternal
 
-Semua kunci disimpan di file `.env` di server (lihat `.env.example`). Kunci rahasia tidak pernah dikirim ke browser, kecuali Google Maps *browser key* yang memang dirancang publik dan **wajib dibatasi**. Setelah mengubah `.env`, mulai ulang aplikasi. Status setiap integrasi bisa dilihat di **Admin → Integrasi** (nilai kunci tidak ditampilkan).
+Semua kunci disimpan di file `.env` di server (lihat `.env.example`). Kunci rahasia tidak pernah dikirim ke browser. Setelah mengubah `.env`, mulai ulang aplikasi. Status setiap integrasi bisa dilihat di **Admin → Integrasi** (nilai kunci tidak ditampilkan).
 
 ---
 
@@ -63,26 +63,22 @@ Model bawaan: `claude-opus-5-5` (bisa diganti lewat `AI_VISION_MODEL` / `AI_CHAT
 
 ---
 
-## 2. Google Maps JavaScript API
+## 2. Peta lahan (Leaflet) dan peta kualitas udara (Windy)
 
-**Tanpa kunci** halaman peta menampilkan *placeholder* informatif dan daftar koordinat (tidak ada peta palsu).
+Tidak memerlukan API key maupun billing.
 
-1. Buka <https://console.cloud.google.com>, buat proyek, **aktifkan billing** (wajib walau ada kuota gratis bulanan).
-2. APIs & Services → Library → aktifkan **Maps JavaScript API** saja.
-3. Credentials → Create credentials → API key. Lalu **batasi**:
-   - *Application restrictions*: **Websites (HTTP referrers)** → tambahkan domain Anda, mis. `https://sahabattani.example.id/*` dan untuk pengembangan `http://localhost:3000/*`.
-   - *API restrictions*: **Restrict key** → pilih hanya **Maps JavaScript API**.
-4. Atur kuota/anggaran: Billing → Budgets & alerts (mis. peringatan di US$10), dan APIs & Services → Maps JavaScript API → Quotas untuk membatasi *map loads* per hari.
-5. Isi `GOOGLE_MAPS_BROWSER_KEY=...` di `.env`.
+**Peta lahan — Leaflet**
+- Pustaka [Leaflet](https://leafletjs.com) (open source) dipasang lewat npm dan disajikan dari server sendiri (`/static/vendor/leaflet`), jadi CSP tetap ketat (`script-src 'self'`).
+- Lapisan dasar: **Satelit** (Esri World Imagery) dan **Peta jalan** (OpenStreetMap), dapat diganti dari tombol di pojok kanan atas. Atribusi keduanya wajib dan sudah tampil di pojok peta.
+- Ketentuan ubin: server ubin OpenStreetMap dan Esri wajar dipakai untuk demo/penggunaan ringan. Untuk banyak pengguna, gunakan penyedia ubin berbayar atau server ubin sendiri, dan periksa ketentuan terbaru penyedianya.
+- Peta hanya menerima data lahan milik petani yang masuk. Lahan demo: warna oranye, **garis putus-putus**, penanda **D**; lahan asli: hijau, garis penuh, penanda **L**.
+- Leaflet tidak mengetahui kepemilikan/batas lahan. Batas asli diisi sebagai poligon `[[lat,lng],...]` di form lahan (petani atau admin), misalnya dari pengukuran GPS lapangan. Lahan tetap bisa disimpan tanpa koordinat.
+- Bila ubin gagal dimuat (mis. koneksi putus), peta menampilkan pesan, bukan peta kosong diam-diam.
 
-Catatan:
-- Peta hanya menerima data lahan milik petani yang masuk (disiapkan di server).
-- Lahan demo diberi label “Lahan Demo — Bukan Batas Lahan Asli” dan warna oranye; lahan asli hijau.
-- Google Maps tidak mengetahui kepemilikan/batas lahan. Batas asli diisi sebagai poligon `[[lat,lng],...]` di form lahan (petani atau admin), misalnya dari pengukuran GPS lapangan. Lahan tetap bisa disimpan tanpa koordinat.
-- `map.js` memakai `google.maps.Marker` (masih berfungsi). Untuk proyek baru Google menyarankan `AdvancedMarkerElement` yang memerlukan `GOOGLE_MAPS_MAP_ID`.
-- CSP di `src/app.js` sudah mengizinkan domain `maps.googleapis.com` dan `maps.gstatic.com`.
-
----
+**Peta sebaran polusi — Windy**
+- Widget embed resmi `https://embed.windy.com/embed.html` disematkan sebagai iframe di halaman Kualitas Udara, dipusatkan ke lokasi yang dipilih dengan penanda.
+- Lapisan (produk `cams`, data Copernicus CAMS): PM2.5 (`pm2p5`), NO₂ (`no2`), CO (`cosc`), ozon permukaan (`go3`), debu (`dustsm`). Hanya nilai dari daftar ini yang diterima server.
+- CSP mengizinkan `frame-src https://embed.windy.com`. Peta membutuhkan internet; angka Open-Meteo di atasnya tetap menjadi acuan utama.
 
 ## 3. Open-Meteo Air Quality API
 

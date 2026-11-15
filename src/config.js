@@ -60,8 +60,7 @@ const config = {
   },
 
   maps: {
-    browserKey: env.GOOGLE_MAPS_BROWSER_KEY || '',
-    mapId: env.GOOGLE_MAPS_MAP_ID || '',
+    // Peta memakai Leaflet + ubin OpenStreetMap / Esri (tanpa API key).
     // Lokasi contoh di Indonesia (dapat dikonfigurasi): sawah di Kabupaten Karawang, Jawa Barat.
     demoCenter: {
       lat: Number(env.DEMO_MAP_LAT || -6.3227),

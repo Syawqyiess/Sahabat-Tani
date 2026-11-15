@@ -23,15 +23,16 @@ function createApp() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        // Google Maps JavaScript API memerlukan domain berikut.
-        scriptSrc: ["'self'", 'https://maps.googleapis.com', 'https://maps.gstatic.com'],
+        // Leaflet disajikan dari server sendiri; ubin peta (OSM/Esri) dimuat sebagai gambar https.
+        scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-        connectSrc: ["'self'", 'https://maps.googleapis.com', 'https://*.googleapis.com', 'https://*.gstatic.com'],
+        connectSrc: ["'self'"],
         mediaSrc: ["'self'", 'blob:'],
         workerSrc: ["'self'", 'blob:'],
-        frameSrc: ["'self'", 'https://*.google.com'],
+        // Peta kualitas udara Windy disematkan sebagai iframe.
+        frameSrc: ["'self'", 'https://embed.windy.com'],
         upgradeInsecureRequests: config.isProd ? [] : null,
       },
     },
@@ -39,6 +40,8 @@ function createApp() {
   }));
 
   app.use('/static', express.static(path.join(config.root, 'public'), { maxAge: config.isProd ? '7d' : 0 }));
+  // Leaflet (pustaka peta terbuka) disajikan langsung dari paket npm.
+  app.use('/static/vendor/leaflet', express.static(path.join(config.root, 'node_modules', 'leaflet', 'dist'), { maxAge: config.isProd ? '30d' : 0 }));
   app.use(express.urlencoded({ extended: false, limit: '200kb' }));
   app.use(express.json({ limit: '200kb' }));
 
