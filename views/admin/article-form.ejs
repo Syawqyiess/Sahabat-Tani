@@ -18,6 +18,12 @@
     <%- include('../partials/field', { name: 'image_alt', label: 'Teks alternatif gambar', value: article.image_alt, error: errors.image_alt, optional: true }) %>
   </div>
   <div class="grid-2">
+    <label class="check"><input type="checkbox" name="is_pinned" value="1" <%= String(article.is_pinned) === '1' ? 'checked' : '' %>> Sematkan di urutan teratas daftar artikel (mis. materi penyuluhan Penggerek Batang, Blas)</label>
+    <%- include('../partials/field', { name: 'pin_order', label: 'Urutan sematan (1 = paling atas)', type: 'number', value: article.pin_order, error: errors.pin_order, optional: true }) %>
+  </div>
+  <label class="check"><input type="checkbox" name="image_is_ai" value="1" <%= article.image_kind === 'ilustrasi-ai' || String(article.image_is_ai) === '1' ? 'checked' : '' %>> Gambar ini ilustrasi buatan AI (akan diberi label “Ilustrasi AI”)</label>
+  <% if (article.image_kind === 'sumber') { %><p class="small muted">Gambar saat ini berasal dari artikel asli penerbit<%= article.image_credit ? ' (' + article.image_credit + ')' : '' %>.</p><% } %>
+  <div class="grid-2">
     <%- include('../partials/field', { name: 'source_name', label: 'Nama sumber (bila dari luar)', value: article.source_name, error: errors.source_name, optional: true }) %>
     <%- include('../partials/field', { name: 'source_url', label: 'Tautan sumber asli', value: article.source_url, error: errors.source_url, optional: true }) %>
   </div>

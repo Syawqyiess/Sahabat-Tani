@@ -7,7 +7,7 @@
   <tbody>
   <% lands.forEach((l) => { %>
     <tr>
-      <td><%= l.name %><br><span class="small muted"><%= l.variety || '' %> <%= l.season_status || '' %></span></td>
+      <td><%= l.name %><br><span class="small muted"><%= l.commodity || 'Jenis tanaman belum diisi' %><%= l.season_status ? ' · ' + l.season_status : '' %></span></td>
       <td><%= l.owner_name || l.owner_phone %></td>
       <td><%= l.area_ha != null ? l.area_ha + ' ha' : '—' %></td>
       <td class="small"><%= l.lat != null ? l.lat.toFixed(4) + ', ' + l.lng.toFixed(4) : '—' %><%= l.polygon_json ? ' + poligon' : '' %></td>

@@ -55,7 +55,7 @@ function oneOf(v, list, { label = 'Pilihan' } = {}, errors, key) {
 function polygon(v, errors, key) {
   if (!v || !String(v).trim()) return null;
   let arr;
-  try { arr = JSON.parse(v); } catch { errors[key] = 'Format batas lahan harus JSON, contoh: [[-6.32,107.33],[-6.32,107.34],[-6.33,107.34]]'; return null; }
+  try { arr = JSON.parse(v); } catch { errors[key] = 'Format batas lahan harus JSON, contoh: [[-7.025,112.528],[-7.025,112.529],[-7.026,112.529]]'; return null; }
   const ok = Array.isArray(arr) && arr.length >= 3 && arr.length <= 500 && arr.every(
     (p) => Array.isArray(p) && p.length === 2 && Math.abs(p[0]) <= 90 && Math.abs(p[1]) <= 180 && p.every(Number.isFinite),
   );

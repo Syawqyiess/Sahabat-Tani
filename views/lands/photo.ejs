@@ -1,0 +1,18 @@
+<%
+  // Urutan gambar lahan: foto asli unggahan petani → ilustrasi (hanya lahan demo, diberi label) → placeholder jujur.
+  const real = l.photo_path ? '/media/' + l.photo_path : null;
+  const ill = !real && l.data_source === 'demo' && l.illustration_path ? l.illustration_path : null;
+  const big = typeof large !== 'undefined' && large;
+%>
+<div class="land-photo<%= big ? ' land-photo-lg' : '' %>">
+  <a class="land-photo-link" href="/lahan/<%= l.id %>" tabindex="-1" aria-hidden="true">
+    <% if (real || ill) { %>
+      <img src="<%= real || ill %>" alt="" width="1600" height="900" decoding="async" <%- (typeof eager !== 'undefined' && eager) || big ? 'fetchpriority="high"' : 'loading="lazy"' %> data-land-img>
+    <% } %>
+    <span class="land-photo-empty"<%= real || ill ? ' hidden' : '' %> data-land-empty><%- icon('image', 28) %><span><%= real || ill ? 'Foto lahan gagal dimuat' : 'Foto lahan belum ditambahkan' %></span></span>
+  </a>
+  <% if (l.data_source === 'demo' && !big) { %><span class="badge badge-demo land-photo-tag">Lahan Demo</span><% } %>
+  <% if (ill) { %>
+    <a class="land-photo-credit" href="<%= l.illustration_source_url %>" target="_blank" rel="noopener noreferrer" title="<%= l.illustration_credit %>"><%= l.illustration_kind === 'ai' ? 'Ilustrasi AI' : 'Foto ilustrasi' %><span class="visually-hidden"> — bukan foto lahan ini. <%= l.illustration_credit %></span></a>
+  <% } %>
+</div>

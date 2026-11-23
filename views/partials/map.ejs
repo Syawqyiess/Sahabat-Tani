@@ -1,9 +1,14 @@
 <%
   // Data peta hanya berisi lahan milik petani yang sedang masuk (disiapkan di route).
-  const mapLands = lands.map((l) => ({
-    id: l.id, name: l.name, lat: l.lat, lng: l.lng, polygon: l.polygon || null, demo: l.data_source === 'demo',
-    area: l.area_ha, variety: l.variety, status: l.season_status, address: l.address_desc,
-  }));
+  const allDemo = lands.length > 0 && lands.every((l) => l.data_source === 'demo');
+  const mapLands = lands.map((l) => {
+    const age = crop.cropAge(l);
+    return {
+      id: l.id, name: l.name, lat: l.lat, lng: l.lng, polygon: l.polygon || null, demo: l.data_source === 'demo', allDemo,
+      area: l.area_ha != null ? crop.fmtHa(l.area_ha) : null, crop: l.commodity, address: l.address_desc,
+      age: crop.phaseAgeLabel(age) || age.label, ageEstimated: age.phaseEstimated,
+    };
+  });
   const geoLands = mapLands.filter((l) => (l.lat != null && l.lng != null) || l.polygon);
   const compact = typeof compactMap !== 'undefined' && compactMap;
 %>

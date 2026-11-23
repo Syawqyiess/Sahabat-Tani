@@ -1,0 +1,29 @@
+<%
+  // Foto lahan: hanya di formulir petani (pemilik lahan). Admin tidak mengubah foto lahan petani.
+  const photoErr = errors.photo;
+%>
+<fieldset class="photo-field <%= photoErr ? 'has-error' : '' %>">
+  <legend>Foto lahan <span class="opt">(opsional)</span></legend>
+  <div class="photo-field-row">
+    <div class="land-photo land-photo-sm" data-photo-preview>
+      <% if (land.photo_path) { %>
+        <img src="/media/<%= land.photo_path %>" alt="Foto lahan saat ini" data-photo-img>
+      <% } else { %>
+        <span class="land-photo-empty" data-photo-empty><%- icon('image', 28) %><span>Foto lahan belum ditambahkan</span></span>
+      <% } %>
+    </div>
+    <div class="photo-field-body">
+      <label class="btn btn-ghost btn-sm" for="f-photo"><%- icon('upload', 18) %> <%= land.photo_path ? 'Ganti foto' : 'Pilih foto' %></label>
+      <input class="visually-hidden" id="f-photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" data-photo-input aria-describedby="f-photo-h">
+      <div id="f-photo-h">
+        <% if (photoErr) { %><p class="field-error"><%- icon('alert', 16) %> <%= photoErr %></p><% } %>
+        <p class="hint">Foto asli lahan ini. JPG, PNG, atau WEBP, maksimal <%= uploadMaxMb %> MB. Foto diperkecil otomatis dan data lokasi di dalam berkas foto dihapus.</p>
+        <% if (!land.photo_path && land.data_source === 'demo' && land.illustration_path) { %><p class="hint">Saat ini kartu lahan memakai foto ilustrasi (bukan foto lahan ini). Foto asli yang Anda unggah akan menggantikannya.</p><% } %>
+        <p class="hint" data-photo-name role="status"></p>
+      </div>
+      <% if (land.photo_path) { %>
+        <label class="check"><input type="checkbox" name="remove_photo" value="1"> Hapus foto saat ini</label>
+      <% } %>
+    </div>
+  </div>
+</fieldset>

@@ -1,0 +1,80 @@
+<%
+  // Visualisasi data RDKK (sumber: ekspor CSV Tableau Public "SITANI"), digambar dengan diagram milik website.
+  // Server hanya mengirim snapshot terakhir yang lolos validasi; tabel data tersedia tanpa JavaScript.
+  const r = rdkk;
+  const d = r.data;
+  const kg = (n) => Number(n).toLocaleString('id-ID') + ' kg';
+  const LABEL = { UREA: 'Urea', NPK: 'NPK' };
+  const nama = (s) => LABEL[s] || s.charAt(0) + s.slice(1).toLowerCase();
+%>
+<section class="section rdkk" aria-labelledby="rdkk-judul" data-rdkk data-reveal>
+  <div class="section-head rdkk-head">
+    <div>
+      <h2 class="h3" id="rdkk-judul"><%- icon('chart') %> Visualisasi Data Pertanian</h2>
+      <p class="small muted" style="margin:var(--s-1) 0 0">
+        Kebutuhan pupuk bersubsidi — <%= r.title %>. Data: Tableau Public (<%= r.author %>)<% if (r.fetchedAt) { %>, diperbarui <%= u.fmtDate(r.fetchedAt, true) %><% } %>. Sama untuk semua pengguna, tidak disaring per akun.
+      </p>
+    </div>
+    <a class="small" href="<%= r.publicUrl %>" target="_blank" rel="noopener noreferrer">Dashboard asli <%- icon('external', 14) %></a>
+  </div>
+
+  <% if (!d) { %>
+    <div class="panel rdkk-empty">
+      <p style="margin:0"><strong>Data RDKK belum tersedia.</strong> <%= r.lastError ? 'Pengambilan terakhir gagal: ' + r.lastError.message + '.' : 'Server belum pernah mengambil data dari Tableau Public.' %></p>
+      <a class="btn btn-sm btn-ghost" href="<%= r.publicUrl %>" target="_blank" rel="noopener noreferrer">Buka dashboard sumber <%- icon('external', 16) %></a>
+    </div>
+  <% } else { %>
+    <% if (r.lastError) { %>
+      <p class="small rdkk-stale" role="status"><%- icon('info', 16) %> Pembaruan terakhir gagal (<%= r.lastError.message %>). Menampilkan data tersimpan.</p>
+    <% } %>
+
+    <div class="rdkk-kpis">
+      <div class="rdkk-kpi rv rv-rise" style="--rv-d:0ms"><span class="rdkk-kpi-label">Petani terdaftar</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.petani %>"><%= d.kpi.petani.toLocaleString('id-ID') %></span></span></div>
+      <div class="rdkk-kpi rv rv-rise" style="--rv-d:70ms"><span class="rdkk-kpi-label">Kelompok tani</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.kelompok %>"><%= d.kpi.kelompok.toLocaleString('id-ID') %></span></span></div>
+      <div class="rdkk-kpi rv rv-rise" style="--rv-d:140ms"><span class="rdkk-kpi-label">Total kebutuhan pupuk</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.total %>"><%= d.kpi.total.toLocaleString('id-ID') %></span><small> kg</small></span></div>
+      <div class="rdkk-kpi rv rv-rise" style="--rv-d:210ms"><span class="rdkk-kpi-label">Rata-rata per petani</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.rataRata %>"><%= d.kpi.rataRata.toLocaleString('id-ID') %></span><small> kg</small></span></div>
+    </div>
+
+    <div class="rdkk-filter" role="group" aria-label="Tampilkan jenis pupuk" hidden data-rdkk-filter>
+      <span class="small muted">Jenis pupuk:</span>
+      <button type="button" class="chip is-active" aria-pressed="true" data-jenis="">Semua</button>
+      <% d.jenis.forEach((j) => { %><button type="button" class="chip" aria-pressed="false" data-jenis="<%= j %>"><span class="rdkk-swatch" data-swatch="<%= j %>"></span><%= nama(j) %></button><% }) %>
+    </div>
+
+    <div class="rdkk-grid">
+      <figure class="panel rdkk-card rv rv-rise" style="--rv-d:120ms">
+        <figcaption><strong>Kebutuhan per kelompok tani</strong><span class="small muted">Jumlah kebutuhan sesuai RDKK, dipecah per jenis pupuk</span></figcaption>
+        <div class="rdkk-legend" data-legend></div>
+        <div class="rdkk-chart" data-chart="kelompok" role="img" aria-label="Diagram batang bertumpuk kebutuhan pupuk per kelompok tani"></div>
+      </figure>
+      <figure class="panel rdkk-card rv rv-rise" style="--rv-d:200ms">
+        <figcaption><strong>Kebutuhan per musim tanam</strong><span class="small muted">MT1–MT3, per jenis pupuk</span></figcaption>
+        <div class="rdkk-legend" data-legend></div>
+        <div class="rdkk-chart" data-chart="musim" role="img" aria-label="Diagram batang berkelompok kebutuhan pupuk per musim tanam"></div>
+      </figure>
+      <figure class="panel rdkk-card rdkk-card-wide rv rv-rise" style="--rv-d:280ms">
+        <figcaption><strong>Peta panas kebutuhan pupuk</strong><span class="small muted">Makin gelap, makin besar kebutuhan (kg)</span></figcaption>
+        <div class="rdkk-chart" data-chart="heatmap" role="img" aria-label="Peta panas kebutuhan pupuk menurut jenis dan musim tanam"></div>
+      </figure>
+    </div>
+
+    <details class="rdkk-table">
+      <summary>Lihat tabel data</summary>
+      <div class="grid-2">
+        <table class="table">
+          <caption class="small muted">Per kelompok tani</caption>
+          <thead><tr><th scope="col">Kelompok tani</th><th scope="col">Jenis</th><th scope="col" class="num">Kebutuhan</th></tr></thead>
+          <tbody><% d.perKelompok.forEach((x) => { %><tr><td><%= nama(x.kelompok) %></td><td><%= nama(x.jenis) %></td><td class="num"><%= kg(x.kg) %></td></tr><% }) %></tbody>
+        </table>
+        <table class="table">
+          <caption class="small muted">Per musim tanam</caption>
+          <thead><tr><th scope="col">Musim</th><th scope="col">Jenis</th><th scope="col" class="num">Kebutuhan</th></tr></thead>
+          <tbody><% d.perMusim.forEach((x) => { %><tr><td><%= x.musim %></td><td><%= nama(x.jenis) %></td><td class="num"><%= kg(x.kg) %></td></tr><% }) %></tbody>
+        </table>
+      </div>
+    </details>
+    <div class="rdkk-tip" role="tooltip" hidden data-tip></div>
+    <script type="application/json" data-rdkk-json><%- JSON.stringify(d).replace(/</g, '\\u003c') %></script>
+  <% } %>
+</section>
+<script src="/static/js/rdkk.js" defer></script>

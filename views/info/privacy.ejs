@@ -1,0 +1,11 @@
+<%- include('../partials/head') %>
+<article class="info-page">
+  <a class="back-link" href="<%= currentUser ? (currentUser.role === 'admin' ? '/admin' : '/dashboard') : '/' %>"><%- icon('arrowLeft', 18) %> Kembali ke <%= currentUser ? 'Dashboard' : 'beranda' %></a>
+  <h1>Kebijakan Privasi</h1>
+  <div class="state info-pending">
+    <h2 class="h3">Informasi sedang disiapkan</h2>
+    <p>Naskah Kebijakan Privasi Sahabat Tani belum diterbitkan oleh pengelola. Halaman ini akan diperbarui setelah naskahnya tersedia.</p>
+  </div>
+  <%- include('../partials/info-contact') %>
+</article>
+<%- include('../partials/foot') %>

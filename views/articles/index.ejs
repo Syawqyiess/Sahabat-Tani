@@ -1,39 +1,57 @@
 <%- include('../partials/head') %>
+<%
+  // Pembentuk URL filter yang mempertahankan pilihan lain.
+  const link = (over) => {
+    const p = { ...(q && { q }), ...(cat && { kategori: cat }), ...over };
+    Object.keys(p).forEach((k) => (p[k] === '' || p[k] == null) && delete p[k]);
+    const s = new URLSearchParams(p).toString();
+    return '/artikel' + (s ? '?' + s : '');
+  };
+%>
 <div class="page-head">
-  <div><h1>Artikel &amp; Berita</h1><p class="muted">Bacaan budidaya, pemupukan, hama, dan kabar pertanian.</p></div>
+  <div>
+    <h1>Berita &amp; Artikel Pertanian</h1>
+    <p class="muted measure">Berita dan artikel pertanian dari berbagai sumber tepercaya. Baca ringkasannya dan kunjungi sumber asli untuk informasi selengkapnya.</p>
+  </div>
   <% if (saved) { %><a class="btn btn-ghost" href="/artikel-tersimpan"><%- icon('bookmark', 20) %> Artikel Tersimpan</a><% } %>
 </div>
 
 <form method="get" action="/artikel" class="search" role="search">
   <span class="search-ic"><%- icon('search', 20) %></span>
-  <label for="q" class="visually-hidden">Cari artikel</label>
-  <input id="q" name="q" type="search" value="<%= q %>" placeholder="Cari judul atau topik, misalnya wereng">
+  <label for="q" class="visually-hidden">Cari berita</label>
+  <input id="q" name="q" type="search" value="<%= q %>" placeholder="Cari judul atau topik, misalnya wereng atau pupuk">
   <% if (cat) { %><input type="hidden" name="kategori" value="<%= cat %>"><% } %>
   <button class="btn" type="submit">Cari</button>
 </form>
-<nav class="chips" aria-label="Filter kategori">
-  <a class="chip <%= !cat ? 'is-active' : '' %>" href="/artikel<%= q ? '?q=' + encodeURIComponent(q) : '' %>" <%- !cat ? 'aria-current="true"' : '' %>>Semua</a>
+<nav class="chips" aria-label="Subkategori">
+  <a class="chip <%= !cat ? 'is-active' : '' %>" href="<%= link({ kategori: '', hal: '' }) %>" <%- !cat ? 'aria-current="true"' : '' %>>Semua topik</a>
   <% categories.forEach((c) => { %>
-    <a class="chip <%= cat === c.slug ? 'is-active' : '' %>" href="/artikel?kategori=<%= c.slug %><%= q ? '&q=' + encodeURIComponent(q) : '' %>" <%- cat === c.slug ? 'aria-current="true"' : '' %>><%= c.name %></a>
+    <a class="chip <%= cat === c.slug ? 'is-active' : '' %>" href="<%= link({ kategori: c.slug, hal: '' }) %>" <%- cat === c.slug ? 'aria-current="true"' : '' %>><%= c.name %></a>
   <% }) %>
 </nav>
+<% if (freshness && freshness.last) { %>
+  <p class="small muted" style="margin-top:0"><%- icon('refresh', 14) %> Berita dari <%= freshness.sources %> sumber aktif, terakhir diperbarui <%= u.fmtDate(freshness.last, true) %>. Diurutkan menurut tanggal terbit di sumber aslinya.</p>
+<% } %>
 
 <div class="results-fade">
 <% if (!articles.length) { %>
-  <%- include('../partials/empty', { heading: q || cat ? 'Tidak ada artikel yang cocok' : 'Belum ada artikel', text: q || cat ? 'Coba kata kunci lain atau pilih kategori “Semua”.' : 'Artikel akan muncul setelah diterbitkan admin.', actions: q || cat ? [{ href: '/artikel', label: 'Lihat semua artikel' }] : [] }) %>
+  <%- include('../partials/empty', {
+    heading: q || cat ? 'Tidak ada berita yang cocok' : 'Belum ada berita dari sumber',
+    text: q || cat ? 'Coba kata kunci lain atau pilih “Semua topik”.' : 'Berita akan muncul setelah admin mengambil dari sumber berita yang aktif.',
+    actions: q || cat ? [{ href: link({ q: '', kategori: '', hal: '' }), label: 'Lihat semua' }] : [] }) %>
 <% } else { %>
-  <p class="small muted"><%= total %> artikel<%= q ? ' untuk “' + q + '”' : '' %></p>
-  <% const backUrl = '/artikel?' + new URLSearchParams({ ...(q && { q }), ...(cat && { kategori: cat }), ...(page > 1 && { hal: String(page) }) }).toString();
-     const featureFirst = page === 1 && !q && !cat && articles.length > 2; %>
+  <p class="small muted"><%= total %> berita<%= q ? ' untuk “' + q + '”' : '' %></p>
+  <% const backUrl = link({ hal: page > 1 ? String(page) : '' });
+     const featureFirst = page === 1 && articles.length > 2; // headline tidak diulang di grid (slice di bawah) %>
   <% if (featureFirst) { %><%- include('../partials/article-card', { a: articles[0], saved, back: backUrl, feature: true }) %><% } %>
   <div class="article-grid">
     <% articles.slice(featureFirst ? 1 : 0).forEach((a) => { %><%- include('../partials/article-card', { a, saved, back: backUrl, feature: false }) %><% }) %>
   </div>
-  <% if (pages > 1) { const qs = (p) => '?' + new URLSearchParams({ ...(q && { q }), ...(cat && { kategori: cat }), hal: String(p) }).toString(); %>
+  <% if (pages > 1) { %>
     <nav class="pager" aria-label="Halaman">
-      <% if (page > 1) { %><a class="btn btn-ghost" href="<%= qs(page - 1) %>"><%- icon('arrowLeft', 18) %> Sebelumnya</a><% } else { %><span></span><% } %>
+      <% if (page > 1) { %><a class="btn btn-ghost" href="<%= link({ hal: String(page - 1) }) %>"><%- icon('arrowLeft', 18) %> Sebelumnya</a><% } else { %><span></span><% } %>
       <span class="muted">Halaman <%= page %> dari <%= pages %></span>
-      <% if (page < pages) { %><a class="btn btn-ghost" href="<%= qs(page + 1) %>">Berikutnya <%- icon('arrowRight', 18) %></a><% } else { %><span></span><% } %>
+      <% if (page < pages) { %><a class="btn btn-ghost" href="<%= link({ hal: String(page + 1) }) %>">Berikutnya <%- icon('arrowRight', 18) %></a><% } else { %><span></span><% } %>
     </nav>
   <% } %>
 <% } %>

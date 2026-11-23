@@ -27,6 +27,7 @@
         <%- include('../partials/terrace', { variant: 'soft' }) %>
         <h2 id="pick-title">Foto daun, batang, atau serangganya</h2>
         <p class="muted" style="margin:0">Ambil foto langsung, pilih dari galeri, atau seret foto ke kotak ini.</p>
+        <p class="scan-guide"><%- icon('info', 16) %> Misalnya: foto pucuk batang yang mengering atau bercak belah ketupat pada daun.</p>
         <div class="pick-buttons">
           <button type="button" class="btn btn-lg pick-btn" data-action="camera"><%- icon('camera', 24) %> Ambil Foto</button>
           <label class="btn btn-lg btn-tonal pick-btn"><%- icon('image', 24) %> Pilih dari Galeri
@@ -76,14 +77,16 @@
           <div style="padding-top:var(--s-3)">
             <div class="field">
               <label for="land_id">Lahan terkait</label>
-              <select id="land_id" name="land_id">
+              <select id="land_id" name="land_id" data-land-select>
                 <option value="">— Tidak dipilih —</option>
-                <% lands.forEach((l) => { %><option value="<%= l.id %>"><%= l.name %></option><% }) %>
+                <% lands.forEach((l) => { %><option value="<%= l.id %>" data-hst="<%= l.age.status === 'growing' ? l.age.days : '' %>" data-hst-label="<%= l.age.label %>"><%= l.name %></option><% }) %>
               </select>
             </div>
             <div class="field">
               <label for="plant_age_days">Umur tanaman (hari setelah tanam)</label>
-              <input id="plant_age_days" name="plant_age_days" type="number" inputmode="numeric" min="0" max="200" placeholder="Contoh: 35">
+              <input id="plant_age_days" name="plant_age_days" type="number" inputmode="numeric" min="0" max="200" placeholder="Contoh: 35" aria-describedby="hst-note" data-hst-input>
+              <input type="hidden" name="plant_age_source" value="" data-hst-source>
+              <p class="hint" id="hst-note" data-hst-note>Pilih lahan untuk mengisi otomatis dari tanggal tanam, atau isi sendiri.</p>
             </div>
             <div class="field">
               <label for="affected_part">Bagian tanaman yang terdampak</label>
@@ -94,13 +97,20 @@
             </div>
             <div class="field" style="margin:0">
               <label for="symptoms">Gejala yang terlihat</label>
-              <textarea id="symptoms" name="symptoms" rows="2" maxlength="500" placeholder="Contoh: daun menguning, ada serangga kecil cokelat di pangkal batang"></textarea>
+              <p class="hint" id="tags-note" style="margin:0 0 var(--s-2)">Pilihan cepat gejala yang Anda lihat — membantu AI membaca foto, <strong>bukan diagnosis</strong>. Ketuk lagi untuk membatalkan.</p>
+              <div class="symptom-tags" role="group" aria-labelledby="tags-note" data-symptom-tags>
+                <button type="button" class="chip" aria-pressed="false" data-tag="Pucuk/daun muda mengering dan mudah dicabut (gejala sundep)">+ Pucuk mengering (Sundep)</button>
+                <button type="button" class="chip" aria-pressed="false" data-tag="Malai hampa berwarna putih, tegak, mudah dicabut (gejala beluk)">+ Malai hampa/putih (Beluk)</button>
+                <button type="button" class="chip" aria-pressed="false" data-tag="Bercak berbentuk belah ketupat pada daun, tengah keabu-abuan dengan tepi cokelat (gejala blas)">+ Bercak belah ketupat (Blas)</button>
+              </div>
+              <textarea id="symptoms" name="symptoms" rows="3" maxlength="500" placeholder="Contoh: pucuk tanaman muda mengering di beberapa rumpun; ada bercak belah ketupat pada daun bagian atas"></textarea>
             </div>
           </div>
         </details>
       </section>
 
-      <button type="submit" class="btn btn-lg btn-block" data-action="analyze"><%- icon('scan', 22) %> Analisis Foto</button>
+      <button type="submit" class="btn btn-lg btn-block btn-analyze" data-action="analyze" disabled aria-disabled="true"><%- icon('scan', 22) %> Analisis Foto</button>
+      <p class="small muted" data-analyze-hint style="margin-top:var(--s-2);text-align:center">Pilih atau ambil foto terlebih dahulu.</p>
       <p class="small muted" style="margin-top:var(--s-3);text-align:center">Hasilnya langsung terbuka di percakapan bersama Asisten AI.</p>
     </aside>
   </div>
@@ -132,5 +142,13 @@
     </div>
   </div>
 </form>
+<section class="section scan-recent" aria-labelledby="scan-recent-title">
+  <div class="section-head"><h2 class="h3" id="scan-recent-title"><%- icon('history') %> Scan terakhir</h2><a class="btn btn-sm btn-ghost" href="/scan/riwayat">Lihat Semua Riwayat</a></div>
+  <% if (recent.length) { %>
+    <ul class="scan-list scan-list-lg"><% recent.forEach((sc) => { %><%- include('../partials/scan-item', { s: sc }) %><% }) %></ul>
+  <% } else { %>
+    <p class="muted">Belum ada scan. Hasil scan akan tersimpan di sini dan terhubung ke percakapan Asisten AI.</p>
+  <% } %>
+</section>
 <script src="/static/js/scan.js" defer></script>
 <%- include('../partials/foot') %>

@@ -76,6 +76,11 @@ function verifyCsrf(req, res, next) {
 }
 
 function csrfFail(req, res) {
+  // Diagnosis ringkas (tanpa nilai token): membantu melacak "Formulir kedaluwarsa".
+  if (!config.isTest) {
+    const sent = (req.body && req.body._csrf) || req.get('x-csrf-token') || '';
+    console.warn(`[csrf] ditolak ${req.method} ${req.path} — cookie sesi: ${/(?:^|;\s*)st\.sid=/.test(req.get('cookie') || '') ? 'ada' : 'TIDAK ADA'}, token sesi: ${req.session && req.session.csrf ? 'ada' : 'tidak ada'}, token form: ${sent ? 'ada' : 'TIDAK ADA'}, content-type: ${(req.get('content-type') || '-').split(';')[0]}`);
+  }
   const message = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
   if (wantsJson(req)) return res.status(403).json({ error: message });
   res.status(403).render('errors/error', { title: 'Formulir kedaluwarsa', status: 403, message });

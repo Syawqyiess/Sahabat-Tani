@@ -3,6 +3,7 @@ const express = require('express');
 const db = require('../db');
 const config = require('../config');
 const farmers = require('../services/farmers');
+const crop = require('../lib/crop');
 const storage = require('../services/storage');
 const v = require('../lib/validate');
 const { requireRole, verifyCsrf } = require('../middleware/security');
@@ -12,6 +13,7 @@ const router = express.Router();
 const farmerOnly = requireRole('farmer');
 
 router.get('/dashboard', farmerOnly, (req, res) => {
+  res.set('Cache-Control', 'no-store'); // kartu Kalender Tanam selalu segar saat kembali dari halaman kalender
   const uid = req.user.id;
   const profile = farmers.getProfile(uid);
   const lands = db.all('SELECT * FROM lands WHERE user_id = ? ORDER BY created_at', uid);
@@ -22,14 +24,22 @@ router.get('/dashboard', farmerOnly, (req, res) => {
     .map((s) => ({ ...s, result: safeJson(s.result_json) }));
   const lastChat = db.get(
     `SELECT s.*, (SELECT content FROM chat_messages m WHERE m.session_id = s.id AND m.role != 'system' ORDER BY m.id DESC LIMIT 1) AS last_message
-       FROM chat_sessions s WHERE s.user_id = ? ORDER BY s.updated_at DESC, s.id DESC LIMIT 1`, uid,
+       FROM chat_sessions s WHERE s.user_id = ? AND s.archived_at IS NULL ORDER BY s.updated_at DESC, s.id DESC LIMIT 1`, uid,
   );
   const articles = db.all(
-    `SELECT a.id, a.slug, a.title, a.summary, a.body_md, a.image_url, a.image_alt, a.published_at, a.is_demo, a.origin, a.source_name, c.name AS category_name
+    `SELECT a.id, a.slug, a.title, a.summary, a.body_md, a.image_url, a.image_alt, a.image_credit, a.image_kind, a.published_at, a.is_demo, a.origin, a.source_name, c.name AS category_name
        FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id
-      WHERE a.status = 'published' ORDER BY a.published_at DESC LIMIT 3`,
+      WHERE ${require('../lib/articles').PUBLIC_WHERE} ORDER BY a.published_at IS NULL, a.published_at DESC LIMIT 4`,
   );
   const airLand = lands.find((l) => l.lat != null && l.lng != null);
+  // Kartu Kalender Masa Tanam: lahan pilihan (?kalender=ID) atau lahan pertama yang punya tanggal tanam.
+  // Kartu Kalender Tanam: pratinjau HARI INI (Asia/Jakarta) dari sumber data yang sama dengan halaman kalender.
+  // Lahan: pilihan di Dashboard (?kalender=ID) → lahan terakhir dibuka di kalender → lahan bertanggal tanam → lahan pertama.
+  const cal = require('../services/calendar');
+  const today = crop.todayISO();
+  const calLand = cal.pickLand(lands, req.query.kalender, req.session.calLand);
+  if (calLand) req.session.calLand = calLand.id;
+  const calendar = { today, todayLabel: cal.longDate(today), land: calLand, age: calLand ? crop.cropAge(calLand, today) : null, ...(calLand ? cal.todayPreview(uid, calLand, today) : { items: [], more: 0, total: 0 }) };
   res.render('farmer/dashboard', {
     title: 'Dashboard',
     profile,
@@ -40,15 +50,58 @@ router.get('/dashboard', farmerOnly, (req, res) => {
     lastChat,
     articles,
     airLand,
+    calendar,
     maps: config.maps,
+    rdkk: { ...require('../services/rdkk').latest(), title: config.rdkk.title, author: config.rdkk.author, publicUrl: config.rdkk.publicUrl },
   });
 });
+
+// Ringkasan aktivitas dari data nyata pengguna (tanpa aktivitas rekaan).
+function activitySummary(uid) {
+  const scansN = db.get('SELECT COUNT(*) AS n FROM pest_scans WHERE user_id = ?', uid).n;
+  const saved = db.get('SELECT COUNT(*) AS n FROM saved_articles WHERE user_id = ?', uid).n;
+  const events = [
+    ['scan hama', db.get('SELECT MAX(created_at) AS t FROM pest_scans WHERE user_id = ?', uid).t],
+    ['percakapan dengan Asisten AI', db.get('SELECT MAX(updated_at) AS t FROM chat_sessions WHERE user_id = ? AND archived_at IS NULL', uid).t],
+    ['memperbarui data lahan', db.get("SELECT MAX(updated_at) AS t FROM lands WHERE user_id = ? AND data_source = 'real'", uid).t],
+    ['memperbarui kalender tanam', db.get('SELECT MAX(updated_at) AS t FROM land_reminders WHERE user_id = ?', uid).t],
+    ['menyimpan artikel', db.get('SELECT MAX(created_at) AS t FROM saved_articles WHERE user_id = ?', uid).t],
+  ].filter((e) => e[1]).sort((a, b) => (a[1] < b[1] ? 1 : -1));
+  return { scans: scansN, saved, last: events[0] ? { label: events[0][0], at: events[0][1] } : null };
+}
 
 router.get('/profil', farmerOnly, (req, res) => {
   const profile = farmers.getProfile(req.user.id);
   res.render('farmer/profile', {
     title: 'Profil Saya', profile, completeness: farmers.completeness(profile), summary: farmers.landSummary(req.user.id),
+    activity: activitySummary(req.user.id),
+    googleIdentity: db.get("SELECT email FROM user_identities WHERE user_id = ? AND provider = 'google'", req.user.id) || null,
   });
+});
+
+// Profil singkat setelah daftar dengan Google: nomor HP, desa, kelompok tani — semuanya opsional.
+router.get('/profil/lengkapi', farmerOnly, (req, res) => {
+  const p = farmers.getProfile(req.user.id) || {};
+  res.render('farmer/profile-quick', { title: 'Lengkapi Profil', values: { phone: req.user.phone || '', village: p.village || '', farmer_group: p.farmer_group || '' }, errors: {} });
+});
+
+router.post('/profil/lengkapi', farmerOnly, (req, res) => {
+  const errors = {};
+  const values = { phone: String(req.body.phone || '').trim(), village: String(req.body.village || '').trim(), farmer_group: String(req.body.farmer_group || '').trim() };
+  const phone = values.phone ? normalizePhone(values.phone) : null;
+  if (phone === undefined) errors.phone = 'Nomor HP tidak valid. Contoh: 081234567890.';
+  else if (phone && db.get('SELECT 1 FROM users WHERE phone = ? AND id != ?', phone, req.user.id)) errors.phone = 'Nomor HP sudah dipakai akun lain.';
+  const village = v.str(values.village, { max: 100, label: 'Desa/kelurahan' }, errors, 'village');
+  const group = v.str(values.farmer_group, { max: 120, label: 'Kelompok tani' }, errors, 'farmer_group');
+  if (Object.keys(errors).length) return res.status(422).render('farmer/profile-quick', { title: 'Lengkapi Profil', values, errors });
+  db.tx(() => {
+    if (phone) db.run('UPDATE users SET phone = ? WHERE id = ?', phone, req.user.id);
+    db.run(`INSERT INTO farmer_profiles (user_id, village, farmer_group) VALUES (?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET village = excluded.village, farmer_group = excluded.farmer_group, updated_at = datetime('now')`,
+      req.user.id, village || null, group || null);
+  });
+  req.session.flash = { type: 'success', text: 'Profil disimpan. Selamat datang di Sahabat Tani!' };
+  res.redirect('/dashboard');
 });
 
 router.get('/profil/ubah', farmerOnly, (req, res) => {
@@ -107,7 +160,7 @@ router.post('/profil/foto', farmerOnly, storage.single('photo'), verifyCsrf, (re
     if (!(err instanceof storage.UploadError)) throw err;
     req.session.flash = { type: 'error', text: err.message };
   }
-  res.redirect('/profil/ubah');
+  res.redirect(req.body && req.body.back === '/profil' ? '/profil' : '/profil/ubah');
 });
 
 router.parseProfile = parseProfile;

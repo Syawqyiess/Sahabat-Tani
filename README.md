@@ -13,7 +13,7 @@ Sistem informasi pertanian berbahasa Indonesia untuk petani padi: akun pribadi, 
 | AI | Analisis foto: **model scanner buatan sendiri** (EfficientNet-B0 → ONNX, `onnxruntime-node`), atau Gemini/Claude. Percakapan: Gemini (free tier) atau Claude | Modul analisis gambar & percakapan terpisah; penyedia dipilih lewat `.env` |
 | Kualitas udara | Open-Meteo Air Quality API | Gratis untuk non-komersial, tanpa kunci |
 | Peta | Leaflet + ubin OpenStreetMap/Esri; Windy (embed) untuk sebaran polusi | Tanpa API key, kode peta disajikan sendiri |
-| Berita | RSS (rss-parser) | Hanya judul/ringkasan/tautan |
+| Berita | RSS (rss-parser) + scraping HTML (cheerio), patuh robots.txt | Judul/ringkasan/tanggal asli/tautan + gambar utama sumber (divalidasi, ditautkan dengan kredit) |
 
 ## Menjalankan
 
@@ -93,7 +93,7 @@ Foto disimpan di `storage/uploads/<user_id>/` (di luar folder publik) dan hanya 
 - Chat: riwayat per akun, foto tambahan, pertanyaan cepat, sumber referensi yang benar-benar dipakai (dengan status verifikasi), status gagal + coba lagi.
 - **Informasi Kualitas Udara** (Open-Meteo, data nyata): US AQI + kategori US EPA, PM2.5, PM10, NO₂, O₃, CO dengan satuan, lokasi (lahan / perangkat dengan izin / lokasi demo berlabel), waktu data & waktu pembaruan, grafik 24 jam, atribusi, cache 30 menit, data lama bertanda waktu saat gagal.
 - Artikel: daftar, detail, pencarian, filter kategori, pagination, artikel terkait, simpan artikel; Markdown disanitasi.
-- Admin: statistik agregat (tanpa isi chat), kelola akun & status aktif (sesi langsung diputus), bantu isi profil & lahan, artikel (draft/terbit/arsip), kategori, sumber RSS, referensi hama + verifikasi, status integrasi tanpa nilai kunci.
+- Admin: statistik agregat (tanpa isi chat), kelola akun & status aktif (sesi langsung diputus), bantu isi profil & lahan, artikel (draft/terbit/arsip), kategori, sumber berita (RSS/HTML, uji & aktif/nonaktif), referensi hama + verifikasi, status integrasi tanpa nilai kunci.
 - Keamanan: bcrypt, sesi aman, CSRF, Helmet + CSP, validasi input server, batas unggahan, rate limit (login, reset, scan, chat), pemeriksaan kepemilikan di setiap query, pemisahan data demo.
 
 ### Model scanner hama padi buatan sendiri (`AI_VISION_PROVIDER=lokal`)
@@ -123,7 +123,7 @@ Foto disimpan di `storage/uploads/<user_id>/` (di luar folder publik) dan hanya 
 | Fitur | Yang dibutuhkan |
 |---|---|
 | Analisis foto & chat AI nyata | `GEMINI_API_KEY` (free tier, untuk demo) atau `ANTHROPIC_API_KEY` (berbayar); uji dengan `npm run cek-ai` |
-| Berita eksternal | URL RSS dari penerbit yang mengizinkan (diisi admin) |
+| Berita eksternal | 5 sumber nyata bawaan (Kementan, Sinar Tani, Trubus, ANTARA); admin bisa menambah/menonaktifkan |
 | Pengiriman tautan reset | Penyedia email/SMS (belum diimplementasikan) |
 | Kualitas udara komersial | Langganan Open-Meteo (gratis hanya non-komersial) |
 
@@ -144,7 +144,7 @@ Pemeriksaan manual tambahan:
 - Panggilan **nyata** ke Open-Meteo berhasil (contoh titik demo Karawang: US AQI 177 “Tidak sehat”, 24 titik grafik).
 - Di browser ukuran ponsel (375×812): login → dashboard → scan (berkas uji disuntikkan ke input galeri) → otomatis masuk chatroom → pertanyaan cepat → halaman kualitas udara → menu “Lainnya”.
 
-Belum diuji: panggilan langsung ke API Claude (belum ada API key), kamera fisik pada ponsel sungguhan, dan feed RSS nyata.
+Belum diuji: panggilan langsung ke API Claude (belum ada API key), kamera fisik pada ponsel sungguhan dan ketahanan scraper bila tata letak situs sumber berubah (pengambilan nyata 15 Nov 2026: 5 sumber, 34 berita).
 
 ## Catatan pengembangan lanjut
 - Ganti data demo dengan data asli lewat panel admin (profil & lahan) atau impor ke tabel `farmer_profiles`/`lands`; struktur koordinat & poligon sudah siap.

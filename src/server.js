@@ -3,6 +3,7 @@ const config = require('./config');
 const db = require('./db');
 const { createApp } = require('./app');
 const news = require('./services/news');
+const rdkk = require('./services/rdkk');
 const SqliteStore = require('./db/session-store');
 
 db.open();
@@ -33,4 +34,11 @@ if (config.news.autoFetch) {
   const run = () => news.fetchAll().catch((e) => console.error('Ambil berita gagal:', e.message));
   setTimeout(run, 5000).unref();
   setInterval(run, config.news.fetchIntervalHours * 3600 * 1000).unref();
+}
+
+// Data RDKK (Tableau Public → diagram Dashboard): diperbarui saat mulai bila sudah basi, lalu berkala.
+if (config.rdkk.autoFetch) {
+  const runRdkk = () => rdkk.refresh().then((r) => { if (!r.ok) console.error('Ambil data RDKK gagal:', r.error); });
+  if (rdkk.isStale()) setTimeout(runRdkk, 3000).unref();
+  setInterval(() => { if (rdkk.isStale()) runRdkk(); }, 3600 * 1000).unref();
 }

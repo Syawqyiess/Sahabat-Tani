@@ -47,7 +47,7 @@
     <div class="tile-head"><span><%- icon('field') %> Lahan Saya</span></div>
     <div class="tile-stats">
       <div><span class="big-num"><%= summary.count %></span><span class="small muted">lahan</span></div>
-      <div><span class="big-num"><%= summary.totalArea != null ? (+summary.totalArea.toFixed(2)).toLocaleString('id-ID') : '—' %></span><span class="small muted">hektare tercatat</span></div>
+      <div><span class="big-num"><%= summary.totalArea != null ? summary.totalLabel.replace(' ha', '') : '—' %></span><span class="small muted">hektare tercatat<%= summary.noArea && summary.withArea ? ' (sebagian)' : '' %></span></div>
     </div>
     <span class="small muted">
       <% if (!summary.count) { %>Belum ada lahan — tambahkan lahan pertama.<% } else { %>
@@ -58,30 +58,10 @@
     <span class="tile-go"><%= summary.count ? 'Kelola lahan' : 'Tambah lahan' %> <%- icon('arrowRight', 18) %></span>
   </a>
 
-  <% if (last) { %>
-    <a class="tile" href="/asisten/<%= last.chat_session_id %>">
-      <div class="tile-head"><span><%- icon('scan') %> Scan Terakhir</span><span class="xs"><%= u.timeAgo(last.created_at) %></span></div>
-      <div class="tile-scan-body">
-        <% if (last.image_path) { %><img src="/media/<%= last.image_path %>" alt="Foto scan terakhir" width="76" height="76" loading="lazy"><% } %>
-        <div>
-          <strong><%= lastLabel(last) %></strong>
-          <span class="badges" style="margin-top:6px">
-            <% if (last.mode === 'demo') { %><span class="badge badge-demo">Simulasi</span><% } %>
-            <% if (last.status === 'failed') { %><span class="badge badge-error">Gagal</span><% } %>
-            <% if (last.land_name) { %><span class="badge"><%= last.land_name %></span><% } %>
-          </span>
-        </div>
-      </div>
-      <span class="tile-go">Buka percakapan <%- icon('arrowRight', 18) %></span>
-    </a>
-  <% } else { %>
-    <a class="tile" href="/scan">
-      <div class="tile-head"><span><%- icon('scan') %> Scan Terakhir</span></div>
-      <p class="muted" style="margin:0">Belum ada scan. Foto tanaman padi yang bergejala untuk mendapat dugaan awal.</p>
-      <span class="tile-go">Mulai scan <%- icon('arrowRight', 18) %></span>
-    </a>
-  <% } %>
+  <%- include('../partials/calendar-tile', { calendar, lands }) %>
 </section>
+
+<%- include('../partials/rdkk', { rdkk }) %>
 
 <div class="dash-main">
   <section class="panel" aria-labelledby="peta-judul">
@@ -104,7 +84,7 @@
     </section>
 
     <section class="panel" aria-labelledby="chat-judul">
-      <div class="section-head"><h2 class="h3" id="chat-judul"><%- icon('chat') %> Asisten AI</h2><a href="/asisten">Semua percakapan</a></div>
+      <div class="section-head"><h2 class="h3" id="chat-judul"><%- icon('chat') %> Asisten AI</h2><a href="/asisten/riwayat">Riwayat percakapan</a></div>
       <% if (lastChat) { %>
         <a class="continue-chat" href="/asisten/<%= lastChat.id %>#akhir">
           <span class="ic-wrap"><%- icon('chat', 20) %></span>
@@ -124,7 +104,7 @@
 <section class="section" aria-labelledby="artikel-judul">
   <div class="section-head"><h2 id="artikel-judul">Bacaan untuk Anda</h2><a href="/artikel">Semua artikel</a></div>
   <% if (articles.length) { %>
-    <div class="article-grid"><% articles.forEach((a) => { %><%- include('../partials/article-card', { a, saved: null }) %><% }) %></div>
+    <div class="article-grid dash-articles"><% articles.forEach((a) => { %><%- include('../partials/article-card', { a, saved: null }) %><% }) %></div>
   <% } else { %><p class="muted">Belum ada artikel.</p><% } %>
 </section>
 <%- include('../partials/foot') %>

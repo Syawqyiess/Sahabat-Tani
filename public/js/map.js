@@ -17,13 +17,14 @@
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
+  // Popup ringkas: nama, luas, fase/umur, jenis tanaman, tombol detail. Penanda demo hanya bila data bercampur.
   function infoHtml(l) {
     return '<div class="map-info"><strong>' + esc(l.name) + '</strong>' +
-      (l.demo ? '<br><span class="badge badge-demo">Lahan Demo — Bukan Batas Lahan Asli</span>' : '<br><span class="badge badge-real">Data asli</span>') +
-      '<br>Luas: ' + (l.area != null ? esc(l.area) + ' ha' : 'Belum diisi') +
-      (l.variety ? '<br>Varietas: ' + esc(l.variety) : '') +
-      (l.status ? '<br>Status: ' + esc(l.status) : '') +
-      '<br><a href="/lahan/' + l.id + '">Lihat detail lahan</a></div>';
+      (l.allDemo ? '' : (l.demo ? ' <span class="badge badge-demo">Demo</span>' : ' <span class="badge badge-real">Data asli</span>')) +
+      '<dl><dt>Luas</dt><dd>' + (l.area ? esc(l.area) : 'Belum diisi') + '</dd>' +
+      '<dt>Fase &amp; umur</dt><dd>' + esc(l.age) + (l.ageEstimated ? ' <small>(perkiraan)</small>' : '') + '</dd>' +
+      '<dt>Tanaman</dt><dd>' + (l.crop ? esc(l.crop) : 'Belum diisi') + '</dd></dl>' +
+      '<a class="btn btn-sm" href="/lahan/' + l.id + '">Lihat Detail</a></div>';
   }
 
   // Lapisan dasar: peta jalan OpenStreetMap dan citra satelit Esri (keduanya wajib atribusi).
@@ -108,14 +109,27 @@
     var it = byId[id];
     if (!it || !it.bounds.isValid()) return;
     if (move !== false) map.fitBounds(it.bounds, { padding: [40, 40], maxZoom: 18 });
-    L.popup({ maxWidth: 260 }).setLatLng(it.anchor || it.bounds.getCenter()).setContent(infoHtml(it.land)).openOn(map);
+    L.popup({ maxWidth: 230, autoPanPadding: [24, 24], className: 'land-popup' }).setLatLng(it.anchor || it.bounds.getCenter()).setContent(infoHtml(it.land)).openOn(map);
     if (detail) { detail.innerHTML = infoHtml(it.land); detail.hidden = false; }
     highlight(id);
+    // Klik di peta → kartu terkait terlihat di panel kiri (tanpa menggeser halaman).
+    if (move === false) {
+      var li = document.querySelector('[data-land-item="' + id + '"]');
+      var list = li && li.parentElement;
+      if (li && list && list.scrollHeight > list.clientHeight) list.scrollTo({ top: li.offsetTop - list.offsetTop - 8, behavior: 'smooth' });
+    }
   }
 
   if (selected && byId[selected]) focus(selected);
   else if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
 
+  // Seluruh kartu dapat dipilih (selain tautan/tombolnya sendiri).
+  document.querySelectorAll('[data-land-item].is-pickable').forEach(function (li) {
+    li.addEventListener('click', function (e) {
+      if (e.target.closest('a, button')) return;
+      focus(Number(li.dataset.landItem));
+    });
+  });
   document.querySelectorAll('[data-focus-land]').forEach(function (b) {
     b.addEventListener('click', function () {
       focus(Number(b.dataset.focusLand));

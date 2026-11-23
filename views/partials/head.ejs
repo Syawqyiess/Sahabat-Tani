@@ -6,10 +6,12 @@
   <meta name="theme-color" content="#1e5631">
   <meta name="csrf-token" content="<%= csrfToken %>">
   <title><%= title %> · Sahabat Tani</title>
-  <link rel="icon" href="/static/img/logo.svg" type="image/svg+xml">
+  <link rel="icon" href="/static/img/favicon-48.png" type="image/png" sizes="48x48">
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <script src="/static/js/early.js"></script>
   <link rel="stylesheet" href="/static/css/app.css">
   <script src="/static/js/app.js" defer></script>
 </head>
@@ -17,94 +19,123 @@
   const me = currentUser;
   const isFarmer = me && me.role === 'farmer';
   const isAdmin = me && me.role === 'admin';
-  const active = (p) => (path === p || (p !== '/' && p !== '/admin' && path.startsWith(p + '/'))) ? 'is-active' : '';
-  const aria = (p) => active(p) ? 'aria-current="page"' : '';
-  const farmerNav = [['/dashboard', 'home', 'Dashboard'], ['/lahan', 'field', 'Lahan Saya'], ['/asisten', 'chat', 'Asisten AI'], ['/artikel', 'article', 'Artikel'], ['/profil', 'user', 'Profil']];
-  const farmerExtra = [['/lahan/peta', 'map', 'Peta Lahan'], ['/udara', 'air', 'Kualitas Udara'], ['/scan/riwayat', 'history', 'Riwayat Scan'], ['/artikel-tersimpan', 'bookmark', 'Artikel Tersimpan']];
-  const adminNav = [
-    ['/admin', 'home', 'Dashboard'], ['/admin/pengguna', 'users', 'Pengguna'], ['/admin/lahan', 'field', 'Lahan'],
-    ['/admin/artikel', 'article', 'Artikel'], ['/admin/kategori', 'tag', 'Kategori'], ['/admin/sumber-berita', 'news', 'Sumber Berita'],
-    ['/admin/referensi-hama', 'bug', 'Referensi Hama'], ['/admin/integrasi', 'settings', 'Integrasi'],
+  // Tata letak halaman: 'chat' = ruang kerja setinggi layar tanpa footer panjang; 'fill' = isi tumbuh mengisi sisa tinggi.
+  const pageLayout = (typeof layout !== 'undefined' && layout) || '';
+  // Pencocokan rute eksplisit per menu (bukan prefix luas): Peta Lahan tidak ikut mengaktifkan Lahan Saya.
+  const R = {
+    dashboard: () => path === '/dashboard',
+    lahan: () => path === '/lahan' || path === '/lahan/baru' || /^\/lahan\/\d+(\/ubah)?$/.test(path),
+    peta: () => path === '/lahan/peta',
+    udara: () => path === '/udara',
+    kalender: () => path === '/kalender-tanam',
+    asisten: () => path === '/asisten' || /^\/asisten\//.test(path),
+    artikel: () => path === '/artikel' || /^\/artikel\/[^/]+$/.test(path),
+    tersimpan: () => path === '/artikel-tersimpan',
+    scan: () => path === '/scan' || path === '/scan/riwayat',
+    profil: () => path === '/profil' || path === '/profil/ubah',
+    admin: (p) => path === p || (p !== '/admin' && path.startsWith(p + '/')),
+  };
+  const farmerMenu = [
+    { href: '/dashboard', label: 'Dashboard', icon: 'home', on: R.dashboard() },
+    { label: 'Lahan & Lingkungan', id: 'dd-lahan', icon: 'field', on: R.lahan() || R.peta() || R.udara() || R.kalender(), items: [
+      { href: '/lahan', label: 'Lahan Saya', icon: 'field', on: R.lahan() },
+      { href: '/lahan/peta', label: 'Peta Lahan', icon: 'map', on: R.peta() },
+      { href: '/udara', label: 'Kualitas Udara', icon: 'air', on: R.udara() },
+    ] },
+    { href: '/asisten', label: 'Asisten AI', icon: 'chat', on: R.asisten() },
+    { label: 'Edukasi', id: 'dd-edukasi', icon: 'article', on: R.artikel() || R.tersimpan(), items: [
+      { href: '/artikel', label: 'Berita & Artikel', icon: 'article', on: R.artikel() },
+      { href: '/artikel-tersimpan', label: 'Artikel Tersimpan', icon: 'bookmark', on: R.tersimpan() },
+    ] },
   ];
-  const navList = isAdmin ? adminNav : farmerNav;
-  const initial = me ? ((me.full_name || me.phone || me.email || '?').trim()[0] || '?').toUpperCase() : '';
+  const adminMenu = [
+    { href: '/admin', label: 'Dashboard', icon: 'home', on: path === '/admin' || path === '/admin/' },
+    { href: '/admin/pengguna', label: 'Pengguna', icon: 'users', on: R.admin('/admin/pengguna') },
+    { href: '/admin/lahan', label: 'Lahan', icon: 'field', on: R.admin('/admin/lahan') },
+    { label: 'Konten', id: 'dd-konten', icon: 'article', on: ['/admin/artikel', '/admin/kategori', '/admin/sumber-berita', '/admin/referensi-hama'].some((p) => R.admin(p)), items: [
+      { href: '/admin/artikel', label: 'Artikel', icon: 'article', on: R.admin('/admin/artikel') },
+      { href: '/admin/kategori', label: 'Kategori', icon: 'tag', on: R.admin('/admin/kategori') },
+      { href: '/admin/sumber-berita', label: 'Sumber Berita', icon: 'news', on: R.admin('/admin/sumber-berita') },
+      { href: '/admin/referensi-hama', label: 'Referensi Hama', icon: 'bug', on: R.admin('/admin/referensi-hama') },
+    ] },
+    { href: '/admin/integrasi', label: 'Integrasi', icon: 'settings', on: R.admin('/admin/integrasi') },
+  ];
+  const publicMenu = [{ href: '/artikel', label: 'Artikel', icon: 'article', on: R.artikel() }];
+  const menu = isAdmin ? adminMenu : (isFarmer ? farmerMenu : publicMenu);
+  const name = me ? ((me.full_name || '').replace(/\s*\(Akun Demo\)\s*$/, '').trim() || me.phone || me.email || 'Akun saya') : '';
+  const initial = me ? (name.trim()[0] || '?').toUpperCase() : '';
+  const home = isAdmin ? '/admin' : (isFarmer ? '/dashboard' : '/');
+  const cur = (on) => on ? 'aria-current="page"' : '';
 %>
-<body class="<%= me ? 'is-app' : 'is-public' %>">
+<body class="<%= me ? 'is-app' : 'is-public' %><%= pageLayout ? ' layout-' + pageLayout : '' %>">
 <a class="skip" href="#isi">Lewati ke isi</a>
-<% if (me) { %>
 <div class="app">
-  <aside class="sidebar" aria-label="Navigasi utama">
-    <a class="sidebar-brand" href="<%= isAdmin ? '/admin' : '/dashboard' %>">
-      <img src="/static/img/logo.svg" alt="" width="38" height="38">
-      <span>Sahabat Tani<% if (isAdmin) { %><small>Panel Admin</small><% } %></span>
-    </a>
-    <% if (isFarmer) { %>
-      <a class="btn btn-scan btn-block <%= active('/scan') && path === '/scan' ? 'is-active' : '' %>" href="/scan"><%- icon('camera', 22) %><span class="label-long">Scan Hama Padi</span><span class="label-short">Scan</span></a>
-    <% } %>
-    <nav class="side-nav">
-      <% navList.forEach(([href, ic, label]) => { %>
-        <a class="<%= active(href) || (href === '/admin' && (path === '/admin' || path === '/admin/') ? 'is-active' : '') %>" href="<%= href %>" <%- aria(href) %>><%- icon(ic, 22) %><span><%= label %></span></a>
-      <% }) %>
-      <% if (isFarmer) { %>
-        <span class="side-nav-label nav-extra">Lainnya</span>
-        <% farmerExtra.forEach(([href, ic, label]) => { %>
-          <a class="nav-extra <%= path === href ? 'is-active' : '' %>" href="<%= href %>"><%- icon(ic, 22) %><span><%= label %></span></a>
-        <% }) %>
-        <a class="nav-more" href="#menu-lainnya" data-sheet-open="menu-lainnya"><%- icon('menu', 22) %><span>Lainnya</span></a>
-      <% } %>
-    </nav>
-    <div class="sidebar-foot">
-      <a class="user-chip" href="<%= isFarmer ? '/profil' : '/admin' %>" title="<%= me.full_name || 'Akun' %>">
-        <% if (me.photo_path) { %><img class="avatar-mini" src="/media/<%= me.photo_path %>" alt="" width="36" height="36"><% } else { %><span class="avatar-mini" aria-hidden="true"><%= initial %></span><% } %>
-        <span><%= me.full_name || 'Akun saya' %><small><%= me.phone || me.email %></small></span>
-      </a>
-      <form method="post" action="/keluar" class="side-nav">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button type="submit"><%- icon('logout', 22) %><span>Keluar</span></button>
-      </form>
-    </div>
-  </aside>
-
   <div class="app-main">
-    <header class="appbar" data-appbar>
-      <a class="appbar-brand" href="<%= isAdmin ? '/admin' : '/dashboard' %>"><img src="/static/img/logo.svg" alt="" width="32" height="32"> Sahabat Tani</a>
-      <% if (isAdmin) { %>
-        <a class="icon-btn" href="#menu-lainnya" data-sheet-open="menu-lainnya" aria-label="Buka menu admin"><%- icon('menu') %></a>
-      <% } else { %>
-        <a class="icon-btn" href="/profil" aria-label="Profil saya">
-          <% if (me.photo_path) { %><img class="avatar-mini" src="/media/<%= me.photo_path %>" alt="" width="36" height="36"><% } else { %><span class="avatar-mini" aria-hidden="true"><%= initial %></span><% } %>
-        </a>
+    <header class="topnav" data-topnav>
+      <nav class="pill-nav" aria-label="Navigasi utama">
+        <a class="pill-brand" href="<%= home %>"><img src="/static/img/logo-128.png" alt="" width="36" height="36"><span>Sahabat Tani<% if (isAdmin) { %><small>Admin</small><% } %></span></a>
+
+        <ul class="pill-menu" role="list">
+          <% menu.forEach((m) => { %>
+            <li class="pill-item">
+              <% if (m.items) { %>
+                <button type="button" class="pill-link<%= m.on ? ' is-active' : '' %>" data-dd="<%= m.id %>" aria-expanded="false" aria-controls="<%= m.id %>"><%= m.label %> <%- icon('down', 14) %></button>
+                <ul class="dd-menu" id="<%= m.id %>" role="list" hidden>
+                  <% m.items.forEach((it) => { %><li><a class="dd-link<%= it.on ? ' is-active' : '' %>" href="<%= it.href %>" <%- cur(it.on) %>><%- icon(it.icon, 18) %> <%= it.label %></a></li><% }) %>
+                </ul>
+              <% } else { %>
+                <a class="pill-link<%= m.on ? ' is-active' : '' %>" href="<%= m.href %>" <%- cur(m.on) %> aria-label="<%= m.label %>"><% if (!me) { %><span class="pill-ic"><%- icon(m.icon, 20) %></span><% } %><span class="pill-label"><%= m.label %></span></a>
+              <% } %>
+            </li>
+          <% }) %>
+        </ul>
+
+        <div class="pill-actions">
+          <% if (isFarmer) { %>
+            <a class="btn btn-scan pill-scan<%= R.scan() ? ' is-active' : '' %>" href="/scan" <%- cur(R.scan()) %>><%- icon('camera', 20) %><span class="label-long">Scan Hama Padi</span><span class="label-short">Scan Hama</span></a>
+          <% } %>
+          <% if (me) { %>
+            <div class="pill-item pill-account">
+              <button type="button" class="avatar-btn<%= R.profil() ? ' is-active' : '' %>" data-dd="dd-akun" aria-expanded="false" aria-controls="dd-akun" aria-label="Menu akun <%= name %>">
+                <% if (me.photo_path) { %><img class="avatar-mini" src="/media/<%= me.photo_path %>" alt="" width="40" height="40"><% } else { %><span class="avatar-mini" aria-hidden="true"><%= initial %></span><% } %>
+              </button>
+              <div class="dd-menu dd-right" id="dd-akun" hidden>
+                <div class="dd-head"><strong><%= name %></strong><span class="small muted"><%= me.phone || me.email %></span><% if (me.is_demo) { %><span class="badge badge-demo">Akun Demo</span><% } %></div>
+                <ul role="list">
+                  <% if (isFarmer) { %><li><a class="dd-link<%= R.profil() ? ' is-active' : '' %>" href="/profil" <%- cur(R.profil()) %>><%- icon('user', 18) %> Profil Saya</a></li><% } %>
+                  <li><form method="post" action="/keluar"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="dd-link"><%- icon('logout', 18) %> Keluar</button></form></li>
+                </ul>
+              </div>
+            </div>
+            <button type="button" class="icon-btn nav-burger" data-nav-toggle aria-expanded="false" aria-controls="nav-drawer" aria-label="Buka menu navigasi"><%- icon('menu') %></button>
+          <% } else { %>
+            <a class="pill-link pill-login<%= path === '/masuk' ? ' is-active' : '' %>" href="/masuk" <%- cur(path === '/masuk') %>>Masuk</a>
+            <a class="btn btn-sm pill-cta" href="/daftar" <%- cur(path === '/daftar') %>>Daftar</a>
+          <% } %>
+        </div>
+      </nav>
+
+      <% if (me) { %>
+        <div class="nav-drawer" id="nav-drawer" hidden>
+          <% menu.forEach((m) => { %>
+            <% if (m.items) { %>
+              <p class="nav-drawer-label"><%= m.label %></p>
+              <% m.items.forEach((it) => { %><a class="dd-link<%= it.on ? ' is-active' : '' %>" href="<%= it.href %>" <%- cur(it.on) %>><%- icon(it.icon, 20) %> <%= it.label %></a><% }) %>
+            <% } else { %>
+              <a class="dd-link<%= m.on ? ' is-active' : '' %>" href="<%= m.href %>" <%- cur(m.on) %>><%- icon(m.icon, 20) %> <%= m.label %></a>
+            <% } %>
+          <% }) %>
+          <p class="nav-drawer-label">Akun · <%= name %><% if (me.is_demo) { %> <span class="badge badge-demo">Akun Demo</span><% } %></p>
+          <% if (isFarmer) { %><a class="dd-link<%= R.profil() ? ' is-active' : '' %>" href="/profil"><%- icon('user', 20) %> Profil Saya</a><% } %>
+          <form method="post" action="/keluar"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="dd-link"><%- icon('logout', 20) %> Keluar</button></form>
+        </div>
       <% } %>
     </header>
 
-    <div id="menu-lainnya" class="sheet" role="dialog" aria-modal="true" aria-labelledby="menu-lainnya-title">
-      <a class="sheet-backdrop" href="#" data-sheet-close aria-label="Tutup menu"></a>
-      <div class="sheet-panel" tabindex="-1">
-        <div class="sheet-grip" aria-hidden="true"></div>
-        <div class="sheet-head"><h2 class="h4" id="menu-lainnya-title" style="margin:0">Menu</h2><a href="#" class="icon-btn" data-sheet-close aria-label="Tutup menu"><%- icon('close') %></a></div>
-        <% (isAdmin ? adminNav : [['/artikel', 'article', 'Artikel & Berita'], ['/profil', 'user', 'Profil Saya'], ...farmerExtra]).forEach(([href, ic, label]) => { %>
-          <a href="<%= href %>"><%- icon(ic) %> <%= label %></a>
-        <% }) %>
-        <form method="post" action="/keluar">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button type="submit"><%- icon('logout') %> Keluar</button>
-        </form>
-      </div>
-    </div>
-
-    <main id="isi" class="content">
+<% if (me) { %>
+    <main id="isi" class="content<%= pageLayout ? ' content-' + pageLayout : '' %>">
 <% } else { %>
-<header class="pubbar">
-  <div class="container pubbar-in">
-    <a class="appbar-brand" href="/"><img src="/static/img/logo.svg" alt="" width="36" height="36"> Sahabat Tani</a>
-    <nav aria-label="Navigasi">
-      <a class="btn btn-ghost btn-sm pub-articles" href="/artikel" aria-label="Artikel"><%- icon('article', 18) %> <span class="pub-label">Artikel</span></a>
-      <a class="btn btn-tonal btn-sm" href="/masuk">Masuk</a>
-      <a class="btn btn-sm" href="/daftar">Daftar</a>
-    </nav>
-  </div>
-</header>
-<main id="isi" class="container pub-main">
+    <main id="isi" class="container pub-main<%= pageLayout ? ' content-' + pageLayout : '' %>">
 <% } %>
 <div class="toast-region" aria-live="polite">
   <% if (flash) { %>

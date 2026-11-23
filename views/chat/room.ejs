@@ -1,27 +1,13 @@
 <%- include('../partials/head') %>
 <div class="chat-layout">
-  <aside class="chat-history panel" aria-labelledby="riwayat-chat">
-    <div class="section-head"><h2 id="riwayat-chat">Percakapan</h2>
-      <form method="post" action="/asisten/baru">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <input type="hidden" name="idempotency_key" value="<%= Date.now().toString(36) + Math.random().toString(36).slice(2) %>">
-        <button class="icon-btn" type="submit" aria-label="Percakapan baru" title="Percakapan baru"><%- icon('plus') %></button>
-      </form>
-    </div>
-    <ul class="conv-list">
-      <% sessions.forEach((s) => { %>
-        <li><a class="<%= s.id === session.id ? 'is-active' : '' %>" href="/asisten/<%= s.id %>" <%- s.id === session.id ? 'aria-current="page"' : '' %>>
-          <strong><%= s.title %></strong><span><%= s.scan_id ? 'Dari scan · ' : '' %><%= u.timeAgo(s.updated_at) %></span>
-        </a></li>
-      <% }) %>
-    </ul>
-  </aside>
+  <%- include('aside', { list: sessions, active: session.id }) %>
 
-  <div class="chat-col">
-    <div class="chat-head">
-      <a class="icon-btn chat-history-link" href="/asisten" aria-label="Semua percakapan"><%- icon('arrowLeft') %></a>
-      <h1><%= session.title %></h1>
-    </div>
+  <section class="chat-col" aria-labelledby="judul-chat">
+    <header class="chat-head">
+      <h1 id="judul-chat"><%= session.title %></h1>
+      <a class="btn btn-ghost btn-sm chat-history-btn" href="/asisten/riwayat" data-drawer-open aria-controls="chat-drawer" aria-label="Riwayat Percakapan"><%- icon('history', 18) %> <span class="btn-label">Riwayat Percakapan</span></a>
+    </header>
+    <div class="chat-scroll" data-chat-scroll>
 
     <% if (scan) { %>
       <details class="card scan-context details-box" <%= messages.length <= 3 ? 'open' : '' %>>
@@ -76,7 +62,7 @@
     </ol>
     <div id="akhir"></div>
 
-    <% if (scanFailed || replyFailed) { %>
+      <% if (scanFailed || replyFailed) { %>
       <div class="retry-box" role="status">
         <p><%= scanFailed ? 'Foto belum berhasil dianalisis. Coba lagi tanpa mengunggah ulang, atau tulis pertanyaan di bawah.' : 'Asisten belum berhasil menjawab pesan terakhir.' %></p>
         <form method="post" action="/asisten/<%= session.id %>/ulang">
@@ -86,7 +72,7 @@
       </div>
     <% } %>
 
-    <div class="quick" aria-label="Pertanyaan cepat">
+    <div class="quick quick-inline" aria-label="Pertanyaan cepat">
       <% quick.forEach((q) => { %>
         <form method="post" action="/asisten/<%= session.id %>/pesan" enctype="multipart/form-data" class="quick-form">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -94,6 +80,9 @@
         </form>
       <% }) %>
     </div>
+      <button type="button" class="btn btn-tonal btn-sm jump-latest" data-jump hidden><%- icon('down', 18) %> Pesan terbaru</button>
+    </div>
+    <div class="chat-foot">
 
     <form id="composer" class="composer" method="post" action="/asisten/<%= session.id %>/pesan" enctype="multipart/form-data">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -110,10 +99,10 @@
         <button class="btn send-btn" type="submit"><%- icon('send', 20) %><span>Kirim</span></button>
       </div>
       <p class="field-error" data-composer-msg role="alert" hidden></p>
-      <p class="xs muted" style="margin:var(--s-2) var(--s-3) 0">Identifikasi foto adalah bantuan awal dan bisa memerlukan pemeriksaan lapangan. Untuk pestisida, ikuti label resmi dan saran penyuluh.</p>
+      <p class="chat-note">Hasil AI adalah bantuan awal — konsultasikan dengan penyuluh.<span class="note-extra"> Bisa memerlukan pemeriksaan lapangan; untuk pestisida, ikuti label resmi.</span></p>
     </form>
-  </div>
+    </div>
+  </section>
 </div>
-<button type="button" class="btn btn-tonal btn-sm jump-latest" data-jump hidden><%- icon('down', 18) %> Pesan terbaru</button>
 <script src="/static/js/chat.js" defer></script>
 <%- include('../partials/foot') %>

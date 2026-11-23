@@ -1,0 +1,32 @@
+<%
+  // Footer bersama (publik & aplikasi). Tahun dihitung dari tanggal hari ini (Asia/Jakarta), tidak dikunci di teks.
+  const WA_DISPLAY = '082122873273';
+  const WA_LINK = 'https://wa.me/6282122873273'; // tanpa ?text= → tidak mengisi/mengirim pesan otomatis
+  const year = crop.todayISO().slice(0, 4);
+%>
+<footer class="site-footer<%= typeof withFab !== 'undefined' && withFab ? ' has-fab' : '' %>">
+  <div class="site-footer-in">
+    <div class="sf-grid">
+      <section class="sf-col sf-brand" aria-label="Tentang Sahabat Tani">
+        <a class="sf-logo" href="<%= currentUser ? (currentUser.role === 'admin' ? '/admin' : '/dashboard') : '/' %>"><img src="/static/img/logo-128.png" alt="" width="40" height="40"><span>Sahabat Tani</span></a>
+        <p>Teman petani untuk mengelola lahan, mengenali gejala hama, dan mengakses informasi pertanian.</p>
+      </section>
+      <nav class="sf-col" aria-labelledby="sf-info">
+        <h2 class="sf-title" id="sf-info">Informasi</h2>
+        <ul class="sf-links" role="list">
+          <li><a href="/tentang" <%- path === '/tentang' ? 'aria-current="page"' : '' %>>Tentang Sahabat Tani</a></li>
+          <li><a href="/kebijakan-privasi" <%- path === '/kebijakan-privasi' ? 'aria-current="page"' : '' %>>Kebijakan Privasi</a></li>
+          <li><a href="/syarat-ketentuan" <%- path === '/syarat-ketentuan' ? 'aria-current="page"' : '' %>>Syarat &amp; Ketentuan</a></li>
+        </ul>
+      </nav>
+      <section class="sf-col" aria-labelledby="sf-kontak">
+        <h2 class="sf-title" id="sf-kontak">Kontak</h2>
+        <a class="sf-wa" href="<%= WA_LINK %>" target="_blank" rel="noopener noreferrer">
+          <span class="sf-wa-ic"><%- icon('whatsapp', 22) %></span>
+          <span><small>WhatsApp Sahabat Tani</small><strong><%= WA_DISPLAY %></strong></span>
+        </a>
+      </section>
+    </div>
+    <p class="sf-copy">© <%= year %> Sahabat Tani. Hak cipta dilindungi.</p>
+  </div>
+</footer>

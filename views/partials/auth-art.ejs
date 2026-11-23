@@ -1,7 +1,12 @@
-<div class="auth-art" aria-hidden="true">
+<div class="auth-art">
   <div class="auth-art-text">
     <h2><%= typeof artTitle !== 'undefined' ? artTitle : 'Lahan sehat dimulai dari pengamatan yang rutin.' %></h2>
-    <p class="muted">Sahabat Tani membantu mencatat lahan, mengenali gejala hama dari foto, dan bertanya ke Asisten AI.</p>
+    <p class="muted">Satu aplikasi untuk mencatat lahan, mengenali gejala hama, dan bertanya seputar budidaya padi.</p>
+    <ul class="auth-features" role="list">
+      <li><span class="auth-feat-ic" aria-hidden="true"><%- icon('scan', 22) %></span><span><strong>Scan Hama AI</strong><span>Foto gejala pada tanaman, dapatkan dugaan awal beserta tingkat keyakinannya.</span></span></li>
+      <li><span class="auth-feat-ic" aria-hidden="true"><%- icon('chat', 22) %></span><span><strong>Asisten Penyuluhan AI</strong><span>Tanya soal hama, pupuk, dan perawatan dengan bahasa sehari-hari.</span></span></li>
+      <li><span class="auth-feat-ic" aria-hidden="true"><%- icon('map', 22) %></span><span><strong>Peta &amp; Kalender Lahan</strong><span>Lihat petak di peta, pantau umur tanaman (HST), dan atur pengingat perawatan.</span></span></li>
+    </ul>
   </div>
-  <%- include('terrace', { variant: 'day' }) %>
+  <div class="auth-art-scene" aria-hidden="true"><%- include('terrace', { variant: 'day' }) %></div>
 </div>

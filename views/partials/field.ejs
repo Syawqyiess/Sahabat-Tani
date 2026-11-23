@@ -15,14 +15,26 @@
         <option value="<%= ov %>" <%= String(ov) === String(val) ? 'selected' : '' %>><%= ol %></option>
       <% }) %>
     </select>
+  <% } else if (t === 'password' && typeof reveal !== 'undefined' && reveal) { %>
+    <%# Tombol lihat/sembunyikan kata sandi: hanya tampil bila JavaScript aktif. %>
+    <div class="pw-wrap">
+      <input id="<%= id %>" name="<%= name %>" type="password" value="<%= val %>"
+        <% if (typeof autocomplete !== 'undefined') { %>autocomplete="<%= autocomplete %>"<% } %>
+        <%= (typeof required !== 'undefined' && required) ? 'required' : '' %> <%= err ? 'aria-invalid=true' : '' %> aria-describedby="<%= id %>-h">
+      <button type="button" class="pw-toggle" data-pw-toggle aria-controls="<%= id %>" aria-pressed="false" aria-label="Tampilkan kata sandi" title="Tampilkan kata sandi">
+        <span class="pw-ic-show"><%- icon('eye', 20) %></span><span class="pw-ic-hide" hidden><%- icon('eyeOff', 20) %></span>
+      </button>
+    </div>
   <% } else { %>
     <input id="<%= id %>" name="<%= name %>" type="<%= t %>" value="<%= val %>"
       <% if (typeof inputmode !== 'undefined') { %>inputmode="<%= inputmode %>"<% } %>
       <% if (typeof autocomplete !== 'undefined') { %>autocomplete="<%= autocomplete %>"<% } %>
       <% if (typeof step !== 'undefined') { %>step="<%= step %>"<% } %>
       <% if (typeof placeholder !== 'undefined') { %>placeholder="<%= placeholder %>"<% } %>
+      <% if (typeof list !== 'undefined' && list) { %>list="<%= id %>-list"<% } %>
       <%= (typeof required !== 'undefined' && required) ? 'required' : '' %> <%= err ? 'aria-invalid=true' : '' %> aria-describedby="<%= id %>-h">
   <% } %>
+  <% if (typeof list !== 'undefined' && list) { %><datalist id="<%= id %>-list"><% list.forEach((o) => { %><option value="<%= o %>"><% }) %></datalist><% } %>
   <div id="<%= id %>-h">
     <% if (err) { %><p class="field-error"><%- icon('alert', 16) %> <%= err %></p><% } %>
     <% if (typeof hint !== 'undefined' && hint) { %><p class="hint"><%= hint %></p><% } %>

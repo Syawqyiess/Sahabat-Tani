@@ -20,6 +20,7 @@ router.get('/media/:uid/:file', requireLogin, (req, res) => {
       db.get('SELECT 1 FROM pest_scans WHERE image_path = ? AND user_id = ?', rel, owner)
       || db.get('SELECT 1 FROM chat_messages m JOIN chat_sessions s ON s.id = m.session_id WHERE m.image_path = ? AND s.user_id = ?', rel, owner)
       || db.get('SELECT 1 FROM farmer_profiles WHERE photo_path = ? AND user_id = ?', rel, owner)
+      || db.get('SELECT 1 FROM lands WHERE photo_path = ? AND user_id = ?', rel, owner)
     );
   } else if (req.user.role === 'admin') {
     allowed = !!db.get('SELECT 1 FROM farmer_profiles WHERE photo_path = ?', rel);

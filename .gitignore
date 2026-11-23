@@ -17,3 +17,8 @@ storage/
 ml/.venv/
 ml/data/
 ml/runs/
+
+# Foto latar slideshow lama: tidak dipakai lagi & lisensinya belum jelas (lihat public/img/latar/KREDIT.md).
+# Tetap disimpan di disk, tetapi tidak diunggah ke repository.
+assets/latar-asli/
+public/img/latar/

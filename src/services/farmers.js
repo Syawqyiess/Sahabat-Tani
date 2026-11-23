@@ -1,4 +1,5 @@
 'use strict';
+const crop = require('../lib/crop');
 const db = require('../db');
 
 const PROFILE_FIELDS = [
@@ -29,13 +30,11 @@ function completeness(profile) {
   };
 }
 
+// Ringkasan lahan milik pengguna — satu perhitungan untuk Dashboard, Lahan Saya, dan Profil.
 function landSummary(userId) {
-  const r = db.get(
-    `SELECT COUNT(*) AS count, SUM(area_ha) AS total_area, SUM(CASE WHEN area_ha IS NULL THEN 1 ELSE 0 END) AS no_area,
-            SUM(CASE WHEN data_source = 'demo' THEN 1 ELSE 0 END) AS demo_count
-       FROM lands WHERE user_id = ?`, userId,
-  );
-  return { count: r.count, totalArea: r.total_area, noArea: r.no_area || 0, demoCount: r.demo_count || 0 };
+  const lands = db.all('SELECT area_ha, data_source FROM lands WHERE user_id = ?', userId);
+  const a = crop.areaSummary(lands);
+  return { count: a.count, totalArea: a.total, totalLabel: a.totalLabel, noArea: a.missing, withArea: a.withArea, demoCount: lands.filter((l) => l.data_source === 'demo').length };
 }
 
 function updateProfile(userId, data) {

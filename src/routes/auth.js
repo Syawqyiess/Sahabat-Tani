@@ -32,15 +32,19 @@ function startSession(req, user, cb) {
 
 router.get('/masuk', (req, res) => {
   if (req.user) return res.redirect(req.user.role === 'admin' ? '/admin' : '/dashboard');
-  res.render('auth/login', { title: 'Masuk', errors: {}, values: {}, inactive: req.query.nonaktif === '1', resetDone: req.query.reset === '1' });
+  // Layar pembuka hanya sekali per sesi browser (cookie sesi, tanpa data pribadi).
+  const intro = !/(?:^|;\s*)st_intro=1/.test(req.get('cookie') || '');
+  if (intro) res.cookie('st_intro', '1', { httpOnly: true, sameSite: 'lax', secure: config.isProd, path: '/' });
+  res.render('auth/login', { title: 'Masuk', errors: {}, values: {}, inactive: req.query.nonaktif === '1', resetDone: req.query.reset === '1', intro });
 });
 
 router.post('/masuk', limits.login, async (req, res, next) => {
   const identifier = String(req.body.identifier || '').trim();
   const password = String(req.body.password || '');
   const user = findByIdentifier(identifier);
-  const ok = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH);
-  if (!user || !ok) {
+  // Akun yang dibuat lewat Google tidak punya kata sandi lokal: dibandingkan dengan hash tiruan (selalu gagal).
+  const ok = await bcrypt.compare(password, (user && user.password_hash) || DUMMY_HASH);
+  if (!user || !user.password_hash || !ok) {
     return res.status(401).render('auth/login', { title: 'Masuk', errors: { form: 'Nomor HP/email atau kata sandi salah.' }, values: { identifier }, inactive: false, resetDone: false });
   }
   if (!user.is_active) {
@@ -148,4 +152,5 @@ router.post('/reset-sandi/:token', limits.reset, async (req, res) => {
 });
 
 router.BCRYPT_ROUNDS = BCRYPT_ROUNDS;
+router.startSession = startSession;
 module.exports = router;

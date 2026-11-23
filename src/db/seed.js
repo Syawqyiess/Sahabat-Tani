@@ -55,9 +55,11 @@ async function seed({ withScans = true, quiet = false } = {}) {
       );
       for (const l of u.lands || []) {
         db.run(
-          `INSERT INTO lands (user_id, name, address_desc, area_ha, commodity, variety, planting_date, season_status, lat, lng, polygon_json, data_source)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'demo')`,
+          `INSERT INTO lands (user_id, name, address_desc, area_ha, commodity, variety, planting_date, season_status, lat, lng, polygon_json, data_source,
+                              illustration_path, illustration_kind, illustration_credit, illustration_source_url)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'demo', ?, ?, ?, ?)`,
           id, l.name, l.address_desc, l.area_ha, l.commodity, l.variety, l.planting_date, l.season_status, l.lat, l.lng, l.polygon ? JSON.stringify(l.polygon) : null,
+          l.illustration ? l.illustration.path : null, l.illustration ? l.illustration.kind : null, l.illustration ? l.illustration.credit : null, l.illustration ? l.illustration.source_url : null,
         );
       }
     }

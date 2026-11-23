@@ -1,0 +1,49 @@
+<%- include('../partials/head') %>
+<div class="chat-layout">
+  <%- include('aside', { list: recent, active: 'baru', total }) %>
+
+  <section class="chat-col new-chat" aria-labelledby="judul-chat">
+    <header class="chat-head">
+      <h1 id="judul-chat">Percakapan Baru</h1>
+      <a class="btn btn-ghost btn-sm chat-history-btn" href="/asisten/riwayat" data-drawer-open aria-controls="chat-drawer" aria-label="Riwayat Percakapan"><%- icon('history', 18) %> <span class="btn-label">Riwayat Percakapan</span></a>
+    </header>
+    <div class="chat-scroll new-chat-center">
+
+    <div class="new-chat-hero">
+      <span class="msg-avatar new-chat-avatar" aria-hidden="true"><%- icon('leaf', 26) %></span>
+      <h2>Ada yang ingin ditanyakan tentang tanamanmu?</h2>
+      <p class="muted">Tanyakan soal hama, pemupukan, atau perawatan. Anda juga bisa melampirkan foto tanaman.</p>
+      <% if (aiMode.chat === 'demo') { %><p class="small"><span class="badge badge-demo">Mode demo</span> Jawaban berupa “Simulasi respons AI”, bukan dari model.</p><% } %>
+    </div>
+
+      <div class="quick starter" aria-label="Contoh pertanyaan">
+      <% starters.forEach((q) => { %>
+        <button type="button" class="chip" data-starter="<%= q %>"><%= q %></button>
+      <% }) %>
+    </div>
+
+    </div>
+    <div class="chat-foot">
+    <form id="new-composer" class="composer" method="post" action="/asisten/mulai" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="idempotency_key" value="<%= idempotencyKey %>">
+      <div class="composer-attach" data-attach-preview hidden>
+        <img alt="Foto yang akan dikirim"><span class="small muted">Foto siap dikirim</span>
+        <button type="button" class="icon-btn" data-attach-clear aria-label="Hapus foto"><%- icon('close', 18) %></button>
+      </div>
+      <div class="composer-row">
+        <label class="icon-btn attach-btn" title="Lampirkan foto"><%- icon('image') %><span class="visually-hidden">Lampirkan foto</span>
+          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" class="visually-hidden" data-attach>
+        </label>
+        <label for="message" class="visually-hidden">Tulis pertanyaan</label>
+        <textarea id="message" name="message" rows="1" maxlength="2000" placeholder="Tulis pertanyaan…" enterkeyhint="send" autofocus><%= message %></textarea>
+        <button class="btn send-btn" type="submit" data-busy="Mengirim…"><%- icon('send', 20) %><span>Kirim</span></button>
+      </div>
+      <p class="field-error" data-composer-msg role="alert" <%= error ? '' : 'hidden' %>><%= error || '' %></p>
+      <p class="chat-note">Hasil AI adalah bantuan awal — konsultasikan dengan penyuluh.<span class="note-extra"> Percakapan tersimpan setelah pesan pertama dikirim; untuk pestisida, ikuti label resmi.</span></p>
+    </form>
+    </div>
+  </section>
+</div>
+<script src="/static/js/chat-new.js" defer></script>
+<%- include('../partials/foot') %>

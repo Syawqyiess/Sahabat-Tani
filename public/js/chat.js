@@ -11,18 +11,28 @@
   var list = document.querySelector('[data-messages]');
   var jump = document.querySelector('[data-jump]');
   var end = document.getElementById('akhir');
+  // Pesan bergulir di dalam panel chat (bukan halaman); header dan input tetap terlihat.
+  var scroller = document.querySelector('[data-chat-scroll]') || document.scrollingElement;
   var busy = false;
 
   function setMsg(t) { msg.textContent = t || ''; msg.hidden = !t; }
-  function nearBottom() { return end.getBoundingClientRect().top - window.innerHeight < 260; }
-  function toBottom(smooth) { end.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' }); }
+  function nearBottom() { return scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 260; }
+  function toBottom(smooth) { scroller.scrollTo({ top: scroller.scrollHeight, behavior: smooth ? 'smooth' : 'auto' }); }
 
   // Saat halaman dibuka: tampilkan pesan terbaru (kecuali percakapan baru yang masih pendek).
-  if (location.hash === '#akhir' || list.children.length > 3) toBottom(false);
+  // Gambar (foto scan/pesan) dimuat belakangan dan menambah tinggi: ulangi selama petani belum menggulir sendiri.
+  if (location.hash === '#akhir' || list.children.length > 3) {
+    var userMoved = false;
+    ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(function (ev) { scroller.addEventListener(ev, function () { userMoved = true; }, { passive: true, once: true }); });
+    var stick = function () { if (!userMoved) toBottom(false); };
+    stick();
+    scroller.querySelectorAll('img').forEach(function (img) { if (!img.complete) img.addEventListener('load', stick, { once: true }); });
+    window.addEventListener('load', stick, { once: true });
+  }
 
   // Tidak memaksa gulir: tombol "Pesan terbaru" muncul bila petani sedang membaca pesan lama.
   var onScroll = function () { jump.hidden = nearBottom(); };
-  window.addEventListener('scroll', onScroll, { passive: true });
+  scroller.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
   jump.addEventListener('click', function () { toBottom(true); });
 
@@ -37,6 +47,15 @@
     prev.hidden = false;
   });
   form.querySelector('[data-attach-clear]').addEventListener('click', function () { input.value = ''; prev.hidden = true; textarea.focus(); });
+
+  // Draf pesan per percakapan bertahan selama tab terbuka (mis. saat membuka menu lain lalu kembali).
+  var DRAFT = 'sahabat-tani:draf:' + location.pathname;
+  function store(fn) { try { return fn(window.sessionStorage); } catch (e) { return null; } }
+  var draft = store(function (s) { return s.getItem(DRAFT); });
+  if (draft && !textarea.value) textarea.value = draft;
+  textarea.addEventListener('input', function () {
+    store(function (s) { if (textarea.value.trim()) s.setItem(DRAFT, textarea.value); else s.removeItem(DRAFT); });
+  });
 
   // Tinggi textarea mengikuti isi; Enter mengirim di desktop, Shift+Enter baris baru.
   textarea.addEventListener('input', function () { textarea.style.height = 'auto'; textarea.style.height = Math.min(textarea.scrollHeight, 180) + 'px'; });
@@ -117,6 +136,7 @@
     var file = input.files[0] || null;
     if (!String(fd.get('message') || '').trim() && !file) { setMsg('Tulis pesan atau lampirkan foto terlebih dahulu.'); textarea.focus(); return; }
     send(fd, file);
+    store(function (s) { s.removeItem(DRAFT); });
     textarea.value = ''; textarea.style.height = 'auto';
     input.value = ''; prev.hidden = true;
   });

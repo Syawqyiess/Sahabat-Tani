@@ -32,7 +32,10 @@ function createApp() {
         mediaSrc: ["'self'", 'blob:'],
         workerSrc: ["'self'", 'blob:'],
         // Peta kualitas udara Windy disematkan sebagai iframe.
+        // Peta kualitas udara Windy disematkan sebagai iframe.
         frameSrc: ["'self'", 'https://embed.windy.com'],
+        // Tombol "Lanjutkan dengan Google" mengirim formulir ke server yang lalu mengalihkan ke halaman login Google.
+        formAction: ["'self'", 'https://accounts.google.com'],
         upgradeInsecureRequests: config.isProd ? [] : null,
       },
     },
@@ -41,6 +44,9 @@ function createApp() {
 
   app.use('/static', express.static(path.join(config.root, 'public'), { maxAge: config.isProd ? '7d' : 0 }));
   // Leaflet (pustaka peta terbuka) disajikan langsung dari paket npm.
+  // Salinan gambar berita (hanya untuk sumber yang mengizinkan penyalinan) — publik seperti beritanya.
+  app.use('/media-berita', express.static(path.join(config.uploadDir, 'berita'), { maxAge: '7d', index: false, fallthrough: false,
+    setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff') }));
   app.use('/static/vendor/leaflet', express.static(path.join(config.root, 'node_modules', 'leaflet', 'dist'), { maxAge: config.isProd ? '30d' : 0 }));
   app.use(express.urlencoded({ extended: false, limit: '200kb' }));
   app.use(express.json({ limit: '200kb' }));
@@ -59,12 +65,15 @@ function createApp() {
   app.use((req, res, next) => {
     res.locals.currentUser = null;
     res.locals.u = util;
+    res.locals.crop = require('./lib/crop');
     res.locals.icon = icon;
     res.locals.path = req.path;
     res.locals.flash = req.session.flash || null;
     delete req.session.flash;
     res.locals.aiMode = { vision: ai.vision().mode, chat: ai.chat().mode };
     res.locals.title = 'Sahabat Tani';
+    res.locals.uploadMaxMb = Math.round(config.maxUploadBytes / 1024 / 1024);
+    res.locals.googleEnabled = config.google.enabled; // tombol Google hanya tampil bila client ID & secret terpasang
     next();
   });
   app.use(csrf);
@@ -72,9 +81,11 @@ function createApp() {
 
   app.use(require('./routes/public'));
   app.use(require('./routes/auth'));
+  app.use(require('./routes/google'));
   app.use(require('./routes/media'));
   app.use(require('./routes/farmer'));
   app.use(require('./routes/lands'));
+  app.use(require('./routes/calendar'));
   app.use(require('./routes/scans'));
   app.use(require('./routes/chat'));
   app.use(require('./routes/air'));

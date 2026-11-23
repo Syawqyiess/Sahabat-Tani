@@ -1,11 +1,26 @@
 <%- include('../partials/head') %>
-<div class="page-head"><div><h1>Artikel Tersimpan</h1><p class="muted">Bacaan yang Anda simpan untuk dibaca lagi.</p></div><a class="btn btn-ghost" href="/artikel">Semua artikel</a></div>
+<div class="page-head"><div><h1>Artikel Tersimpan</h1><p class="muted">Bacaan yang Anda simpan untuk dibaca lagi.</p></div><a class="btn btn-ghost" href="/artikel"><%- icon('article', 20) %> Semua Artikel</a></div>
 <% if (!articles.length) { %>
-  <%- include('../partials/empty', { heading: 'Belum ada artikel tersimpan', text: 'Tekan “Simpan” pada artikel untuk membacanya lagi nanti.', actions: [{ href: '/artikel', label: 'Jelajahi Artikel', icon: 'article' }] }) %>
+  <%- include('../partials/empty', { fill: true, heading: 'Belum ada artikel tersimpan', text: 'Tekan “Simpan” pada artikel untuk membacanya lagi nanti.', actions: [{ href: '/artikel', label: 'Jelajahi Artikel', icon: 'article' }] }) %>
 <% } else { %>
-  <div class="article-grid">
+  <div class="article-grid saved-grid">
     <% const savedSet = new Set(articles.map((a) => a.id)); %>
-    <% articles.forEach((a) => { %><%- include('../partials/article-card', { a, saved: savedSet, back: '/artikel-tersimpan', feature: false }) %><% }) %>
+    <% articles.forEach((a) => { %>
+      <% if (a.unavailable) { %>
+        <article class="article-card article-gone">
+          <div class="article-body">
+            <div class="badges"><span class="badge badge-muted">Tidak lagi tersedia</span></div>
+            <h3><%= a.title %></h3>
+            <p>Konten ini sudah tidak ditampilkan di Berita &amp; Artikel. Anda dapat menghapusnya dari daftar simpanan.</p>
+          </div>
+          <form method="post" action="/artikel/<%= a.id %>/simpan">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="back" value="/artikel-tersimpan">
+            <button class="btn btn-sm btn-ghost" type="submit"><%- icon('trash', 18) %> Hapus dari simpanan</button>
+          </form>
+        </article>
+      <% } else { %><%- include('../partials/article-card', { a, saved: savedSet, back: '/artikel-tersimpan', feature: false }) %><% } %>
+    <% }) %>
   </div>
 <% } %>
 <%- include('../partials/foot') %>

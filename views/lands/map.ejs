@@ -2,25 +2,24 @@
 <div class="page-head">
   <div>
     <h1>Peta Lahan</h1>
-    <p class="muted measure">Hanya lahan milik Anda yang tampil. Batas digambar dari data yang Anda atau admin isi — Google Maps tidak mengetahui kepemilikan lahan.</p>
+    <p class="muted measure">Hanya lahan milik Anda yang tampil. Batas digambar dari data yang Anda atau admin isi — peta dasar (citra satelit &amp; OpenStreetMap) tidak mengetahui kepemilikan lahan.</p>
   </div>
   <a class="btn btn-ghost" href="/lahan"><%- icon('field', 20) %> Daftar Lahan</a>
 </div>
 <% if (!lands.length) { %>
   <%- include('../partials/empty', { heading: 'Belum ada lahan', text: 'Tambahkan lahan dan isi koordinatnya agar tampil di peta.', actions: [{ href: '/lahan/baru', label: 'Tambahkan Lahan', icon: 'plus' }] }) %>
-<% } else { %>
+<% } else { const allDemo = lands.every((l) => l.data_source === 'demo'); %>
 <div class="map-layout">
   <aside class="map-side" aria-labelledby="pilih-lahan">
     <h2 class="h4" id="pilih-lahan">Pilih lahan</h2>
     <ul class="land-pick" data-land-list>
       <% lands.forEach((l) => { const hasGeo = l.lat != null || l.polygon; %>
-        <li data-land-item="<%= l.id %>" class="<%= selected === l.id ? 'is-selected' : '' %>">
-          <div class="badges">
-            <% if (l.data_source === 'demo') { %><span class="badge badge-demo">Lahan Demo</span><% } else { %><span class="badge badge-real">Data asli</span><% } %>
-            <% if (l.season_status) { %><span class="badge"><%= l.season_status %></span><% } %>
-          </div>
+        <% const age = crop.cropAge(l); const fa = crop.phaseAgeLabel(age); %>
+        <li data-land-item="<%= l.id %>" class="<%= selected === l.id ? 'is-selected' : '' %><%= hasGeo ? ' is-pickable' : '' %>">
+          <% if (!allDemo) { %><div class="badges"><% if (l.data_source === 'demo') { %><span class="badge badge-demo">Lahan Demo</span><% } else { %><span class="badge badge-real">Data asli</span><% } %></div><% } %>
           <h3><%= l.name %></h3>
-          <p class="meta"><%= l.area_ha != null ? l.area_ha.toLocaleString('id-ID') + ' ha' : 'Luas belum diisi' %><%= l.variety ? ' · ' + l.variety : '' %><%= hasGeo ? '' : ' · belum ada koordinat' %></p>
+          <p class="meta"><%= l.area_ha != null ? crop.fmtHa(l.area_ha) : 'Luas belum diisi' %><%= ' · ' + (l.commodity || 'jenis tanaman belum diisi') %><%= hasGeo ? '' : ' · belum ada koordinat' %></p>
+          <p class="meta"><%= fa || age.label %><%= age.phaseEstimated ? ' · fase perkiraan' : '' %></p>
           <div class="row">
             <% if (hasGeo) { %>
               <button type="button" class="btn btn-sm" data-focus-land="<%= l.id %>" aria-pressed="<%= selected === l.id %>"><%- icon('focus', 18) %> Fokus ke Lahan</button>

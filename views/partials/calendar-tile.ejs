@@ -1,0 +1,49 @@
+<%
+  // Kartu Dashboard "Kalender Tanam": pratinjau satu hari (hari ini, Asia/Jakarta) — seluruh kartu adalah satu tautan
+  // ke halaman kalender lengkap. Isinya hanya kegiatan nyata yang tersimpan; tidak ada jadwal contoh.
+  const c = calendar;
+  const [dayName, rest] = c.todayLabel.split(', ');
+  const monthYear = rest.replace(/^\d+ /, '');
+  const href = '/kalender-tanam?' + (c.land ? 'lahan=' + c.land.id + '&' : '') + 'tanggal=' + c.today;
+  const summary = c.land ? (c.total ? c.total + ' kegiatan hari ini' : 'belum ada kegiatan hari ini') : 'belum ada lahan';
+%>
+<div class="cal-today-wrap<%= c.land && lands.length > 1 ? ' has-pick' : '' %>">
+  <a class="tile cal-today" href="<%= href %>" data-cal-today="<%= c.today %>"
+     aria-label="Kalender Tanam, <%= c.todayLabel %><%= c.land ? ', ' + c.land.name : '' %>: <%= summary %>. Lihat kalender lengkap">
+    <div class="cal-today-head">
+      <span class="cal-today-title"><%- icon('clock') %> Kalender Tanam</span>
+      <span class="cal-date-circle" aria-hidden="true"><%= Number(c.today.slice(8)) %></span>
+    </div>
+    <p class="cal-today-date"><strong><%= dayName %></strong>, <%= monthYear %></p>
+    <% if (!c.land) { %>
+      <p class="cal-today-empty">Tambahkan lahan untuk mengatur kegiatan tanam.</p>
+    <% } else { %>
+      <p class="cal-today-land"><%- icon('field', 16) %> <span><%= c.land.name %></span><% if (c.age && c.age.status === 'growing') { %><span class="cal-today-hst"><%= c.age.days %> HST<%= c.age.phase ? ' · ' + c.age.phase : '' %></span><% } %></p>
+      <% if (!c.items.length) { %>
+        <p class="cal-today-empty">Belum ada kegiatan hari ini</p>
+      <% } else { %>
+        <ul class="cal-today-list" role="list">
+          <% c.items.forEach((r) => { %>
+            <li class="<%= r.done_at ? 'is-done' : '' %>">
+              <% if (r.done_at) { %><span class="cal-today-check" title="Selesai"><%- icon('check', 14) %></span><% } %>
+              <span class="cal-today-item" title="<%= r.title %>"><%= r.title %></span>
+              <span class="badge cat-<%= r.category %>"><%= r.categoryLabel %></span>
+            </li>
+          <% }) %>
+        </ul>
+        <% if (c.more) { %><p class="cal-today-more">+<%= c.more %> kegiatan lainnya</p><% } %>
+      <% } %>
+    <% } %>
+    <span class="tile-go">Lihat kalender lengkap <%- icon('arrowRight', 18) %></span>
+  </a>
+  <% if (c.land && lands.length > 1) { %>
+    <%# Pemilih lahan berada di luar area tautan kartu (tidak bersarang). %>
+    <form method="get" action="/dashboard" class="cal-today-pick">
+      <label for="cal-tile-land" class="visually-hidden">Pilih lahan untuk Kalender Tanam</label>
+      <select id="cal-tile-land" name="kalender" data-autosubmit-select>
+        <% lands.forEach((l) => { %><option value="<%= l.id %>" <%= c.land.id === l.id ? 'selected' : '' %>><%= l.name %></option><% }) %>
+      </select>
+      <noscript><button class="btn btn-sm" type="submit">Pilih</button></noscript>
+    </form>
+  <% } %>
+</div>

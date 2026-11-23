@@ -2,6 +2,7 @@
 const crypto = require('node:crypto');
 const express = require('express');
 const db = require('../db');
+const crop = require('../lib/crop');
 const config = require('../config');
 const scans = require('../services/scans');
 const storage = require('../services/storage');
@@ -14,9 +15,15 @@ const farmerOnly = requireRole('farmer');
 const AFFECTED_PARTS = ['Daun', 'Batang', 'Pangkal batang', 'Akar', 'Malai/bulir', 'Seluruh tanaman', 'Tidak yakin'];
 
 router.get('/scan', farmerOnly, (req, res) => {
-  const lands = db.all('SELECT id, name FROM lands WHERE user_id = ? ORDER BY name', req.user.id);
+  // HST tiap lahan dari perhitungan terpusat (tanggal tanam musim aktif, zona Asia/Jakarta).
+  const lands = db.all('SELECT id, name, commodity, planting_date, season_status FROM lands WHERE user_id = ? ORDER BY name', req.user.id)
+    .map((l) => ({ ...l, age: crop.cropAge(l) }));
+  const recent = db.all(
+    `SELECT s.id, s.status, s.mode, s.result_json, s.created_at, s.image_path, s.chat_session_id, l.name AS land_name
+       FROM pest_scans s LEFT JOIN lands l ON l.id = s.land_id WHERE s.user_id = ? ORDER BY s.id DESC LIMIT 3`, req.user.id,
+  ).map((s) => ({ ...s, result: safeJson(s.result_json) }));
   res.render('scans/new', {
-    title: 'Scan Hama Padi', lands, parts: AFFECTED_PARTS, maxMb: Math.round(config.maxUploadBytes / 1048576), idemKey: crypto.randomUUID(),
+    title: 'Scan Hama Padi', lands, recent, parts: AFFECTED_PARTS, maxMb: Math.round(config.maxUploadBytes / 1048576), idemKey: crypto.randomUUID(),
   });
 });
 
@@ -38,11 +45,13 @@ router.post('/scan', farmerOnly, limits.scan, storage.single('photo'), verifyCsr
   const plantAge = v.num(req.body.plant_age_days, { min: 0, max: 200, int: true, label: 'Umur tanaman' }, errors, 'plant_age_days');
   const affectedPart = v.oneOf(req.body.affected_part || null, AFFECTED_PARTS, { label: 'Bagian tanaman' }, errors, 'affected_part');
   const symptoms = v.str(req.body.symptoms, { max: 500, label: 'Gejala' }, errors, 'symptoms');
+  // Asal HST disimpan bersama snapshot umurnya: otomatis dari tanggal tanam, atau diisi/dikoreksi petani.
+  const plantAgeSource = plantAge == null ? null : (req.body.plant_age_source === 'tanggal-tanam' ? 'tanggal-tanam' : 'manual');
   if (Object.keys(errors).length) return fail(req, res, 422, Object.values(errors).join(' '));
 
   let out;
   try {
-    out = await scans.createScan(req.user, { file: req.file, idempotencyKey: key, landId: landId || null, plantAge, affectedPart, symptoms });
+    out = await scans.createScan(req.user, { file: req.file, idempotencyKey: key, landId: landId || null, plantAge, plantAgeSource, affectedPart, symptoms });
   } catch (err) {
     if (err instanceof storage.UploadError) return fail(req, res, 422, err.message);
     throw err;

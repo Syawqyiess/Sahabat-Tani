@@ -1,0 +1,48 @@
+<%- include('../partials/head') %>
+<a class="back-link" href="/admin/sumber-berita"><%- icon('arrowLeft', 18) %> Sumber Berita</a>
+<div class="page-head">
+  <div>
+    <h1 class="h2">Uji sumber: <%= source.name %></h1>
+    <p class="muted">Pratinjau tanpa menyimpan. Inilah yang akan masuk bila Anda menekan “Ambil sekarang”.</p>
+  </div>
+  <form method="post" action="/admin/sumber-berita/<%= source.id %>/ambil">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button class="btn" data-busy="Mengambil…" <%= report.items.length ? '' : 'disabled' %>>Ambil <%= report.items.length %> berita ini</button>
+  </form>
+</div>
+
+<div class="card">
+  <dl class="dl small">
+    <dt>Jenis</dt><dd><%= source.kind === 'html' ? 'Halaman HTML' : 'RSS' %></dd>
+    <dt>robots.txt</dt><dd><%= report.robots || '—' %></dd>
+    <dt>Diterima</dt><dd><%= report.items.length %> berita</dd>
+    <dt>Dilewati</dt><dd><%= report.skipped.length %></dd>
+  </dl>
+  <% if (report.error) { %><div class="alert alert-error" style="margin:var(--s-4) 0 0" role="alert"><%- icon('alert') %><span><%= report.error %></span></div><% } %>
+</div>
+
+<% if (report.items.length) { %>
+  <h2 class="h3">Akan disimpan</h2>
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Judul & ringkasan</th><th>Tanggal terbit</th><th>Subkategori</th></tr></thead>
+    <tbody>
+    <% report.items.forEach((i) => { %>
+      <tr>
+        <td><a href="<%= i.url %>" target="_blank" rel="noopener"><strong><%= i.title %></strong> <%- icon('external', 14) %></a><br><span class="small muted"><%= i.summary || '(tanpa ringkasan)' %></span></td>
+        <td class="small"><% if (i.publishedAt) { %><%= u.fmtDate(i.publishedAt, i.dateSource !== 'daftar berita') %><br><span class="muted">dari <%= i.dateSource %></span><% } else { %><span class="warn">Tanggal tidak tersedia</span><% } %></td>
+        <td class="small"><%= cats[i.categorySlug] || i.categorySlug %></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+  </div>
+<% } %>
+
+<% if (report.skipped.length) { %>
+  <h2 class="h3">Dilewati</h2>
+  <ul class="link-list small">
+    <% report.skipped.forEach((s) => { %><li><strong><%= s.reason %></strong> — <% if (s.url) { %><a href="<%= s.url %>" target="_blank" rel="noopener"><%= s.title || s.url %></a><% } else { %><%= s.title %><% } %></li><% }) %>
+  </ul>
+<% } %>
+<%- include('../partials/foot') %>

@@ -1,0 +1,147 @@
+<%- include('../partials/head') %>
+<%
+  const STATUS = { terlewat: ['Terlewat', 'badge-error'], 'hari-ini': ['Hari ini', 'badge-pin'], mendatang: ['Mendatang', ''], selesai: ['Selesai', 'badge-real'] };
+  const ctx = (over) => calUrl({ lahan: land && land.id, musim, bulan, tanggal: selected, ...over }, over && over.hash != null ? over.hash : '');
+  const isPast = !!musim;
+  const editRow = editing ? values : null;
+  const fmtSeason = (iso) => iso ? longDate(iso).replace(/^[^,]+, /, '') : 'tanggal tanam belum diisi';
+%>
+<div class="page-head cal-head">
+  <div>
+    <h1>Kalender Tanam</h1>
+    <p class="muted measure">Lihat dan kelola kegiatan tanam per lahan. Jadwal &amp; dosis mengikuti rencana Anda atau anjuran penyuluh setempat.</p>
+  </div>
+  <% if (land) { %>
+    <form method="get" action="/kalender-tanam" class="cal-pickers">
+      <input type="hidden" name="tanggal" value="<%= selected %>">
+      <div class="cal-pick">
+        <label for="cal-lahan" class="small muted">Lahan</label>
+        <select id="cal-lahan" name="lahan" data-autosubmit-select>
+          <% lands.forEach((l) => { %><option value="<%= l.id %>" <%= land.id === l.id ? 'selected' : '' %>><%= l.name %></option><% }) %>
+        </select>
+      </div>
+      <% if (seasons.length > 1) { %>
+        <div class="cal-pick">
+          <label for="cal-musim" class="small muted">Musim tanam</label>
+          <select id="cal-musim" name="musim" data-autosubmit-select>
+            <% seasons.forEach((s) => { %><option value="<%= s.value %>" <%= musim === s.value ? 'selected' : '' %>><%= s.current ? 'Musim aktif' : 'Musim sebelumnya' %> — tanam <%= fmtSeason(s.start) %></option><% }) %>
+          </select>
+        </div>
+      <% } %>
+      <noscript><button class="btn btn-sm" type="submit">Tampilkan</button></noscript>
+    </form>
+  <% } %>
+</div>
+
+<% if (!land) { %>
+  <%- include('../partials/empty', { heading: 'Belum ada lahan', text: 'Tambahkan lahan terlebih dahulu untuk mengatur kegiatan tanam. Hari ini: ' + longDate(today) + '.', actions: [{ href: '/lahan/baru', label: 'Tambahkan Lahan', icon: 'plus' }] }) %>
+<% } else { %>
+
+<section class="cal-crop" aria-label="Ringkasan tanaman <%= land.name %>">
+  <div><span class="small muted">Lahan</span><strong><%= land.name %></strong><% if (land.data_source === 'demo') { %> <span class="badge badge-demo">Lahan Demo</span><% } %></div>
+  <div><span class="small muted">Jenis tanaman</span><strong><%= land.commodity || 'Belum diisi' %></strong></div>
+  <div><span class="small muted">Tanggal tanam</span><strong><%= land.planting_date ? longDate(land.planting_date).replace(/^[^,]+, /, '') : 'Belum diisi' %></strong></div>
+  <div><span class="small muted">Umur tanaman</span>
+    <% if (age.status === 'growing') { %><strong><%= age.days %> HST</strong>
+    <% } else if (age.status === 'scheduled') { %><strong><%= age.daysUntil %> hari lagi tanam</strong>
+    <% } else { %><a href="/lahan/<%= land.id %>/ubah">Isi tanggal tanam</a><% } %>
+  </div>
+  <div><span class="small muted">Fase</span>
+    <% if (age.status === 'growing' && age.phase) { %><strong><span class="phase-badge"><%= age.phase %></span></strong><% if (age.phaseEstimated) { %><span class="small muted">perkiraan dari umur</span><% } %>
+    <% } else { %><strong>—</strong><% } %>
+  </div>
+</section>
+<% if (isPast) { %>
+  <div class="alert alert-info"><%- icon('info') %><span>Menampilkan musim tanam sebelumnya (tanam <%= fmtSeason(musim) %>). <a href="<%= calUrl({ lahan: land.id, tanggal: today }) %>">Kembali ke musim aktif</a>.</span></div>
+<% } %>
+
+<div class="cal-wrap">
+  <section class="panel cal-month" aria-labelledby="cal-bulan">
+    <div class="cal-nav">
+      <a class="icon-btn" href="<%= calUrl({ lahan: land.id, musim, bulan: prevMonth }) %>" aria-label="Bulan sebelumnya"><%- icon('arrowLeft', 20) %></a>
+      <h2 class="h3" id="cal-bulan" aria-live="polite"><%= monthLabel %></h2>
+      <a class="icon-btn" href="<%= calUrl({ lahan: land.id, musim, bulan: nextMonth }) %>" aria-label="Bulan berikutnya"><%- icon('arrowRight', 20) %></a>
+      <a class="btn btn-sm btn-ghost cal-today-btn" href="<%= calUrl({ lahan: land.id, musim, tanggal: today }, '#detail-hari') %>">Hari Ini</a>
+    </div>
+    <div class="cal-grid" role="grid" aria-labelledby="cal-bulan">
+      <div class="cal-row cal-dow" role="row">
+        <% ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].forEach((d, i) => { %><span role="columnheader" title="<%= ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][i] %>"><%= d %></span><% }) %>
+      </div>
+      <% weeks.forEach((w) => { %>
+        <div class="cal-row" role="row">
+          <% w.forEach((c) => { const list = byDate[c.iso] || []; const open = list.filter((r) => !r.done_at).length; %>
+            <a role="gridcell" class="cal-cell<%= c.inMonth ? '' : ' is-out' %><%= c.iso === today ? ' is-today' : '' %><%= c.iso === selected ? ' is-selected' : '' %><%= list.length ? ' has-items' : '' %>"
+               href="<%= calUrl({ lahan: land.id, musim, tanggal: c.iso }, '#detail-hari') %>"
+               aria-label="<%= longDate(c.iso) %>, <%= list.length ? list.length + ' kegiatan' : 'tidak ada kegiatan' %><%= c.iso === today ? ', hari ini' : '' %>"
+               <%- c.iso === today ? 'aria-current="date"' : '' %> <%- c.iso === selected ? 'aria-selected="true"' : '' %>>
+              <span class="cal-num"><%= c.day %></span>
+              <% if (list.length) { %>
+                <span class="cal-chips" aria-hidden="true">
+                  <% list.slice(0, 2).forEach((r) => { %><span class="cal-chip cat-<%= r.category %><%= r.done_at ? ' is-done' : '' %>"><%= r.title %></span><% }) %>
+                  <% if (list.length > 2) { %><span class="cal-more">+<%= list.length - 2 %> kegiatan</span><% } %>
+                </span>
+                <span class="cal-dots" aria-hidden="true">
+                  <% list.slice(0, 3).forEach((r) => { %><i class="cat-<%= r.category %><%= r.done_at ? ' is-done' : '' %>"></i><% }) %>
+                  <% if (list.length > 3) { %><b>+<%= list.length - 3 %></b><% } %>
+                </span>
+              <% } %>
+            </a>
+          <% }) %>
+        </div>
+      <% }) %>
+    </div>
+    <p class="cal-legend small muted" aria-hidden="true">
+      <% categories.forEach(([k, label]) => { %><span><i class="cat-<%= k %>"></i><%= label %></span><% }) %>
+    </p>
+  </section>
+
+  <section class="panel cal-detail" id="detail-hari" aria-labelledby="detail-judul">
+    <p class="small muted" style="margin:0"><%= selected === today ? 'Hari ini' : (selected < today ? 'Tanggal lalu' : 'Tanggal mendatang') %></p>
+    <h2 class="h4" id="detail-judul" style="margin:2px 0 var(--s-4)"><%= longDate(selected) %></h2>
+    <% if (!dayItems.length) { %>
+      <p class="muted cal-none">Belum ada kegiatan pada tanggal ini.</p>
+    <% } else { %>
+      <ul class="cal-day-list" role="list">
+        <% dayItems.forEach((r) => { const st = STATUS[r.status]; %>
+          <li class="cal-item is-<%= r.status %>" id="kegiatan-<%= r.id %>">
+            <div class="cal-item-main">
+              <div class="badges"><span class="badge cat-<%= r.category %>"><%= r.categoryLabel %></span><span class="badge <%= st[1] %>"><%= st[0] %></span><% if (r.hstAt != null) { %><span class="small muted"><%= r.hstAt %> HST</span><% } %></div>
+              <strong><%= r.title %></strong>
+              <% if (r.note) { %><p class="small muted" style="margin:2px 0 0"><%= r.note %></p><% } %>
+            </div>
+            <div class="cal-item-actions">
+              <form method="post" action="/kalender/<%= r.id %>/selesai"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="musim" value="<%= musim %>"><button class="btn btn-sm <%= r.done_at ? 'btn-ghost' : 'btn-tonal' %>" type="submit"><%- icon('check', 16) %> <%= r.done_at ? 'Batal selesai' : 'Tandai selesai' %></button></form>
+              <a class="btn btn-sm btn-text" href="<%= calUrl({ lahan: land.id, musim, tanggal: selected, ubah: r.id }, '#form-kegiatan') %>"><%- icon('edit', 16) %> Ubah</a>
+              <form method="post" action="/kalender/<%= r.id %>/hapus" data-confirm="Hapus kegiatan “<%= r.title %>” pada <%= longDate(r.due_date) %>? Tindakan ini tidak dapat dibatalkan."><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="musim" value="<%= musim %>"><button class="btn btn-sm btn-text btn-danger-text" type="submit"><%- icon('trash', 16) %> Hapus</button></form>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+
+    <% if (isPast && !editRow) { %>
+      <p class="small muted cal-form-note">Kegiatan baru ditambahkan pada musim aktif.</p>
+    <% } else { %>
+      <div class="cal-form" id="form-kegiatan">
+        <h3 class="h4"><%= editRow ? 'Ubah kegiatan' : 'Tambah kegiatan' %></h3>
+        <form method="post" action="<%= editRow ? '/kalender/' + editRow.id : '/kalender' %>" class="form" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="land_id" value="<%= land.id %>">
+          <input type="hidden" name="musim" value="<%= musim %>">
+          <%- include('../partials/field', { name: 'title', label: 'Kegiatan', value: values.title, error: errors.title, required: true, placeholder: 'Contoh: pemupukan susulan, cek wereng di pangkal batang' }) %>
+          <div class="grid-2">
+            <%- include('../partials/field', { name: 'due_date', label: 'Tanggal', type: 'date', value: values.due_date || selected, error: errors.due_date, required: true }) %>
+            <%- include('../partials/field', { name: 'category', label: 'Kategori', type: 'select', options: categories, value: values.category, error: errors.category, required: true }) %>
+          </div>
+          <%- include('../partials/field', { name: 'note', label: 'Catatan', type: 'textarea', rows: 2, value: values.note, error: errors.note, optional: true, hint: 'Isi dosis/takaran sesuai anjuran penyuluh atau label produk — aplikasi tidak menentukan dosis.' }) %>
+          <div class="row wrap-row">
+            <button class="btn" type="submit" data-busy="Menyimpan…"><%- icon(editRow ? 'check' : 'plus', 18) %> <%= editRow ? 'Simpan perubahan' : 'Tambah Kegiatan' %></button>
+            <% if (editRow) { %><a class="btn btn-ghost" href="<%= calUrl({ lahan: land.id, musim, tanggal: selected }, '#detail-hari') %>">Batal</a><% } %>
+          </div>
+        </form>
+      </div>
+    <% } %>
+  </section>
+</div>
+<% } %>
+<%- include('../partials/foot') %>

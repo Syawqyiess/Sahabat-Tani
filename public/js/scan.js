@@ -33,7 +33,17 @@
       if (i === idx) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
     });
   }
+  // Tombol Analisis hanya aktif bila ada foto valid dan tidak sedang mengirim (status disabled sungguhan).
+  function syncAnalyze() {
+    var btn = form.querySelector('[data-action=analyze]');
+    if (!btn) return;
+    btn.disabled = !photoBlob || busy;
+    btn.setAttribute('aria-disabled', btn.disabled ? 'true' : 'false');
+    var hint = form.querySelector('[data-analyze-hint]');
+    if (hint) hint.hidden = !!photoBlob;
+  }
   function show(name) {
+    syncAnalyze();
     steps.pick.hidden = name !== 'pick';
     steps.camera.hidden = name !== 'camera';
     steps.preview.hidden = name !== 'preview';
@@ -105,7 +115,7 @@
       URL.revokeObjectURL(url);
       c.toBlob(function (blob) {
         if (!blob) {
-          if (file.size > MAX_BYTES) return setPickMsg('Ukuran foto terlalu besar. Maksimal ' + Math.round(MAX_BYTES / 1048576) + ' MB.');
+          if (file.size > MAX_BYTES) { photoBlob = null; syncAnalyze(); return setPickMsg('Ukuran foto terlalu besar. Maksimal ' + Math.round(MAX_BYTES / 1048576) + ' MB.'); }
           blob = file;
         }
         usePhoto(blob, c);
@@ -113,6 +123,8 @@
     };
     img.onerror = function () {
       URL.revokeObjectURL(url);
+      photoBlob = null;
+      show('pick');
       setPickMsg('Berkas tidak dapat dibuka sebagai gambar. Coba foto lain.');
     };
     img.src = url;
@@ -147,8 +159,9 @@
   }
 
   function usePhoto(blob, canvas) {
-    if (blob.size > MAX_BYTES) { setPickMsg('Ukuran foto terlalu besar. Maksimal ' + Math.round(MAX_BYTES / 1048576) + ' MB.'); show('pick'); return; }
+    if (blob.size > MAX_BYTES) { photoBlob = null; setPickMsg('Ukuran foto terlalu besar. Maksimal ' + Math.round(MAX_BYTES / 1048576) + ' MB.'); show('pick'); return; }
     photoBlob = blob;
+    syncAnalyze();
     if (photoUrl) URL.revokeObjectURL(photoUrl);
     photoUrl = URL.createObjectURL(blob);
     $('[data-preview]').src = photoUrl;
@@ -195,6 +208,7 @@
     overlay.hidden = true;
     form.classList.remove('is-busy');
     busy = false;
+    syncAnalyze();
     $('[data-action=analyze]').focus();
   }
 
@@ -228,11 +242,13 @@
       return;
     }
     busy = false;
+    syncAnalyze();
     if (data.redirect) showOverlay('fail', data.error || 'Layanan analisis sedang bermasalah.', data.redirect);
     else showOverlay('fail', data.error || 'Terjadi kesalahan.', null);
   }
   function networkFail() {
     busy = false;
+    syncAnalyze();
     showOverlay('fail', 'Koneksi terputus. Periksa internet lalu tekan “Coba Lagi”. Foto tidak akan tersimpan dua kali.', null);
   }
 
@@ -245,6 +261,7 @@
       return;
     }
     busy = true;
+    syncAnalyze();
     setStep('analyze');
     showOverlay('busy');
     setStatus('upload');
@@ -259,6 +276,7 @@
     if (busy) return;
     if (!lastScanId) return submit();
     busy = true;
+    syncAnalyze();
     showOverlay('busy');
     setStatus('ai');
     var body = new URLSearchParams({ _csrf: form.querySelector('[name=_csrf]').value });
@@ -268,6 +286,77 @@
     }).then(function (r) { return r.json(); }).then(handleResult).catch(networkFail);
   }
 
+  // ---------- Isi otomatis umur tanaman (HST) dari tanggal tanam lahan ----------
+  // Nilai otomatis bisa dikoreksi; koreksi petani tidak ditimpa diam-diam saat lahan diganti,
+  // dan tidak mengubah tanggal tanam lahan (hanya tersimpan sebagai snapshot scan).
+  var landSel = form.querySelector('[data-land-select]');
+  var hstIn = form.querySelector('[data-hst-input]');
+  var hstSrc = form.querySelector('[data-hst-source]');
+  var hstNote = form.querySelector('[data-hst-note]');
+  if (landSel && hstIn) {
+    var manual = false;
+    var setNote = function (html) { hstNote.innerHTML = html; };
+    var esc = function (t) { var d = document.createElement('span'); d.textContent = t; return d.innerHTML; };
+    var applyAuto = function (opt, val) {
+      hstIn.value = val;
+      hstSrc.value = 'tanggal-tanam';
+      manual = false;
+      setNote('Diisi otomatis dari tanggal tanam <strong>' + esc(opt.textContent) + '</strong>: ' + val + ' HST. Anda dapat mengoreksinya.');
+    };
+    landSel.addEventListener('change', function () {
+      var opt = landSel.selectedOptions[0];
+      var val = opt && opt.getAttribute('data-hst');
+      if (!landSel.value) { setNote('Lahan tidak dipilih. Isi umur tanaman sendiri bila diketahui.'); if (!manual) { hstIn.value = ''; hstSrc.value = ''; } return; }
+      if (!val) {
+        if (!manual) { hstIn.value = ''; hstSrc.value = ''; }
+        setNote(esc(opt.getAttribute('data-hst-label') || 'Tanggal tanam belum diisi') + ' untuk <strong>' + esc(opt.textContent) + '</strong>. Isi umur tanaman secara manual bila diketahui.');
+        return;
+      }
+      if (manual && hstIn.value !== '' && hstIn.value !== val) {
+        setNote('Lahan diganti ke <strong>' + esc(opt.textContent) + '</strong> (' + val + ' HST dari tanggal tanam). Nilai yang Anda isi tetap dipakai. <button type="button" class="link-btn" data-use-hst="' + val + '">Pakai ' + val + ' HST</button>');
+        return;
+      }
+      applyAuto(opt, val);
+    });
+    hstNote.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-use-hst]');
+      if (b) applyAuto(landSel.selectedOptions[0], b.getAttribute('data-use-hst'));
+    });
+    hstIn.addEventListener('input', function () {
+      manual = hstIn.value !== '';
+      hstSrc.value = manual ? 'manual' : '';
+      if (manual) setNote('Diisi manual untuk scan ini — tanggal tanam lahan tidak ikut berubah.');
+    });
+  }
+
+  // ---------- Pilihan cepat gejala ----------
+  // Menambah deskripsi tanpa menghapus tulisan petani; ketuk lagi untuk membatalkan; tidak ada duplikasi.
+  var tagsBox = form.querySelector('[data-symptom-tags]');
+  var symptomsTa = form.querySelector('#symptoms');
+  if (tagsBox && symptomsTa) {
+    var parts = function () { return symptomsTa.value.split(/;\s*/).map(function (p) { return p.trim(); }).filter(Boolean); };
+    var syncTags = function () {
+      var list = parts();
+      tagsBox.querySelectorAll('[data-tag]').forEach(function (b) { b.setAttribute('aria-pressed', list.indexOf(b.getAttribute('data-tag')) >= 0 ? 'true' : 'false'); });
+    };
+    tagsBox.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-tag]');
+      if (!b) return;
+      var tag = b.getAttribute('data-tag');
+      var list = parts();
+      var i = list.indexOf(tag);
+      if (i >= 0) list.splice(i, 1); else list.push(tag);
+      symptomsTa.value = list.join('; ').slice(0, 500);
+      syncTags();
+      // Bila bagian keterangan tertutup, tetap tampilkan kolom yang berubah.
+      var det = symptomsTa.closest('details');
+      if (det && !det.open) det.open = true;
+    });
+    symptomsTa.addEventListener('input', syncTags);
+    syncTags();
+  }
+
+  syncAnalyze();
   // ---------- Event ----------
   form.addEventListener('submit', function (e) { e.preventDefault(); submit(); });
   form.addEventListener('click', function (e) {

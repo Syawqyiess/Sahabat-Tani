@@ -7,12 +7,20 @@ const config = require('../config');
 
 // Kategori US AQI (US EPA). Kita memakai US AQI apa adanya dan TIDAK mengonversinya ke ISPU Indonesia.
 const US_AQI_CATEGORIES = [
-  { max: 50, label: 'Baik', tone: 'good', advice: 'Kualitas udara memuaskan.' },
-  { max: 100, label: 'Sedang', tone: 'moderate', advice: 'Dapat diterima; orang yang sangat sensitif sebaiknya mengurangi aktivitas berat di luar ruangan.' },
-  { max: 150, label: 'Tidak sehat bagi kelompok sensitif', tone: 'usg', advice: 'Anak-anak, lansia, dan penderita gangguan pernapasan sebaiknya membatasi aktivitas berat di luar.' },
-  { max: 200, label: 'Tidak sehat', tone: 'unhealthy', advice: 'Kurangi aktivitas berat di luar ruangan; pertimbangkan masker saat bekerja di lahan.' },
-  { max: 300, label: 'Sangat tidak sehat', tone: 'very', advice: 'Hindari aktivitas berat di luar ruangan.' },
-  { max: Infinity, label: 'Berbahaya', tone: 'hazard', advice: 'Hindari aktivitas di luar ruangan.' },
+// Anjuran kegiatan luar ruang diringkas dari panduan aktivitas AirNow (US EPA) untuk tiap kategori AQI.
+  // "Kelompok sensitif": penderita penyakit jantung/paru (termasuk asma), lansia, anak-anak, ibu hamil.
+  { max: 50, label: 'Baik', tone: 'good', advice: 'Kualitas udara memuaskan.',
+    outdoor: 'Kegiatan di sawah dan luar ruangan dapat dilakukan seperti biasa.' },
+  { max: 100, label: 'Sedang', tone: 'moderate', advice: 'Dapat diterima; orang yang sangat sensitif sebaiknya mengurangi aktivitas berat di luar ruangan.',
+    outdoor: 'Umumnya aman. Orang yang sangat peka terhadap polusi sebaiknya mengurangi kerja berat atau lama di luar dan memperhatikan gejala seperti batuk atau sesak.' },
+  { max: 150, label: 'Tidak sehat bagi kelompok sensitif', tone: 'usg', advice: 'Anak-anak, lansia, dan penderita gangguan pernapasan sebaiknya membatasi aktivitas berat di luar.',
+    outdoor: 'Kelompok sensitif sebaiknya mengurangi kerja berat atau lama di luar, lebih sering beristirahat, dan mengerjakan tugas berat saat kualitas udara lebih baik.' },
+  { max: 200, label: 'Tidak sehat', tone: 'unhealthy', advice: 'Kurangi aktivitas berat di luar ruangan; pertimbangkan masker saat bekerja di lahan.',
+    outdoor: 'Semua orang sebaiknya mengurangi kerja berat atau lama di luar dan lebih sering beristirahat; kelompok sensitif sebaiknya menghindarinya.' },
+  { max: 300, label: 'Sangat tidak sehat', tone: 'very', advice: 'Hindari aktivitas berat di luar ruangan.',
+    outdoor: 'Semua orang sebaiknya menghindari kerja berat atau lama di luar; kelompok sensitif sebaiknya tetap di dalam ruangan.' },
+  { max: Infinity, label: 'Berbahaya', tone: 'hazard', advice: 'Hindari aktivitas di luar ruangan.',
+    outdoor: 'Semua orang sebaiknya menghindari seluruh aktivitas fisik di luar ruangan.' },
 ];
 
 function categorize(aqi) {

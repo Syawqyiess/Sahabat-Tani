@@ -1,27 +1,21 @@
-</main>
-<% if (currentUser) { %>
-    <footer class="footer">
-      <p style="margin:0">Hasil AI adalah bantuan awal — konsultasikan dengan penyuluh pertanian setempat. Data berlabel “Data Demo” atau “Konten Demo” adalah contoh, bukan data nyata.</p>
-    </footer>
+    </main>
+<%
+  // Tombol chat mengambang: hanya untuk petani, tidak di chatroom/scanner (mengganggu tindakan utama).
+  const showFab = currentUser && currentUser.role === 'farmer' && !/^\/(asisten|scan)(\/|$)/.test(path);
+%>
+<% if (typeof layout === 'undefined' || layout !== 'chat') { %><%- include('site-footer', { withFab: showFab }) %><% } %>
   </div>
 </div>
-<% if (currentUser.role === 'farmer') {
-  const act = (p) => (path === p || path.startsWith(p + '/')) ? 'is-active' : ''; %>
-  <nav class="bottomnav" aria-label="Navigasi bawah">
-    <a class="<%= act('/dashboard') %>" href="/dashboard"><span class="pill"><%- icon('home') %></span><span>Beranda</span></a>
-    <a class="<%= act('/lahan') %>" href="/lahan"><span class="pill"><%- icon('field') %></span><span>Lahan</span></a>
-    <a class="bottomnav-scan <%= act('/scan') %>" href="/scan"><span class="scan-bubble"><%- icon('camera', 26) %></span><span>Scan Hama</span></a>
-    <a class="<%= act('/asisten') %>" href="/asisten"><span class="pill"><%- icon('chat') %></span><span>Asisten AI</span></a>
-    <a href="#menu-lainnya" data-sheet-open="menu-lainnya"><span class="pill"><%- icon('menu') %></span><span>Lainnya</span></a>
-  </nav>
-<% } %>
-<% } else { %>
-<footer class="footer">
-  <div class="container">
-    <p><strong>Sahabat Tani</strong> — aplikasi demo untuk petani padi. Hasil AI adalah bantuan awal; konsultasikan dengan penyuluh pertanian setempat.</p>
-    <p class="small muted" style="margin:0">Data berlabel “Data Demo” atau “Konten Demo” adalah contoh, bukan data nyata.</p>
+<% if (showFab) { %>
+  <div class="fab" data-fab>
+    <div class="fab-menu" id="fab-menu" hidden>
+      <a class="fab-action" href="/asisten"><span class="fab-ic"><%- icon('chat', 20) %></span><span><strong>Tanya Asisten AI</strong><small>Mulai percakapan baru</small></span></a>
+      <a class="fab-action fab-action-scan" href="/scan"><span class="fab-ic"><%- icon('camera', 20) %></span><span><strong>Scan Hama</strong><small>Foto gejala pada tanaman</small></span></a>
+    </div>
+    <button type="button" class="fab-btn" data-fab-toggle aria-expanded="false" aria-controls="fab-menu" aria-label="Bantuan cepat: Asisten AI dan Scan Hama">
+      <span class="fab-open"><%- icon('chat', 26) %></span><span class="fab-close" hidden><%- icon('close', 24) %></span>
+    </button>
   </div>
-</footer>
 <% } %>
 </body>
 </html>

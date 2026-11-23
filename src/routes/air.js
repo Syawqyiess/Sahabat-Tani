@@ -35,7 +35,7 @@ router.get('/udara', farmerOnly, async (req, res) => {
   const layer = WINDY_LAYERS.find((l) => l.id === req.query.lapisan) || WINDY_LAYERS[0];
   res.render('farmer/air', {
     title: 'Informasi Kualitas Udara', lands, loc, ...out, categories: air.US_AQI_CATEGORIES,
-    windy: { layers: WINDY_LAYERS, active: layer, url: windyUrl(loc, layer.id) },
+    windy: { layers: WINDY_LAYERS, active: layer, url: windyUrl(loc, layer.id), center: windyCenter(loc) },
   });
 });
 
@@ -48,11 +48,25 @@ const WINDY_LAYERS = [
   { id: 'dustsm', label: 'Debu' },
 ];
 
+// Pusat peta: Desa Mojopuro Wetan (titik Balai Desa dari OpenStreetMap, config.maps.demoCenter) bila lokasi yang
+// dipilih berada ≤ 15 km darinya; selain itu pusat = lokasi itu sendiri. Penanda (detailLat/Lon) selalu di titik
+// lokasi yang dipilih — pusat desa tidak disajikan sebagai titik lahan.
+function distanceKm(a, b) {
+  const R = 6371, rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function windyCenter(loc) {
+  const v = config.maps.demoCenter;
+  return distanceKm(loc, v) <= 15 ? { lat: v.lat, lng: v.lng, label: v.label, village: true } : { lat: loc.lat, lng: loc.lng, label: loc.label, village: false };
+}
 function windyUrl(loc, overlay) {
+  const c = windyCenter(loc);
   const p = new URLSearchParams({
     type: 'map', location: 'coordinates', metricRain: 'default', metricTemp: 'default', metricWind: 'default',
-    zoom: '8', overlay, product: 'cams', level: 'surface',
-    lat: loc.lat.toFixed(3), lon: loc.lng.toFixed(3), detailLat: loc.lat.toFixed(3), detailLon: loc.lng.toFixed(3),
+    zoom: c.village ? '10' : '8', overlay, product: 'cams', level: 'surface',
+    lat: c.lat.toFixed(4), lon: c.lng.toFixed(4), detailLat: loc.lat.toFixed(4), detailLon: loc.lng.toFixed(4),
     marker: 'true', message: 'true', lang: 'id',
   });
   return `https://embed.windy.com/embed.html?${p}`;

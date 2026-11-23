@@ -1,11 +1,7 @@
 <%- include('../partials/head') %>
 <div class="page-head">
-  <div><h1>Asisten AI</h1><p class="muted">Lanjutkan percakapan atau mulai pertanyaan baru.</p></div>
-  <form method="post" action="/asisten/baru">
-    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-    <input type="hidden" name="idempotency_key" value="<%= Date.now().toString(36) + Math.random().toString(36).slice(2) %>">
-    <button class="btn" type="submit" data-busy="Membuka…"><%- icon('plus', 20) %> Percakapan Baru</button>
-  </form>
+  <div><h1>Riwayat Percakapan</h1><p class="muted">Pilih percakapan untuk melanjutkannya.</p></div>
+  <a class="btn" href="/asisten"><%- icon('plus', 20) %> Percakapan Baru</a>
 </div>
 <% if (aiMode.chat === 'demo') { %><div class="alert alert-warn"><%- icon('info') %><span><strong>Mode demo:</strong> jawaban berupa “Simulasi respons AI”, bukan dari model.</span></div><% } %>
 <% if (!sessions.length) { %>

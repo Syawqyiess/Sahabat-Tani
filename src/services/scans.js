@@ -120,7 +120,7 @@ async function analyzeAndPost(scanId) {
 }
 
 // Membuat scan + sesi chat sekaligus. Kunci idempoten mencegah scan ganda saat tombol ditekan berulang.
-async function createScan(user, { file, idempotencyKey, landId, plantAge, affectedPart, symptoms }) {
+async function createScan(user, { file, idempotencyKey, landId, plantAge, plantAgeSource = null, affectedPart, symptoms }) {
   const existing = db.get('SELECT id, chat_session_id FROM pest_scans WHERE user_id = ? AND idempotency_key = ?', user.id, idempotencyKey);
   if (existing) return { scanId: existing.id, sessionId: existing.chat_session_id, duplicate: true };
 
@@ -129,9 +129,9 @@ async function createScan(user, { file, idempotencyKey, landId, plantAge, affect
   try {
     ids = db.tx(() => {
       const r = db.run(
-        `INSERT INTO pest_scans (user_id, land_id, idempotency_key, image_path, image_mime, image_bytes, plant_age_days, affected_part, symptoms, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-        user.id, landId, idempotencyKey, saved.relPath, saved.mime, saved.bytes, plantAge, affectedPart, symptoms,
+        `INSERT INTO pest_scans (user_id, land_id, idempotency_key, image_path, image_mime, image_bytes, plant_age_days, plant_age_source, affected_part, symptoms, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+        user.id, landId, idempotencyKey, saved.relPath, saved.mime, saved.bytes, plantAge, plantAgeSource, affectedPart, symptoms,
       );
       const scanId = Number(r.lastInsertRowid);
       const s = db.run('INSERT INTO chat_sessions (user_id, scan_id, title) VALUES (?, ?, ?)', user.id, scanId, `Scan hama #${scanId}`);
@@ -140,7 +140,7 @@ async function createScan(user, { file, idempotencyKey, landId, plantAge, affect
       const notes = [
         'Foto dari Scan Hama Padi.',
         landId && `Lahan: ${db.get('SELECT name FROM lands WHERE id = ?', landId).name}`,
-        plantAge != null && `Umur tanaman: ${plantAge} hari`,
+        plantAge != null && `Umur tanaman: ${plantAge} hari${plantAgeSource === 'tanggal-tanam' ? ' (dari tanggal tanam)' : ''}`,
         affectedPart && `Bagian terdampak: ${affectedPart}`,
         symptoms && `Gejala: ${symptoms}`,
       ].filter(Boolean).join('\n');

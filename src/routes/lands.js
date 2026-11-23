@@ -3,7 +3,8 @@ const express = require('express');
 const db = require('../db');
 const config = require('../config');
 const v = require('../lib/validate');
-const { requireRole } = require('../middleware/security');
+const storage = require('../services/storage');
+const { requireRole, verifyCsrf } = require('../middleware/security');
 const { safeJson } = require('../lib/util');
 
 const router = express.Router();
@@ -16,7 +17,7 @@ function parseLand(body, errors) {
     name: v.str(body.name, { max: 100, required: true, label: 'Nama lahan' }, errors, 'name'),
     address_desc: v.str(body.address_desc, { max: 300, label: 'Lokasi' }, errors, 'address_desc'),
     area_ha: v.num(body.area_ha, { min: 0.001, max: 10000, label: 'Luas lahan' }, errors, 'area_ha'),
-    commodity: v.str(body.commodity, { max: 80, label: 'Komoditas' }, errors, 'commodity'),
+    commodity: v.str(body.commodity, { max: 80, label: 'Jenis tanaman' }, errors, 'commodity'),
     variety: v.str(body.variety, { max: 80, label: 'Varietas' }, errors, 'variety'),
     planting_date: v.date(body.planting_date, { label: 'Tanggal tanam' }, errors, 'planting_date'),
     season_status: v.oneOf(body.season_status, SEASON_STATUSES, { label: 'Status musim tanam' }, errors, 'season_status'),
@@ -54,16 +55,30 @@ router.get('/lahan/baru', farmerOnly, (req, res) => {
   res.render('lands/form', { title: 'Tambah Lahan', land: {}, errors: {}, statuses: SEASON_STATUSES, action: '/lahan' });
 });
 
-router.post('/lahan', farmerOnly, (req, res) => {
+// Foto lahan opsional; hanya pemilik lahan (petani yang login) yang bisa mengunggah atau menghapusnya.
+async function handlePhoto(req, errors) {
+  if (req.uploadError) { errors.photo = req.uploadError; return null; }
+  if (!req.file) return null;
+  try {
+    return (await storage.saveOptimizedImage(req.file, req.user.id, 'land')).relPath;
+  } catch (err) {
+    if (!(err instanceof storage.UploadError)) throw err;
+    errors.photo = err.message;
+    return null;
+  }
+}
+
+router.post('/lahan', farmerOnly, storage.single('photo'), verifyCsrf, async (req, res) => {
   const errors = {};
   const d = parseLand(req.body, errors);
+  const photo = Object.keys(errors).length ? null : await handlePhoto(req, errors);
   if (Object.keys(errors).length) {
     return res.status(422).render('lands/form', { title: 'Tambah Lahan', land: req.body, errors, statuses: SEASON_STATUSES, action: '/lahan' });
   }
   const r = db.run(
-    `INSERT INTO lands (user_id, name, address_desc, area_ha, commodity, variety, planting_date, season_status, lat, lng, polygon_json, data_source)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'real')`,
-    req.user.id, d.name, d.address_desc, d.area_ha, d.commodity, d.variety, d.planting_date, d.season_status, d.lat, d.lng, d.polygon_json,
+    `INSERT INTO lands (user_id, name, address_desc, area_ha, commodity, variety, planting_date, season_status, lat, lng, polygon_json, photo_path, data_source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'real')`,
+    req.user.id, d.name, d.address_desc, d.area_ha, d.commodity, d.variety, d.planting_date, d.season_status, d.lat, d.lng, d.polygon_json, photo,
   );
   req.session.flash = { type: 'success', text: 'Lahan berhasil ditambahkan.' };
   res.redirect(`/lahan/${r.lastInsertRowid}`);
@@ -83,27 +98,32 @@ router.get('/lahan/:id/ubah', farmerOnly, (req, res) => {
   res.render('lands/form', { title: 'Ubah Lahan', land, errors: {}, statuses: SEASON_STATUSES, action: `/lahan/${land.id}` });
 });
 
-router.post('/lahan/:id', farmerOnly, (req, res) => {
+router.post('/lahan/:id', farmerOnly, storage.single('photo'), verifyCsrf, async (req, res) => {
   const land = ownedLand(req);
   if (!land) return res.status(404).render('errors/error', { title: 'Lahan tidak ditemukan', status: 404, message: 'Lahan tidak ditemukan atau bukan milik Anda.' });
   const errors = {};
   const d = parseLand(req.body, errors);
+  const newPhoto = Object.keys(errors).length ? null : await handlePhoto(req, errors);
   if (Object.keys(errors).length) {
-    return res.status(422).render('lands/form', { title: 'Ubah Lahan', land: { ...req.body, id: land.id, data_source: land.data_source }, errors, statuses: SEASON_STATUSES, action: `/lahan/${land.id}` });
+    return res.status(422).render('lands/form', { title: 'Ubah Lahan', land: { ...req.body, id: land.id, data_source: land.data_source, photo_path: land.photo_path }, errors, statuses: SEASON_STATUSES, action: `/lahan/${land.id}` });
   }
   // Lahan demo menjadi data asli hanya bila petani menyatakannya secara eksplisit.
   const source = req.body.mark_real === '1' ? 'real' : land.data_source;
+  const photo = newPhoto || (req.body.remove_photo === '1' ? null : land.photo_path);
   db.run(
     `UPDATE lands SET name = ?, address_desc = ?, area_ha = ?, commodity = ?, variety = ?, planting_date = ?, season_status = ?,
-            lat = ?, lng = ?, polygon_json = ?, data_source = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?`,
-    d.name, d.address_desc, d.area_ha, d.commodity, d.variety, d.planting_date, d.season_status, d.lat, d.lng, d.polygon_json, source, land.id, req.user.id,
+            lat = ?, lng = ?, polygon_json = ?, photo_path = ?, data_source = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?`,
+    d.name, d.address_desc, d.area_ha, d.commodity, d.variety, d.planting_date, d.season_status, d.lat, d.lng, d.polygon_json, photo, source, land.id, req.user.id,
   );
+  if (land.photo_path && land.photo_path !== photo) storage.removeFile(land.photo_path);
   req.session.flash = { type: 'success', text: 'Data lahan disimpan.' };
   res.redirect(`/lahan/${land.id}`);
 });
 
 router.post('/lahan/:id/hapus', farmerOnly, (req, res) => {
+  const old = ownedLand(req);
   const r = db.run('DELETE FROM lands WHERE id = ? AND user_id = ?', Number(req.params.id), req.user.id);
+  if (r.changes && old.photo_path) storage.removeFile(old.photo_path);
   req.session.flash = r.changes ? { type: 'success', text: 'Lahan dihapus. Riwayat scan tetap tersimpan.' } : { type: 'error', text: 'Lahan tidak ditemukan.' };
   res.redirect('/lahan');
 });

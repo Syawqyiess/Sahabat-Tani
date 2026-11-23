@@ -1,7 +1,7 @@
 <%- include('../partials/head') %>
 <% const a = article; const mins = a.origin === 'internal' ? u.readMinutes(a.body_md) : null; %>
 <article class="article">
-  <a class="back-link" href="/artikel"><%- icon('arrowLeft', 18) %> Artikel &amp; Berita</a>
+  <a class="back-link" href="/artikel"><%- icon('arrowLeft', 18) %> Berita &amp; Artikel Pertanian</a>
   <% if (a.status !== 'published') { %><div class="alert alert-warn"><%- icon('info') %><span>Pratinjau admin — status: <%= a.status %>. Petani tidak dapat melihat artikel ini.</span></div><% } %>
   <div class="badges">
     <% if (a.category_name) { %><a class="badge" href="/artikel?kategori=<%= a.category_slug %>"><%= a.category_name %></a><% } %>
@@ -11,11 +11,20 @@
   <h1><%= a.title %></h1>
   <p class="article-meta" style="margin:0 0 var(--s-5)">
     <% if (a.author_name) { %><span>Oleh <%= a.author_name %></span><% } %>
-    <span>Terbit <%= u.fmtDate(a.published_at) %><% if (a.origin === 'external') { %> (tanggal asli sumber)<% } %></span>
+    <% if (a.published_at) { %><span>Terbit <%= u.fmtDate(a.published_at, a.origin === 'external' && a.date_source !== 'daftar berita') %><% if (a.origin === 'external') { %> (tanggal asli dari <%= a.source_name %>)<% } %></span>
+    <% } else { %><span>Tanggal terbit tidak tersedia di sumber</span><% } %>
+    <% if (a.origin === 'external' && a.fetched_at) { %><span>Diambil <%= u.fmtDate(a.fetched_at, true) %></span><% } %>
     <% if (a.origin === 'internal' && a.updated_at && a.published_at && u.toDate(a.updated_at) > u.toDate(a.published_at)) { %><span>Diperbarui <%= u.fmtDate(a.updated_at) %></span><% } %>
     <% if (mins) { %><span><%- icon('clock', 16) %> <%= mins %> menit baca</span><% } %>
   </p>
-  <% if (a.image_url) { %><img class="article-hero" src="<%= a.image_url %>" alt="<%= a.image_alt || '' %>" loading="lazy"><% } %>
+  <figure class="article-hero">
+    <div class="article-media"><%- include('../partials/article-media', { a, main: true }) %></div>
+    <% if (a.image_url && (a.image_caption || a.image_credit)) { %>
+      <figcaption class="small muted"><%= a.image_caption ? a.image_caption + ' ' : '' %><%= a.image_credit || '' %><% if (a.origin === 'external' && a.image_kind === 'sumber') { %> — gambar dari <a href="<%= a.source_url %>" target="_blank" rel="noopener noreferrer">artikel asli</a><% } %></figcaption>
+    <% } else if (!a.image_url) { %>
+      <figcaption class="small muted">Ilustrasi kategori — <%= a.origin === 'external' ? 'sumber tidak menyediakan gambar yang dapat ditampilkan' : 'artikel ini belum memiliki cover' %>.</figcaption>
+    <% } %>
+  </figure>
   <% if (a.summary) { %><p class="lead"><%= a.summary %></p><% } %>
 
   <% if (a.origin === 'external') { %>
@@ -40,9 +49,9 @@
 
   <% if (related.length) { %>
     <section style="margin-top:var(--s-10)">
-      <h2 class="h3">Artikel terkait</h2>
+      <h2 class="h3">Berita terkait</h2>
       <ul class="link-list">
-        <% related.forEach((r) => { %><li><a href="/artikel/<%= r.slug %>"><strong><%= r.title %></strong></a> <span class="small muted">— <%= u.fmtDate(r.published_at) %></span><% if (r.is_demo) { %> <span class="badge badge-demo">Konten Demo</span><% } %></li><% }) %>
+        <% related.forEach((r) => { %><li><a href="/artikel/<%= r.slug %>"><strong><%= r.title %></strong></a> <span class="small muted">— <%= r.source_name %>, <%= r.published_at ? u.fmtDate(r.published_at) : 'tanggal tidak tersedia' %></span></li><% }) %>
       </ul>
     </section>
   <% } %>

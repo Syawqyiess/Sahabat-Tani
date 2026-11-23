@@ -12,26 +12,38 @@ const users = [
   {
     key: 'sarno', role: 'farmer', phone: '081200000001', email: 'sarno.demo@sahabattani.test', password: DEMO_PASSWORD_FARMER,
     profile: {
-      full_name: 'Pak Sarno (Akun Demo)', village: 'Desa Contoh Makmur', district: 'Kecamatan Contoh', regency: 'Kabupaten Karawang',
-      province: 'Jawa Barat', farmer_group: 'Kelompok Tani Demo Sri Rejeki', experience_years: 15, main_commodity: 'Padi',
+      full_name: 'Pak Sarno', village: 'Desa Mojopuro Wetan', district: 'Kecamatan Bungah', regency: 'Kabupaten Gresik',
+      province: 'Jawa Timur', farmer_group: 'Kelompok Tani Demo Sri Rejeki', experience_years: 15, main_commodity: 'Padi',
     },
     lands: [
       {
-        name: 'Sawah Blok A (Demo)', address_desc: 'Lokasi contoh dekat saluran irigasi — bukan lahan asli', area_ha: 0.5, commodity: 'Padi',
-        variety: 'Inpari 32', planting_date: '2026-09-20', season_status: 'Vegetatif', lat: -6.3215, lng: 107.3362,
-        polygon: [[-6.3205, 107.3352], [-6.3205, 107.3372], [-6.3225, 107.3372], [-6.3225, 107.3352]],
+        name: 'Sawah Blok A (Demo)', address_desc: 'Desa Mojopuro Wetan, Bungah, Gresik — sawah utara permukiman', area_ha: 0.5, commodity: 'Padi',
+        variety: 'Inpari 32', planting_date: '2026-09-20', season_status: 'Vegetatif', lat: -7.0253, lng: 112.5285,
+        // Petak contoh di sawah ±1 km utara Balai Desa Mojopuro Wetan (dipilih dari citra satelit; bukan batas lahan asli).
+        polygon: [[-7.02498, 112.52817], [-7.02498, 112.52882], [-7.02562, 112.52882], [-7.02562, 112.52817]],
+        // Foto stok berlisensi sebagai ilustrasi (bukan dokumentasi lahan ini). Kredit: public/img/lahan-demo/KREDIT.md
+        illustration: {
+          path: '/static/img/lahan-demo/blok-a.webp', kind: 'stok',
+          credit: 'Foto: Firman Rusda, “Sawah Hijau dan Jalan Setapak”, Wikimedia Commons, CC BY-SA 4.0 (dipotong & diperkecil)',
+          source_url: 'https://commons.wikimedia.org/wiki/File:Sawah_Hijau_dan_Jalan_Setapak.jpg',
+        },
       },
       {
-        name: 'Sawah Blok B (Demo)', address_desc: 'Lokasi contoh di sebelah timur — bukan lahan asli', area_ha: 0.35, commodity: 'Padi',
-        variety: 'Ciherang', planting_date: '2026-09-28', season_status: 'Tanam', lat: -6.3238, lng: 107.3398,
-        polygon: [[-6.3230, 107.3390], [-6.3230, 107.3406], [-6.3246, 107.3406], [-6.3246, 107.3390]],
+        name: 'Sawah Blok B (Demo)', address_desc: 'Desa Mojopuro Wetan, Bungah, Gresik — timur Blok A', area_ha: 0.35, commodity: 'Padi',
+        variety: 'Ciherang', planting_date: '2026-09-28', season_status: 'Tanam', lat: -7.0269, lng: 112.5358,
+        polygon: [[-7.02662, 112.53551], [-7.02662, 112.53607], [-7.02717, 112.53607], [-7.02717, 112.53551]],
+        illustration: {
+          path: '/static/img/lahan-demo/blok-b.webp', kind: 'stok',
+          credit: 'Foto: Yumenosora, “Tanam Padi” (Grogol, Kediri), Wikimedia Commons, CC BY-SA 4.0 (dipotong & diperkecil)',
+          source_url: 'https://commons.wikimedia.org/wiki/File:Tanam_Padi.jpg',
+        },
       },
     ],
   },
   {
     key: 'wati', role: 'farmer', phone: '081200000002', email: null, password: DEMO_PASSWORD_FARMER,
     // Profil sengaja belum lengkap untuk menunjukkan "Belum diisi" dan ajakan "Lengkapi Profil".
-    profile: { full_name: 'Bu Wati (Akun Demo)', regency: 'Kabupaten Klaten', province: 'Jawa Tengah' },
+    profile: { full_name: 'Bu Wati', regency: 'Kabupaten Klaten', province: 'Jawa Tengah' },
     lands: [
       // Lahan tanpa koordinat dan tanpa luas: tetap bisa disimpan.
       { name: 'Sawah dekat rumah (Demo)', address_desc: 'Koordinat belum diisi', area_ha: null, commodity: 'Padi', variety: null, planting_date: null, season_status: 'Persiapan lahan', lat: null, lng: null, polygon: null },
@@ -40,7 +52,8 @@ const users = [
 ];
 
 const categories = [
-  'Hama dan penyakit padi', 'Budidaya padi', 'Pemupukan', 'Teknologi pertanian', 'Lingkungan dan cuaca', 'Berita pertanian',
+  'Budidaya Padi', 'Hama dan Penyakit Tanaman', 'Pupuk dan Kesehatan Tanah', 'Teknologi Pertanian',
+  'Irigasi dan Pengelolaan Air', 'Cuaca dan Iklim Pertanian', 'Berita Pertanian Umum',
 ];
 
 // Referensi hama: ringkasan pengetahuan umum PHT, DITANDAI belum diverifikasi.
@@ -98,7 +111,7 @@ const pests = [
 
 const articles = [
   {
-    cat: 'Hama dan penyakit padi', title: 'Mengenal Gejala Awal Serangan Wereng Batang Cokelat',
+    cat: 'Hama dan Penyakit Tanaman', title: 'Mengenal Gejala Awal Serangan Wereng Batang Cokelat',
     summary: 'Cara sederhana mengamati pangkal batang padi agar serangan wereng diketahui lebih awal.',
     tags: 'wereng,pht,pengamatan',
     body: `Wereng batang cokelat sering tidak terlihat dari pematang karena berkumpul di **pangkal batang**.
@@ -112,7 +125,7 @@ const articles = [
 Bila serangga terlihat banyak atau muncul bercak kering melingkar, segera hubungi penyuluh (PPL) atau petugas POPT. Untuk pengendalian kimia, ikuti label resmi dan saran penyuluh.`,
   },
   {
-    cat: 'Budidaya padi', title: 'Manfaat Tanam Serempak dalam Satu Hamparan',
+    cat: 'Budidaya Padi', title: 'Manfaat Tanam Serempak dalam Satu Hamparan',
     summary: 'Tanam serempak membantu memutus siklus hama dan memudahkan pengelolaan air.',
     tags: 'budidaya,tanam serempak',
     body: `Tanam serempak berarti petani dalam satu hamparan menanam pada waktu yang berdekatan.
@@ -124,7 +137,7 @@ Bila serangga terlihat banyak atau muncul bercak kering melingkar, segera hubung
 Diskusikan jadwal tanam bersama kelompok tani dan penyuluh setempat.`,
   },
   {
-    cat: 'Pemupukan', title: 'Prinsip Pemupukan Berimbang untuk Padi Sawah',
+    cat: 'Pupuk dan Kesehatan Tanah', title: 'Prinsip Pemupukan Berimbang untuk Padi Sawah',
     summary: 'Pupuk berlebihan, terutama nitrogen, dapat membuat tanaman lebih rentan hama.',
     tags: 'pupuk,nitrogen,hara',
     body: `Pemupukan berimbang berarti memberi hara sesuai kebutuhan tanaman dan kondisi tanah.
@@ -139,7 +152,7 @@ Nitrogen berlebih membuat daun sangat hijau dan lunak, yang disukai wereng dan h
 Takaran pupuk berbeda di setiap lokasi; ikuti rekomendasi resmi setempat.`,
   },
   {
-    cat: 'Teknologi pertanian', title: 'Memotret Tanaman Padi untuk Identifikasi Hama',
+    cat: 'Teknologi Pertanian', title: 'Memotret Tanaman Padi untuk Identifikasi Hama',
     summary: 'Tips mengambil foto yang terang, fokus, dan cukup dekat agar mudah diperiksa.',
     tags: 'foto,scan,teknologi',
     body: `Foto yang baik membantu penyuluh maupun alat bantu AI memahami kondisi tanaman.
@@ -152,7 +165,7 @@ Takaran pupuk berbeda di setiap lokasi; ikuti rekomendasi resmi setempat.`,
 Hasil identifikasi foto tetap perlu dikonfirmasi di lapangan.`,
   },
   {
-    cat: 'Lingkungan dan cuaca', title: 'Membaca Informasi Kualitas Udara dengan Bijak',
+    cat: 'Cuaca dan Iklim Pertanian', title: 'Membaca Informasi Kualitas Udara dengan Bijak',
     summary: 'Indeks kualitas udara membantu menjaga kesehatan petani saat bekerja di luar ruangan.',
     tags: 'udara,aqi,kesehatan',
     body: `Indeks kualitas udara (AQI) menggambarkan perkiraan polusi di wilayah Anda, bukan hasil sensor di lahan.
@@ -162,7 +175,7 @@ Hasil identifikasi foto tetap perlu dikonfirmasi di lapangan.`,
 - Indeks yang dipakai aplikasi ini adalah US AQI, berbeda dengan ISPU Indonesia.`,
   },
   {
-    cat: 'Berita pertanian', title: 'Contoh Tampilan Berita Pertanian',
+    cat: 'Berita Pertanian Umum', title: 'Contoh Tampilan Berita Pertanian',
     summary: 'Ini artikel contoh. Berita asli akan muncul setelah admin menghubungkan sumber RSS yang mengizinkan penggunaannya.',
     tags: 'demo',
     body: 'Artikel ini adalah **Konten Demo** untuk menunjukkan tampilan kategori berita. Aplikasi tidak mengarang berita terbaru; berita asli diambil dari sumber RSS yang dikonfigurasi admin, lengkap dengan tanggal asli dan tautan ke penerbit.',

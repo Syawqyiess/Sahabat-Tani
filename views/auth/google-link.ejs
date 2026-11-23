@@ -1,0 +1,26 @@
+<%- include('../partials/head') %>
+<div class="auth-wrap">
+<%- include('../partials/auth-art') %>
+<div class="auth">
+  <h1>Tautkan akun Google</h1>
+  <p class="muted">Email Google <strong><%= email %></strong> sudah terdaftar di Sahabat Tani. Demi keamanan, akun tidak digabung otomatis.</p>
+  <% if (hasPassword) { %>
+    <p>Masukkan kata sandi akun Sahabat Tani tersebut untuk membuktikan bahwa akun itu milik Anda. Setelah itu, Google ditautkan dan Anda bisa masuk dengan Google berikutnya.</p>
+    <form method="post" action="/auth/google/tautkan" class="form" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="text" name="username" value="<%= email %>" autocomplete="username" hidden>
+      <%- include('../partials/field', { name: 'password', label: 'Kata sandi akun Sahabat Tani', type: 'password', value: '', error: errors.password, autocomplete: 'current-password', required: true, reveal: true }) %>
+      <button class="btn btn-lg btn-block" type="submit" data-busy="Memeriksa…">Tautkan dan masuk</button>
+    </form>
+  <% } else { %>
+    <div class="alert alert-warn"><%- icon('info') %><span>Akun dengan email ini belum memiliki kata sandi. Hubungi admin untuk membantu penautan.</span></div>
+  <% } %>
+  <form method="post" action="/auth/google/tautkan" style="margin-top:var(--s-4)">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="action" value="batal">
+    <button class="btn btn-ghost btn-block" type="submit">Batal, jangan tautkan</button>
+  </form>
+  <p class="auth-links"><a href="/lupa-sandi">Lupa kata sandi?</a></p>
+</div>
+</div>
+<%- include('../partials/foot') %>

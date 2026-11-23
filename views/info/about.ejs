@@ -1,0 +1,18 @@
+<%- include('../partials/head') %>
+<article class="info-page">
+  <a class="back-link" href="<%= currentUser ? (currentUser.role === 'admin' ? '/admin' : '/dashboard') : '/' %>"><%- icon('arrowLeft', 18) %> Kembali ke <%= currentUser ? 'Dashboard' : 'beranda' %></a>
+  <h1>Tentang Sahabat Tani</h1>
+  <p class="lead">Sahabat Tani adalah aplikasi web untuk membantu petani padi mencatat lahan, mengenali gejala hama, dan mengikuti informasi pertanian.</p>
+  <h2 class="h3">Fitur yang tersedia</h2>
+  <ul class="info-list">
+    <li><strong>Lahan Saya &amp; Peta Lahan</strong> — catat luas, jenis tanaman, varietas, tanggal tanam, dan lokasi lahan di peta.</li>
+    <li><strong>Kalender Masa Tanam</strong> — umur tanaman (HST) dan pengingat kegiatan per lahan.</li>
+    <li><strong>Scan Hama Padi</strong> — foto gejala pada tanaman untuk mendapatkan dugaan awal beserta tingkat keyakinannya.</li>
+    <li><strong>Asisten AI</strong> — tanya jawab seputar hama, pupuk, dan perawatan padi.</li>
+    <li><strong>Kualitas Udara</strong> — estimasi kualitas udara wilayah lahan dari data Open-Meteo.</li>
+    <li><strong>Berita &amp; Artikel</strong> — ringkasan berita pertanian dari sumber asli, dengan tautan ke penerbitnya.</li>
+  </ul>
+  <p>Hasil Scan Hama dan Asisten AI adalah bantuan awal. Untuk keputusan di lahan, tetap konsultasikan dengan penyuluh pertanian setempat.</p>
+  <%- include('../partials/info-contact') %>
+</article>
+<%- include('../partials/foot') %>

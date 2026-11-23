@@ -41,10 +41,23 @@ function migrate() {
   for (const file of files) {
     if (applied.has(file)) continue;
     const sql = fs.readFileSync(path.join(dir, file), 'utf8');
-    tx(() => {
-      d.exec(sql);
-      d.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(file);
-    });
+    // Migrasi yang membangun ulang tabel induk (mis. users) harus mematikan foreign key sementara,
+    // agar DROP TABLE tidak menjalankan ON DELETE CASCADE ke tabel turunan. PRAGMA ini tidak berlaku
+    // di dalam transaksi, jadi diatur sebelum BEGIN; integritas diperiksa sebelum COMMIT.
+    const fkOff = /^--\s*migrate:foreign-keys-off/m.test(sql);
+    if (fkOff) d.exec('PRAGMA foreign_keys = OFF');
+    try {
+      tx(() => {
+        d.exec(sql);
+        if (fkOff) {
+          const bad = d.prepare('PRAGMA foreign_key_check').all();
+          if (bad.length) throw new Error(`Migrasi ${file}: ${bad.length} pelanggaran foreign key`);
+        }
+        d.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(file);
+      });
+    } finally {
+      if (fkOff) d.exec('PRAGMA foreign_keys = ON');
+    }
     done.push(file);
   }
   return done;

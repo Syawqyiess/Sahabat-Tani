@@ -1,0 +1,20 @@
+<%
+  // Gambar artikel: gambar sumber asli / cover admin → bila tidak ada atau gagal dimuat, ilustrasi kategori berlabel "Ilustrasi".
+  const ILL = { 'budidaya-padi': ['day', false], 'hama-dan-penyakit-tanaman': ['dusk', true], 'pupuk-dan-kesehatan-tanah': ['soil', false],
+    'teknologi-pertanian': ['soft', true], 'irigasi-dan-pengelolaan-air': ['day', true], 'cuaca-dan-iklim-pertanian': ['dusk', false], 'berita-pertanian-umum': ['soft', false] };
+  const catSlug = a.category_slug || (a.category_name ? u.slugify(a.category_name) : '');
+  const ill = ILL[catSlug] || [['day', 'dusk', 'soft', 'soil'][a.id % 4], a.id % 2 === 1];
+  const isMain = typeof main !== 'undefined' && main;
+  const isIll = a.image_kind === 'ilustrasi-ai' || a.image_kind === 'ilustrasi-stok';
+  const credit = a.image_credit || (a.origin === 'external' && a.image_url ? 'Foto: ' + a.source_name : '');
+%>
+<% if (a.image_url) { %>
+  <img src="<%= a.image_url %>" alt="<%= a.image_alt || '' %>" width="1200" height="675" decoding="async"
+       referrerpolicy="strict-origin-when-cross-origin" <%- isMain ? 'fetchpriority="high"' : 'loading="lazy"' %> data-article-img>
+  <% if (isIll) { %><span class="media-tag"><%= a.image_kind === 'ilustrasi-ai' ? 'Ilustrasi AI' : 'Foto ilustrasi' %></span>
+  <% } else if (credit) { %><span class="media-credit"><%= credit %></span><% } %>
+<% } %>
+<span class="media-fallback"<%= a.image_url ? ' hidden' : '' %> data-article-fallback>
+  <%- include('terrace', { variant: ill[0], mirror: ill[1] }) %>
+  <span class="media-tag">Ilustrasi</span>
+</span>

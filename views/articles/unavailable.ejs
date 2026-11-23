@@ -1,0 +1,11 @@
+<%- include('../partials/head') %>
+<div class="state" style="max-width:720px;margin:var(--s-8) auto">
+  <div class="state-art"><%- include('../partials/terrace', { variant: 'soft' }) %></div>
+  <h1 class="h2">Konten tidak lagi tersedia</h1>
+  <p>Halaman ini sudah tidak ditampilkan. Berita &amp; Artikel kini hanya memuat berita dari sumber asli.</p>
+  <div class="state-actions">
+    <a class="btn" href="/artikel"><%- icon('arrowLeft', 20) %> Kembali ke Berita &amp; Artikel</a>
+    <% if (currentUser && currentUser.role === 'farmer') { %><a class="btn btn-ghost" href="/artikel-tersimpan"><%- icon('bookmark', 20) %> Artikel Tersimpan</a><% } %>
+  </div>
+</div>
+<%- include('../partials/foot') %>

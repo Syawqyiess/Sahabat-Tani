@@ -5,15 +5,21 @@
   <a class="btn" href="/lahan/<%= land.id %>/ubah"><%- icon('edit', 18) %> Ubah</a>
 </div>
 <p><% if (land.data_source === 'demo') { %><span class="badge badge-demo">Lahan Demo — Bukan Batas Lahan Asli</span><% } else { %><span class="badge badge-real">Data asli</span><% } %></p>
+<% if (land.photo_path || (land.data_source === 'demo' && land.illustration_path)) { %>
+  <%- include('photo', { l: land, large: true }) %>
+  <% if (!land.photo_path) { %><p class="small muted" style="margin-top:calc(var(--s-3) * -1)">Foto ilustrasi, bukan dokumentasi lahan ini. <%= land.illustration_credit %> — <a href="<%= land.illustration_source_url %>" target="_blank" rel="noopener noreferrer">sumber &amp; lisensi</a>. Unggah foto asli lewat “Ubah”.</p><% } %>
+<% } %>
 
 <div class="card">
   <dl class="dl">
     <dt>Lokasi</dt><dd><%- show(land.address_desc) %></dd>
-    <dt>Luas</dt><dd><%- land.area_ha != null ? land.area_ha.toLocaleString('id-ID') + ' ha' : show(null) %></dd>
-    <dt>Komoditas</dt><dd><%- show(land.commodity) %></dd>
+    <dt>Luas</dt><dd><%- land.area_ha != null ? crop.fmtHa(land.area_ha) : show(null) %></dd>
+    <dt>Jenis tanaman</dt><dd><%- show(land.commodity) %></dd>
     <dt>Varietas</dt><dd><%- show(land.variety) %></dd>
     <dt>Tanggal tanam</dt><dd><%- land.planting_date ? u.fmtDate(land.planting_date) : show(null) %></dd>
     <dt>Status musim</dt><dd><%- show(land.season_status) %></dd>
+    <% const age = crop.cropAge(land); %>
+    <dt>Umur tanaman</dt><dd><%- age.status === 'growing' ? age.days + ' HST' + (age.phaseEstimated ? ' · fase perkiraan: ' + age.phase : '') : u.stripHtml(age.label) %> — <a href="/kalender-tanam?lahan=<%= land.id %>">kalender</a></dd>
     <dt>Koordinat</dt><dd><%- land.lat != null ? `${land.lat}, ${land.lng}` : show(null) %></dd>
     <dt>Batas lahan</dt><dd><%- land.polygon ? `${land.polygon.length} titik` : show(null) %></dd>
   </dl>

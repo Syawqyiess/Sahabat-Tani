@@ -31,6 +31,14 @@ const config = {
   dbPath: env.DB_PATH || path.join(root, 'storage', 'sahabat-tani.db'),
   uploadDir: env.UPLOAD_DIR || path.join(root, 'storage', 'uploads'),
   maxUploadBytes: Number(env.MAX_UPLOAD_MB || 8) * 1024 * 1024,
+  // Masuk dengan Google (OAuth 2.0 / OpenID Connect, alur kode + PKCE). Aktif hanya bila client ID & secret diisi.
+  // Client secret hanya dipakai di server; tidak pernah dikirim ke browser.
+  google: {
+    clientId: env.GOOGLE_CLIENT_ID || '',
+    clientSecret: env.GOOGLE_CLIENT_SECRET || '',
+    redirectUri: env.GOOGLE_REDIRECT_URI || `${env.APP_URL || `http://localhost:${env.PORT || 3000}`}/auth/google/callback`,
+    get enabled() { return !!(this.clientId && this.clientSecret); },
+  },
 
   ai: {
     anthropicKey: env.ANTHROPIC_API_KEY || '',
@@ -59,13 +67,24 @@ const config = {
     localScannerMinScore: env.LOCAL_SCANNER_MIN_SCORE ? Number(env.LOCAL_SCANNER_MIN_SCORE) : null,
   },
 
+  // Data RDKK untuk visualisasi di Dashboard: diambil dari ekspor CSV workbook Tableau Public "SITANI"
+  // (Dashboard RDKK Mojopuro Wetan, oleh Angely Marcella), lalu digambar dengan diagram milik website.
+  rdkk: {
+    title: 'Dashboard RDKK Mojopuro Wetan',
+    author: 'Angely Marcella',
+    workbook: env.RDKK_TABLEAU_WORKBOOK || 'SITANI',
+    baseUrl: 'https://public.tableau.com/views/',
+    publicUrl: 'https://public.tableau.com/views/SITANI/DashboardRDKKMojopuroWetan?:showVizHome=no',
+    refreshHours: Number(env.RDKK_REFRESH_HOURS || 24),
+    autoFetch: bool(env.RDKK_AUTO_FETCH, true),
+  },
   maps: {
     // Peta memakai Leaflet + ubin OpenStreetMap / Esri (tanpa API key).
-    // Lokasi contoh di Indonesia (dapat dikonfigurasi): sawah di Kabupaten Karawang, Jawa Barat.
+    // Lokasi contoh (dapat dikonfigurasi): Desa Mojopuro Wetan, Kec. Bungah, Kab. Gresik, Jawa Timur.
     demoCenter: {
-      lat: Number(env.DEMO_MAP_LAT || -6.3227),
-      lng: Number(env.DEMO_MAP_LNG || 107.3376),
-      label: env.DEMO_MAP_LABEL || 'Karawang, Jawa Barat (Lokasi Demo)',
+      lat: Number(env.DEMO_MAP_LAT || -7.0347),
+      lng: Number(env.DEMO_MAP_LNG || 112.5279),
+      label: env.DEMO_MAP_LABEL || 'Desa Mojopuro Wetan, Bungah, Gresik (Lokasi Demo)',
     },
   },
 

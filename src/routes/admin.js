@@ -5,10 +5,13 @@ const db = require('../db');
 const config = require('../config');
 const ai = require('../services/ai');
 const news = require('../services/news');
+const newsImages = require('../services/news/images');
+const rdkk = require('../services/rdkk');
 const farmers = require('../services/farmers');
 const v = require('../lib/validate');
 const { requireRole } = require('../middleware/security');
 const { slugify, renderMarkdown, randomToken, maskSecret } = require('../lib/util');
+const util = require('../lib/util');
 const { parseProfile, parseContact } = require('./farmer');
 const { parseLand, SEASON_STATUSES } = require('./lands');
 const { BCRYPT_ROUNDS } = require('./auth');
@@ -208,8 +211,28 @@ function parseArticle(body, errors) {
   if (d.image_url && !d.image_alt) errors.image_alt = 'Teks alternatif wajib diisi bila ada gambar.';
   if (d.source_url && !/^https?:\/\//.test(d.source_url)) errors.source_url = 'Tautan sumber harus diawali http:// atau https://';
   if (body.action === 'publish' && !d.body_md) errors.body_md = 'Isi artikel wajib diisi sebelum diterbitkan.';
+  d.is_pinned = body.is_pinned === '1' ? 1 : 0;
+  d.pin_order = d.is_pinned ? (v.num(body.pin_order || 1, { min: 1, max: 99, int: true, label: 'Urutan sematan' }, errors, 'pin_order') || 1) : null;
   return d;
 }
+
+// Metadata gambar dari formulir admin. Gambar yang tidak diubah mempertahankan asal-usulnya (mis. foto sumber);
+// cover baru dari admin ditandai 'admin' atau 'ilustrasi-ai' dan tidak akan ditimpa backfill gambar berita.
+function imageMeta(d, body, prev = {}) {
+  const kind = body.image_is_ai === '1' ? 'ilustrasi-ai' : 'admin';
+  if (!d.image_url) {
+    return prev.image_url
+      ? { image_kind: null, image_status: prev.origin === 'external' ? 'ditolak' : null, image_note: prev.origin === 'external' ? 'gambar dihapus admin' : null, image_credit: null, image_source_url: null, image_caption: null }
+      : { image_kind: prev.image_kind || null, image_status: prev.image_status || null, image_note: prev.image_note || null, image_credit: prev.image_credit || null, image_source_url: prev.image_source_url || null, image_caption: prev.image_caption || null };
+  }
+  if (d.image_url === prev.image_url) {
+    const k = prev.image_kind === 'sumber' ? 'sumber' : kind;
+    return { image_kind: k, image_status: 'ok', image_note: prev.image_note || null, image_credit: prev.image_credit || null, image_source_url: prev.image_source_url || null, image_caption: prev.image_caption || null };
+  }
+  return { image_kind: kind, image_status: 'ok', image_note: 'dipilih admin', image_credit: null, image_source_url: d.image_url, image_caption: null };
+}
+const IMAGE_COLS = 'image_kind = ?, image_status = ?, image_note = ?, image_credit = ?, image_source_url = ?, image_caption = ?';
+const imageVals = (m) => [m.image_kind, m.image_status, m.image_note, m.image_credit, m.image_source_url, m.image_caption];
 
 function nextStatus(action, current) {
   if (action === 'publish') return 'published';
@@ -234,6 +257,7 @@ router.post('/artikel', (req, res) => {
     slug, d.title, d.summary, d.body_md, renderMarkdown(d.body_md), d.image_url, d.image_alt, d.author_name, req.user.id, d.category_id, d.tags,
     status, d.source_name, d.source_url, status === 'published' ? new Date().toISOString() : null,
   );
+  db.run(`UPDATE articles SET ${IMAGE_COLS}, is_pinned = ?, pin_order = ? WHERE id = ?`, ...imageVals(imageMeta(d, req.body)), d.is_pinned, d.pin_order, r.lastInsertRowid);
   flash(req, 'success', status === 'published' ? 'Artikel diterbitkan.' : 'Draft disimpan.');
   res.redirect(`/admin/artikel/${r.lastInsertRowid}/ubah`);
 });
@@ -254,9 +278,9 @@ router.post('/artikel/:id', (req, res) => {
   const publishedAt = status === 'published' && !a.published_at ? new Date().toISOString() : a.published_at;
   db.run(
     `UPDATE articles SET title = ?, summary = ?, body_md = ?, body_html = ?, image_url = ?, image_alt = ?, author_name = ?, category_id = ?,
-            tags = ?, status = ?, source_name = ?, source_url = ?, published_at = ?, updated_at = datetime('now') WHERE id = ?`,
+            tags = ?, status = ?, source_name = ?, source_url = ?, published_at = ?, ${IMAGE_COLS}, is_pinned = ?, pin_order = ?, updated_at = datetime('now') WHERE id = ?`,
     d.title, d.summary, d.body_md, renderMarkdown(d.body_md), d.image_url, d.image_alt, d.author_name, d.category_id, d.tags,
-    status, d.source_name, d.source_url, publishedAt, a.id,
+    status, d.source_name, d.source_url, publishedAt, ...imageVals(imageMeta(d, req.body, a)), d.is_pinned, d.pin_order, a.id,
   );
   flash(req, 'success', { published: 'Artikel diterbitkan.', archived: 'Artikel diarsipkan.', draft: 'Disimpan sebagai draft.' }[status]);
   res.redirect(`/admin/artikel/${a.id}/ubah`);
@@ -308,39 +332,126 @@ router.post('/kategori/:id/hapus', (req, res) => {
   res.redirect('/admin/kategori');
 });
 
-// ---------- Sumber berita (RSS) ----------
-router.get('/sumber-berita', (req, res) => {
-  const sources = db.all('SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS n FROM news_sources s ORDER BY s.id');
-  res.render('admin/sources', { title: 'Sumber Berita', sources, categories: db.all('SELECT * FROM article_categories ORDER BY name'), errors: {}, values: {} });
-});
+// ---------- Sumber berita (RSS resmi & halaman HTML yang diizinkan) ----------
+function sourceList() {
+  return db.all(`SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS n,
+                        (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id AND a.image_status = 'ok') AS n_img,
+                        (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id AND a.image_status IS NULL) AS n_img_pending,
+                        (SELECT MAX(published_at) FROM articles a WHERE a.source_id = s.id) AS newest
+                   FROM news_sources s ORDER BY s.is_active DESC, s.id`);
+}
+
+function parseSource(body, errors) {
+  const d = {
+    name: v.str(body.name, { max: 120, required: true, label: 'Nama sumber' }, errors, 'name'),
+    kind: v.oneOf(body.kind, ['rss', 'html'], { label: 'Jenis sumber' }, errors, 'kind') || 'rss',
+    feed_url: v.str(body.feed_url, { max: 500, required: true, label: 'URL feed / halaman daftar berita' }, errors, 'feed_url'),
+    homepage_url: v.str(body.homepage_url, { max: 500, label: 'Situs penerbit' }, errors, 'homepage_url'),
+    usage_note: v.str(body.usage_note, { max: 600, label: 'Dasar izin penggunaan' }, errors, 'usage_note'),
+    filter_keywords: body.filter_keywords === '1' ? 1 : 0,
+    max_items: v.num(body.max_items || 10, { min: 1, max: 30, int: true, label: 'Maksimal berita per pengambilan' }, errors, 'max_items') || 10,
+    image_policy: v.oneOf(body.image_policy || 'tautan', ['tautan', 'salin', 'tidak'], { label: 'Kebijakan gambar' }, errors, 'image_policy') || 'tautan',
+    image_hosts: v.str(body.image_hosts, { max: 300, label: 'Host CDN gambar' }, errors, 'image_hosts'),
+    config_json: null,
+  };
+  if (d.image_hosts) {
+    const hosts = d.image_hosts.split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
+    if (hosts.some((h) => !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(h))) errors.image_hosts = 'Isi nama host saja, dipisah koma (contoh: img.antaranews.com).';
+    d.image_hosts = hosts.join(', ');
+  }
+  if (d.feed_url && !/^https?:\/\//.test(d.feed_url)) errors.feed_url = 'URL harus diawali http:// atau https://';
+  if (!d.usage_note && !errors.usage_note) errors.usage_note = 'Catat dasar izin (robots.txt, ketentuan penerbit) sebelum menambahkan sumber.';
+  if (d.kind === 'html') {
+    try {
+      const cfg = JSON.parse(String(body.config_json || ''));
+      new RegExp(cfg.link_pattern); // harus regex yang valid
+      if (!cfg.link_pattern) throw new Error('link_pattern wajib');
+      if (cfg.article && cfg.article.date && !Array.isArray(cfg.article.date)) throw new Error('article.date harus berupa daftar selektor');
+      d.config_json = JSON.stringify(cfg);
+    } catch (err) {
+      errors.config_json = `Konfigurasi HTML tidak valid: ${err.message}. Wajib ada "link_pattern" (regex tautan artikel).`;
+    }
+  }
+  return d;
+}
+
+function renderSources(res, { errors = {}, values = {}, status = 200, editing = null } = {}) {
+  res.status(status).render('admin/sources', { title: 'Sumber Berita', sources: sourceList(), errors, values, editing });
+}
+
+router.get('/sumber-berita', (req, res) => renderSources(res));
 
 router.post('/sumber-berita', (req, res) => {
   const errors = {};
-  const name = v.str(req.body.name, { max: 120, required: true, label: 'Nama sumber' }, errors, 'name');
-  const feed = v.str(req.body.feed_url, { max: 500, required: true, label: 'URL feed RSS' }, errors, 'feed_url');
-  const home = v.str(req.body.homepage_url, { max: 500, label: 'Situs penerbit' }, errors, 'homepage_url');
-  const note = v.str(req.body.usage_note, { max: 500, label: 'Catatan izin' }, errors, 'usage_note');
-  const cat = v.num(req.body.category_id, { min: 1, int: true, label: 'Kategori' }, errors, 'category_id');
-  if (feed && !/^https?:\/\//.test(feed)) errors.feed_url = 'URL feed harus diawali http:// atau https://';
-  if (!note && !errors.usage_note) errors.usage_note = 'Catat dasar izin penggunaan feed (mis. syarat penerbit) sebelum menambahkan.';
-  if (Object.keys(errors).length) {
-    const sources = db.all('SELECT s.*, 0 AS n FROM news_sources s ORDER BY s.id');
-    return res.status(422).render('admin/sources', { title: 'Sumber Berita', sources, categories: db.all('SELECT * FROM article_categories ORDER BY name'), errors, values: req.body });
-  }
+  const d = parseSource(req.body, errors);
+  if (Object.keys(errors).length) return renderSources(res, { errors, values: req.body, status: 422 });
   try {
-    db.run('INSERT INTO news_sources (name, feed_url, homepage_url, usage_note, category_id) VALUES (?, ?, ?, ?, ?)', name, feed, home, note, cat);
-    flash(req, 'success', 'Sumber berita ditambahkan. Tekan "Ambil sekarang" untuk mengambil berita.');
-  } catch { flash(req, 'error', 'URL feed tersebut sudah terdaftar.'); }
+    db.run(
+      `INSERT INTO news_sources (name, feed_url, homepage_url, usage_note, kind, config_json, filter_keywords, max_items, image_policy, image_hosts)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, d.name, d.feed_url, d.homepage_url, d.usage_note, d.kind, d.config_json, d.filter_keywords, d.max_items, d.image_policy, d.image_hosts || null,
+    );
+    flash(req, 'success', 'Sumber ditambahkan. Tekan "Uji sumber" untuk melihat pratinjau sebelum mengambil berita.');
+  } catch { flash(req, 'error', 'URL tersebut sudah terdaftar sebagai sumber.'); }
   res.redirect('/admin/sumber-berita');
+});
+
+router.post('/sumber-berita/ambil-semua', async (req, res) => {
+  const out = await news.fetchAll();
+  const added = out.reduce((n, r) => n + r.added, 0);
+  const failed = out.filter((r) => r.error).map((r) => r.source);
+  flash(req, failed.length ? 'error' : 'success', `${added} berita baru dari ${out.length} sumber aktif.${failed.length ? ` Gagal: ${failed.join(', ')}.` : ''}`);
+  res.redirect('/admin/sumber-berita');
+});
+
+// Backfill gambar berita lama (bertahap, idempoten, jeda per host tetap berlaku).
+router.post('/sumber-berita/gambar', async (req, res) => {
+  const r = await newsImages.processPending({ limit: 60, force: req.body.ulang === '1' });
+  flash(req, r.failed ? 'error' : 'success', `Gambar berita: ${r.updated} diperbarui, ${r.fallback} memakai ilustrasi (tidak ada/ditolak/diblokir), ${r.failed} gagal sementara, dari ${r.checked} artikel diperiksa.`);
+  res.redirect('/admin/sumber-berita');
+});
+
+router.get('/sumber-berita/:id/ubah', (req, res) => {
+  const s = db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
+  if (!s) return notFound(res, 'Sumber');
+  renderSources(res, { values: { ...s, config_json: s.config_json ? JSON.stringify(JSON.parse(s.config_json), null, 2) : '' }, editing: s.id });
+});
+
+router.post('/sumber-berita/:id', (req, res) => {
+  const s = db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
+  if (!s) return notFound(res, 'Sumber');
+  const errors = {};
+  const d = parseSource(req.body, errors);
+  if (Object.keys(errors).length) return renderSources(res, { errors, values: req.body, status: 422, editing: s.id });
+  try {
+    db.run(
+      `UPDATE news_sources SET name = ?, feed_url = ?, homepage_url = ?, usage_note = ?, kind = ?, config_json = ?, filter_keywords = ?, max_items = ?,
+              image_policy = ?, image_hosts = ? WHERE id = ?`, d.name, d.feed_url, d.homepage_url, d.usage_note, d.kind, d.config_json, d.filter_keywords, d.max_items,
+      d.image_policy, d.image_hosts || null, s.id,
+    );
+    flash(req, 'success', 'Sumber diperbarui.');
+  } catch { flash(req, 'error', 'URL tersebut sudah dipakai sumber lain.'); }
+  res.redirect('/admin/sumber-berita');
+});
+
+// Uji sumber: menjalankan seluruh langkah pengambilan tanpa menyimpan, untuk pratinjau.
+router.post('/sumber-berita/:id/uji', async (req, res) => {
+  const s = db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
+  if (!s) return notFound(res, 'Sumber');
+  const report = await news.fetchSource(s, { dryRun: true });
+  const cats = Object.fromEntries(db.all('SELECT slug, name FROM article_categories').map((c) => [c.slug, c.name]));
+  res.render('admin/source-test', { title: `Uji sumber: ${s.name}`, source: s, report, cats });
 });
 
 router.post('/sumber-berita/:id/ambil', async (req, res) => {
   const s = db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
   if (!s) return notFound(res, 'Sumber');
   const out = await news.fetchSource(s);
-  flash(req, out.error ? 'error' : 'success', out.error ? `Gagal mengambil feed: ${out.error}` : `${out.added} berita baru ditambahkan.`);
+  flash(req, out.error ? 'error' : 'success', out.error
+    ? `Gagal mengambil dari ${s.name}: ${out.error}${out.added ? ` (${out.added} berita tetap tersimpan)` : ''}`
+    : `${out.added} berita baru dari ${s.name}; ${out.skipped.length} dilewati (duplikat/bukan topik pertanian).`);
   res.redirect('/admin/sumber-berita');
 });
+
 
 router.post('/sumber-berita/:id/status', (req, res) => {
   db.run('UPDATE news_sources SET is_active = 1 - is_active WHERE id = ?', Number(req.params.id));
@@ -432,6 +543,12 @@ router.post('/referensi-hama/:id/verifikasi', (req, res) => {
 });
 
 // ---------- Status integrasi (tanpa menampilkan nilai kunci) ----------
+router.post('/integrasi/rdkk', async (req, res) => {
+  const r = await rdkk.refresh();
+  flash(req, r.ok ? 'success' : 'error', r.ok ? 'Data RDKK diperbarui dari Tableau Public.' + (r.warnings.length ? ' Catatan: ' + r.warnings.join(' ') : '') : 'Gagal memperbarui data RDKK: ' + r.error + ' Dashboard tetap memakai data tersimpan.');
+  res.redirect('/admin/integrasi');
+});
+
 router.get('/integrasi', async (req, res) => {
   const ollama = await require('../services/ai/ollama').status();
   const lastAir = db.get("SELECT * FROM integration_events WHERE service = 'open-meteo' ORDER BY id DESC LIMIT 1");
@@ -486,6 +603,20 @@ router.get('/integrasi', async (req, res) => {
         detail: 'Leaflet disajikan dari server sendiri. Ubin peta jalan dari OpenStreetMap dan citra satelit dari Esri World Imagery — wajib atribusi (sudah tampil di pojok peta) dan wajar dipakai untuk demo; untuk lalu lintas tinggi pakai penyedia ubin berbayar atau server ubin sendiri.',
         secret: 'Tidak memerlukan kunci',
       },
+      (() => {
+        const r = rdkk.latest();
+        return {
+          name: 'Data RDKK untuk Dashboard (Tableau Public)',
+          status: !r.data ? (r.lastError ? 'galat' : 'belum') : (r.lastError || r.warnings.length ? 'perhatian' : 'aktif'),
+          detail: `Diambil dari ekspor CSV workbook "${config.rdkk.workbook}" (${config.rdkk.author}) dan digambar dengan diagram milik website. `
+            + (r.data ? `Data tersimpan: ${util.fmtDate(r.fetchedAt, true)} — ${r.data.kpi.petani} petani, ${r.data.kpi.kelompok} kelompok tani, total ${r.data.kpi.total.toLocaleString('id-ID')} kg.` : 'Belum ada data tersimpan.')
+            + (r.warnings.length ? ' Catatan: ' + r.warnings.join(' ') : '')
+            + ` Diperbarui otomatis bila lebih dari ${config.rdkk.refreshHours} jam.`,
+          secret: 'Tidak memerlukan kunci',
+          last: r.lastError ? `Pengambilan terakhir gagal (${util.fmtDate(r.lastError.at, true)}): ${r.lastError.message}` : null,
+          action: { url: '/admin/integrasi/rdkk', label: 'Perbarui data RDKK sekarang', busy: 'Mengambil dari Tableau…' },
+        };
+      })(),
       {
         name: 'Peta kualitas udara (Windy)', status: 'aktif',
         detail: 'Widget embed resmi Windy (embed.windy.com) dengan lapisan CAMS: PM2.5, NO₂, CO, ozon permukaan, debu. Ditampilkan sebagai iframe di halaman Kualitas Udara.',

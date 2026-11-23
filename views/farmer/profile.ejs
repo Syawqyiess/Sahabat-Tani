@@ -2,6 +2,9 @@
 <%
   const show = (v) => (v === null || v === undefined || v === '') ? '<span class="empty-val">Belum diisi</span>' : u.stripHtml(String(v));
   const place = [profile.village, profile.district, profile.regency, profile.province].filter(Boolean).join(', ');
+  const displayName = (profile.full_name || '').replace(/\s*\(Akun Demo\)\s*$/, '').trim();
+  const needsPhoto = !profile.photo_path;
+  const otherMissing = completeness.missing.filter((m) => m !== 'Foto profil');
 %>
 <section class="profile-hero">
   <%- include('../partials/terrace', { variant: 'night' }) %>
@@ -12,9 +15,10 @@
       <div class="avatar avatar-lg avatar-ph" aria-hidden="true"><%- icon('user', 44) %></div>
     <% } %>
     <div>
-      <h1><%- show(profile.full_name) %></h1>
+      <h1><%- displayName ? u.stripHtml(displayName) : show(null) %></h1>
+      <% if (profile.is_demo) { %><p style="margin:0 0 6px"><span class="badge badge-demo">Akun Demo</span></p><% } %>
       <p><%- icon('location', 18) %> <%= place || 'Lokasi belum diisi' %></p>
-      <p class="small" style="margin-top:6px">Bergabung <%= u.fmtDate(profile.joined_at) %><% if (profile.is_demo) { %> · <span class="badge badge-demo">Akun Demo</span><% } %></p>
+      <p class="small" style="margin-top:6px">Bergabung <%= u.fmtDate(profile.joined_at) %></p>
     </div>
     <a class="btn btn-paddy" href="/profil/ubah"><%- icon('edit', 20) %> Ubah Profil</a>
   </div>
@@ -22,29 +26,30 @@
 
 <div class="profile-grid">
   <div>
-    <section class="card">
-      <h2 class="h3">Kontak</h2>
-      <dl class="dl">
-        <dt>Nomor telepon</dt><dd><%- show(profile.phone) %></dd>
-        <dt>Email</dt><dd><%- show(profile.email) %></dd>
+    <section class="card profile-card">
+      <h2 class="h4">Kontak</h2>
+      <dl class="kv">
+        <div><dt>Nomor telepon</dt><dd><%- show(profile.phone) %></dd></div>
+        <div><dt>Email</dt><dd><%- show(profile.email) %></dd></div>
+        <div><dt>Akun Google</dt><dd><% if (googleIdentity) { %><span class="badge badge-real"><%- icon('check', 14) %> Google terhubung</span><% } else { %><span class="empty-val">Belum terhubung</span><% } %></dd></div>
+      </dl>
+      <a class="btn btn-sm btn-ghost" href="/profil/google" style="margin-top:var(--s-3)"><%- icon('shield', 18) %> Atur metode masuk</a>
+    </section>
+    <section class="card profile-card">
+      <h2 class="h4">Alamat</h2>
+      <dl class="kv">
+        <div><dt>Desa/kelurahan</dt><dd><%- show(profile.village) %></dd></div>
+        <div><dt>Kecamatan</dt><dd><%- show(profile.district) %></dd></div>
+        <div><dt>Kabupaten/kota</dt><dd><%- show(profile.regency) %></dd></div>
+        <div><dt>Provinsi</dt><dd><%- show(profile.province) %></dd></div>
       </dl>
     </section>
-    <section class="card">
-      <h2 class="h3">Alamat</h2>
-      <dl class="dl">
-        <dt>Desa/kelurahan</dt><dd><%- show(profile.village) %></dd>
-        <dt>Kecamatan</dt><dd><%- show(profile.district) %></dd>
-        <dt>Kabupaten/kota</dt><dd><%- show(profile.regency) %></dd>
-        <dt>Provinsi</dt><dd><%- show(profile.province) %></dd>
-      </dl>
-    </section>
-    <section class="card">
-      <h2 class="h3">Usaha tani</h2>
-      <dl class="dl">
-        <dt>Kelompok tani</dt><dd><%- show(profile.farmer_group) %></dd>
-        <dt>Pengalaman bertani</dt><dd><%- profile.experience_years != null ? profile.experience_years + ' tahun' : show(null) %></dd>
-        <dt>Komoditas utama</dt><dd><%- show(profile.main_commodity) %></dd>
-        <dt>Lahan</dt><dd><%= summary.count %> lahan<% if (summary.totalArea != null) { %>, total <%= (+summary.totalArea.toFixed(2)).toLocaleString('id-ID') %> ha<% } %><% if (summary.noArea) { %> (<%= summary.noArea %> belum diisi luasnya)<% } %> — <a href="/lahan">lihat lahan</a></dd>
+    <section class="card profile-card">
+      <h2 class="h4">Usaha tani</h2>
+      <dl class="kv">
+        <div><dt>Kelompok tani</dt><dd><%- show(profile.farmer_group) %></dd></div>
+        <div><dt>Pengalaman bertani</dt><dd><%- profile.experience_years != null ? profile.experience_years + ' tahun' : show(null) %></dd></div>
+        <div><dt>Komoditas utama</dt><dd><%- show(profile.main_commodity) %></dd></div>
       </dl>
     </section>
   </div>
@@ -55,11 +60,40 @@
         <h2 class="h4">Hampir lengkap</h2>
         <p class="muted">Lengkapi data berikut agar penyuluh dan admin lebih mudah membantu:</p>
         <ul class="small"><% completeness.missing.forEach((m) => { %><li><%= m %></li><% }) %></ul>
-        <a class="btn btn-block" href="/profil/ubah"><%- icon('edit', 20) %> Lengkapi Profil</a>
       <% } else { %>
         <h2 class="h4">Profil sudah lengkap</h2>
-        <p class="muted" style="margin:0">Terima kasih. Data Anda bisa diperbarui kapan saja.</p>
+        <p class="muted">Terima kasih. Data Anda bisa diperbarui kapan saja.</p>
       <% } %>
+      <%# Unggah/ubah foto langsung dari sini: pratinjau & validasi di perangkat, disimpan lewat rute yang sama dengan halaman ubah profil. %>
+      <form method="post" action="/profil/foto" enctype="multipart/form-data" class="photo-upload" data-photo-upload>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="back" value="/profil">
+        <label class="btn btn-block <%= needsPhoto ? '' : 'btn-ghost' %>" for="pf-photo"><%- icon('upload', 20) %> <%= needsPhoto ? 'Unggah Foto Profil' : 'Ubah Foto Profil' %></label>
+        <input class="visually-hidden" id="pf-photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-pf-input>
+        <div class="pf-preview" data-pf-preview hidden>
+          <img alt="Pratinjau foto profil" width="72" height="72">
+          <div><p class="small" data-pf-name style="margin:0"></p>
+            <div class="row wrap-row"><button class="btn btn-sm" type="submit" data-busy="Mengunggah…">Simpan foto</button><button type="button" class="btn btn-sm btn-ghost" data-pf-cancel>Batal</button></div>
+          </div>
+        </div>
+        <p class="field-error" data-pf-error role="alert" hidden></p>
+        <p class="hint" style="margin:var(--s-2) 0 0">JPG, PNG, atau WEBP, maksimal <%= uploadMaxMb %> MB.</p>
+      </form>
+      <% if (otherMissing.length) { %><a class="btn btn-block btn-ghost" href="/profil/ubah" style="margin-top:var(--s-3)"><%- icon('edit', 20) %> Lengkapi Data Lainnya</a><% } %>
+    </section>
+
+    <section class="card activity-card" aria-labelledby="aktivitas-judul">
+      <h2 class="h4" id="aktivitas-judul">Ringkasan Aktivitas</h2>
+      <dl class="activity-grid">
+        <div><dt>Lahan</dt><dd><%= summary.count %> <small>petak</small></dd></div>
+        <div><dt>Total luas</dt><dd><%= summary.totalLabel || '—' %><% if (summary.noArea && summary.withArea) { %> <small>(sebagian)</small><% } %></dd></div>
+        <div><dt>Scan hama</dt><dd><%= activity.scans %> <small>kali</small></dd></div>
+        <div><dt>Artikel tersimpan</dt><dd><%= activity.saved %></dd></div>
+      </dl>
+      <p class="small muted" style="margin:var(--s-3) 0 0">
+        <% if (activity.last) { %>Aktivitas terakhir: <%= activity.last.label %>, <%= u.timeAgo(activity.last.at) %>.<% } else { %>Belum ada aktivitas tercatat.<% } %>
+      </p>
+      <div class="row wrap-row" style="margin-top:var(--s-3)"><a class="btn btn-sm btn-ghost" href="/lahan">Lahan Saya</a><a class="btn btn-sm btn-ghost" href="/scan/riwayat">Riwayat Scan</a></div>
     </section>
   </div>
 </div>

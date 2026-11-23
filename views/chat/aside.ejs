@@ -1,0 +1,23 @@
+<%
+  // Daftar percakapan: kolom kiri di desktop, laci (drawer) di layar sempit. Tanpa JS, tombol riwayat membuka /asisten/riwayat.
+  const activeId = typeof active !== 'undefined' ? active : null;
+%>
+<aside class="chat-history" id="chat-drawer" aria-labelledby="riwayat-chat" data-chat-drawer>
+  <div class="chat-history-head">
+    <h2 id="riwayat-chat">Percakapan</h2>
+    <a class="icon-btn" href="/asisten" aria-label="Percakapan baru" title="Percakapan baru"><%- icon('plus') %></a>
+    <button type="button" class="icon-btn chat-drawer-close" data-drawer-close aria-label="Tutup daftar percakapan"><%- icon('close') %></button>
+  </div>
+  <ul class="conv-list">
+    <% if (activeId === 'baru') { %>
+      <li><a class="is-active" href="/asisten" aria-current="page"><strong>Percakapan Baru</strong><span>Draf — belum tersimpan</span></a></li>
+    <% } %>
+    <% list.forEach((s) => { %>
+      <li><a class="<%= s.id === activeId ? 'is-active' : '' %>" href="/asisten/<%= s.id %>" <%- s.id === activeId ? 'aria-current="page"' : '' %>>
+        <strong><%= s.title %></strong><span><%= s.scan_id ? 'Dari scan · ' : '' %><%= u.timeAgo(s.updated_at) %></span>
+      </a></li>
+    <% }) %>
+  </ul>
+  <a class="btn btn-ghost btn-sm btn-block" href="/asisten/riwayat"><%- icon('history', 18) %> Semua riwayat<%= typeof total !== 'undefined' && total ? ' (' + total + ')' : '' %></a>
+</aside>
+<div class="chat-drawer-backdrop" data-drawer-close hidden></div>

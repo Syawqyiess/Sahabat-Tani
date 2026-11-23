@@ -80,6 +80,15 @@ Tidak memerlukan API key maupun billing.
 - Lapisan (produk `cams`, data Copernicus CAMS): PM2.5 (`pm2p5`), NO₂ (`no2`), CO (`cosc`), ozon permukaan (`go3`), debu (`dustsm`). Hanya nilai dari daftar ini yang diterima server.
 - CSP mengizinkan `frame-src https://embed.windy.com`. Peta membutuhkan internet; angka Open-Meteo di atasnya tetap menjadi acuan utama.
 
+## 2a. Visualisasi data RDKK di Dashboard (data dari Tableau Public)
+
+Dashboard petani menampilkan kebutuhan pupuk bersubsidi **Dashboard RDKK Mojopuro Wetan** (workbook Tableau Public `SITANI`, Angely Marcella), tetapi diagramnya digambar sendiri oleh website (SVG di `public/js/rdkk.js`) agar seirama dengan tampilan Sahabat Tani. Tidak ada embed atau skrip Tableau di halaman.
+- Server (`src/services/rdkk.js`) mengunduh ekspor CSV lembar: Kebutuhan Pupuk per Jenis, Pupuk per Musim, dan empat KPI (petani terdaftar, kelompok tani, total kebutuhan, rata-rata per petani). Lembar Perbandingan Kelompok Tani & Heatmap berisi data yang sama sehingga tidak diunduh ulang; lembar Status Data RDKK tidak menyediakan data lewat CSV.
+- Angka format Indonesia (`42.328` = 42.328 kg) dibaca dengan benar dan **divalidasi silang**: jumlah per kelompok dan per musim harus sama dengan KPI total. Bila kolom berubah, angka tidak cocok, atau Tableau menolak akses, data **tidak** disimpan dan Dashboard tetap memakai snapshot terakhir beserta keterangan waktunya.
+- Pembaruan otomatis saat server mulai (bila data lebih tua dari `RDKK_REFRESH_HOURS`, bawaan 24 jam) dan dicek tiap jam; `RDKK_AUTO_FETCH=0` untuk mematikan. Admin dapat memperbarui manual di Admin → Integrasi.
+- Diagram: kartu KPI, batang bertumpuk per kelompok tani, batang berkelompok per musim tanam, peta panas jenis × musim, filter jenis pupuk, tooltip (kursor & keyboard), serta tabel data tanpa JavaScript. Palet Urea (#2e7d32) & NPK (#c98a1b) lolos pemeriksaan buta warna; karena emas < 3:1 terhadap putih, setiap batang diberi label angka.
+- Data sama untuk semua pengguna; tidak disaring per akun atau per lahan. Bergantung pada pemilik workbook tetap mengizinkan unduhan data dan tidak mengganti nama lembar/kolom.
+
 ## 3. Open-Meteo Air Quality API
 
 Tidak memerlukan API key untuk penggunaan **non-komersial**. Ketentuan yang berlaku saat pengembangan (periksa ulang di <https://open-meteo.com/en/terms> sebelum rilis):
@@ -94,13 +103,39 @@ Perilaku aplikasi:
 
 ---
 
-## 4. Berita pertanian (RSS)
+## 4. Berita pertanian (RSS & web scraping)
 
-1. Pilih penerbit tepercaya yang **mengizinkan** penggunaan RSS-nya (baca syarat di situs penerbit; bila ragu, minta izin tertulis).
-2. Admin → Sumber Berita → isi nama, URL feed, dan **dasar izin** (wajib), pilih kategori.
-3. Tekan “Ambil sekarang”. Selanjutnya server mengambil otomatis setiap `NEWS_FETCH_INTERVAL_HOURS` jam.
+Kanal **Berita & Artikel Pertanian** diisi dari situs nyata. Subkategori: Budidaya Padi, Hama dan Penyakit Tanaman, Pupuk dan Kesehatan Tanah, Teknologi Pertanian, Irigasi dan Pengelolaan Air, Cuaca dan Iklim Pertanian, Berita Pertanian Umum.
 
-Yang disimpan: judul, ringkasan ≤ 280 karakter, tanggal terbit asli, nama sumber, dan tautan ke penerbit. Isi artikel lengkap tidak disalin. Duplikat dicegah dengan GUID dan URL asli; berita diurutkan berdasarkan tanggal terbit sumber. Tidak ada sumber berita bawaan — sebelum admin menambahkannya, hanya artikel “Konten Demo” yang tampil.
+Sumber bawaan (sudah dicek aksesnya, robots.txt, dan tanggalnya — bisa dinonaktifkan di Admin → Sumber Berita):
+
+| Sumber | Cara | Catatan |
+|---|---|---|
+| Ditjen PSP Kementan (psp.pertanian.go.id/berita) | HTML | tanggal dari meta artikel |
+| BRMP Kementan (brmp.pertanian.go.id/berita) | HTML | tanggal dari daftar berita; bila tidak ada → kosong |
+| Tabloid Sinar Tani — Pangan | HTML | tanggal dari bagian detail artikel (bukan tanggal di header situs) |
+| Trubus (RSS) | RSS | disaring kata kunci pertanian |
+| ANTARA Ekonomi & Bisnis (RSS) | RSS | kanal umum, disaring kata kunci pertanian |
+
+Aturan yang dijalankan kode (`src/services/news/`):
+- RSS dipakai bila tersedia; HTML hanya dari halaman daftar berita yang diizinkan robots.txt (dibaca untuk setiap host, termasuk Crawl-delay).
+- Identitas bot jujur, jeda ≥ 2 detik per host, batas jumlah item per sumber. Respons 401/403/429 atau halaman verifikasi/CAPTCHA → sumber **berhenti**, tidak diakali. Tidak ada login atau paywall yang dilewati.
+- robots.txt bukan izin menyalin: yang disimpan hanya judul, ringkasan singkat dari penerbit (≤ 280 karakter), tanggal terbit asli, nama sumber, dan tautan. Isi lengkap tidak disalin; pembaca diarahkan ke situs penerbit.
+- Tanggal tidak pernah dikarang: bila sumber tidak mencantumkannya, tampil “Tanggal tidak tersedia” dan berita diletakkan di akhir urutan.
+- Duplikat dicegah lewat URL ternormalisasi dan judul (juga antar sumber). Berita non-pertanian dari kanal umum dibuang.
+- Subkategori ditentukan kata kunci; admin bisa memindahkannya manual.
+
+**Gambar berita.** Saat berita diambil (dan lewat backfill), gambar utama dicari berurutan: RSS (`media:content`/`media:thumbnail`/`enclosure`) → JSON-LD `NewsArticle`/`Article` (termasuk `@graph` dan rujukan `@id`) → `og:image` → `twitter:image` → selector `article.image` di konfigurasi sumber. Setiap kandidat divalidasi di backend (`src/services/news/images.js`):
+- host harus domain penerbit itu sendiri (atau subdomainnya) atau CDN yang diisi admin; IP tujuan harus publik (localhost/jaringan privat ditolak), dicek ulang di setiap redirect (maks. 3);
+- batas waktu 15 detik, retry 1× untuk galat jaringan/5xx, ukuran maks. 8 MB, jeda per host dan robots.txt tetap berlaku;
+- berkas harus benar-benar didekode sebagai JPEG/PNG/WEBP/GIF/AVIF, minimal 400×200 px, proporsi wajar; HTML/SVG yang menyamar, logo, ikon, avatar, banner iklan, piksel pelacak, dan gambar umum situs (dipakai berita lain) ditolak;
+- 401/403/429 (termasuk proteksi hotlink) = “diblokir”, tidak dicoba akali.
+
+Kebijakan per sumber (Admin → Sumber Berita): **tautan** (bawaan) menampilkan URL gambar asli penerbit dengan kredit “Foto: <penerbit>”, tanpa menyalin berkas; **salinan** menyimpan versi WEBP 1280 px di `storage/uploads/berita` — pakai hanya bila penerbit mengizinkan; **tanpa gambar**. Bila tidak ada gambar yang lolos, kartu menampilkan ilustrasi kategori berlabel “Ilustrasi”.
+
+Backfill artikel lama: tombol **Perbarui gambar berita lama** di Admin → Sumber Berita, atau `npm run backfill-gambar` (`-- --ulang` untuk memeriksa ulang yang memakai ilustrasi). Aman diulang: yang sudah bergambar dilewati, cover pilihan admin tidak disentuh, galat jaringan dicoba lagi setelah 6 jam. Setiap sinkronisasi berita juga melanjutkan backfill (40 artikel per putaran).
+
+Menambah sumber: Admin → Sumber Berita → isi nama, URL (feed RSS atau halaman daftar berita), **dasar izin** (wajib — cek juga syarat penggunaan situs, bukan hanya robots.txt), dan untuk HTML konfigurasi JSON (`link_pattern` wajib). Tekan **Uji** untuk pratinjau tanpa menyimpan (terlihat item, tanggal, subkategori, dan alasan item dilewati), lalu **Ambil**. Server juga mengambil otomatis saat mulai dan setiap `NEWS_FETCH_INTERVAL_HOURS` jam (`NEWS_AUTO_FETCH=0` untuk mematikan). Bila struktur situs berubah, laporan sumber menampilkan galat “tidak menemukan tautan berita”.
 
 ---
 

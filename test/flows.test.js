@@ -166,7 +166,10 @@ describe('Lahan & isolasi data antarpetani', () => {
     assert.equal(u.origin + u.pathname, 'https://embed.windy.com/embed.html');
     assert.equal(u.searchParams.get('overlay'), 'no2');
     assert.equal(u.searchParams.get('product'), 'cams');
-    assert.equal(u.searchParams.get('lat'), '-6.322'); // Sawah Blok A (lahan demo pertama)
+    // Pusat peta: Desa Mojopuro Wetan (Balai Desa, OSM); penanda: titik lahan yang dipilih (Sawah Blok A).
+    assert.equal(u.searchParams.get('lat'), '-7.0347');
+    assert.equal(u.searchParams.get('detailLat'), '-7.0253');
+    assert.equal(u.searchParams.get('zoom'), '10');
     assert.equal(u.searchParams.get('marker'), 'true');
     assert.match(page.text, /data-windy-layer="pm2p5"/);
     // Lapisan tidak dikenal → kembali ke PM2.5, bukan diteruskan apa adanya
@@ -363,7 +366,7 @@ describe('Kualitas udara', () => {
 });
 
 describe('Artikel & admin', () => {
-  test('admin menerbitkan artikel; petani dapat membaca dan menyimpannya; draft tidak terlihat', async () => {
+  test('artikel internal buatan admin: admin dapat meninjau, tetapi tidak tampil/diakses di daftar publik; draft tidak terlihat', async () => {
     const draft = await admin.post('/admin/artikel').type('form').send({ _csrf: admin.csrf, title: 'Artikel Uji Draft', body_md: 'Isi', action: 'draft' });
     assert.equal(draft.status, 302);
     const draftRow = h.db.get("SELECT * FROM articles WHERE title = 'Artikel Uji Draft'");
@@ -375,16 +378,19 @@ describe('Artikel & admin', () => {
     assert.equal(pub.status, 302);
     const row = h.db.get("SELECT * FROM articles WHERE title = 'Panduan Pengamatan Mingguan'");
     assert.equal(row.status, 'published');
+    // Admin tetap dapat meninjau isinya (aman dari skrip).
+    const preview = await admin.get(`/artikel/${row.slug}`);
+    assert.equal(preview.status, 200);
+    assert.match(preview.text, /<h2>Langkah<\/h2>/);
+    assert.doesNotMatch(preview.text, /<script>alert/);
+    // Petani: konten internal tidak lagi tersedia, dengan tautan kembali ke Berita & Artikel.
     const read = await f1.get(`/artikel/${row.slug}`);
-    assert.equal(read.status, 200);
-    assert.match(read.text, /<h2>Langkah<\/h2>/);
-    assert.doesNotMatch(read.text, /<script>alert/);
-    await f1.post(`/artikel/${row.id}/simpan`).type('form').send({ _csrf: f1.csrf });
-    assert.match((await f1.get('/artikel-tersimpan')).text, /Panduan Pengamatan Mingguan/);
-
-    const list = await f1.get('/artikel?q=Pengamatan');
-    assert.match(list.text, /Panduan Pengamatan Mingguan/);
-
+    assert.equal(read.status, 410);
+    assert.match(read.text, /Konten tidak lagi tersedia/);
+    assert.match(read.text, /href="\/artikel"/);
+    assert.equal((await f1.post(`/artikel/${row.id}/simpan`).type('form').send({ _csrf: f1.csrf })).status, 404, 'tidak bisa disimpan baru');
+    assert.doesNotMatch((await f1.get('/artikel?q=Pengamatan')).text, /Panduan Pengamatan Mingguan/);
+    assert.ok(h.db.get('SELECT 1 FROM articles WHERE id = ?', row.id), 'data tidak dihapus');
     await admin.post(`/admin/artikel/${row.id}/status`).type('form').send({ _csrf: admin.csrf, action: 'archive' });
     assert.equal((await f1.get(`/artikel/${row.slug}`)).status, 404);
   });

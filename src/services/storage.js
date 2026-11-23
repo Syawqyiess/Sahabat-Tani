@@ -60,6 +60,27 @@ function saveImage(file, userId, kind) {
   return { relPath: rel, mime: real, bytes: file.size };
 }
 
+// Foto lahan: diperkecil (sisi terpanjang ≤ 1600 px), orientasi EXIF diterapkan, metadata (termasuk GPS) dibuang,
+// lalu disimpan sebagai WEBP agar ringan dimuat di kartu lahan.
+async function saveOptimizedImage(file, userId, kind) {
+  if (!file) throw new UploadError('Belum ada foto yang dipilih.');
+  const real = sniffMime(file.buffer);
+  if (!real || !ALLOWED[real]) throw new UploadError('Berkas bukan gambar yang valid. Gunakan foto JPG, PNG, atau WEBP.');
+  const sharp = require('sharp');
+  let buffer;
+  try {
+    buffer = await sharp(file.buffer).rotate().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+  } catch {
+    throw new UploadError('Foto tidak dapat dibaca. Coba foto lain.');
+  }
+  return saveImage({ buffer, size: buffer.length }, userId, kind);
+}
+
+function removeFile(rel) {
+  if (!rel) return;
+  try { fs.unlinkSync(absPath(rel)); } catch { /* berkas sudah tidak ada */ }
+}
+
 function absPath(rel) {
   const abs = path.resolve(config.uploadDir, rel);
   if (!abs.startsWith(path.resolve(config.uploadDir) + path.sep)) throw new Error('Path tidak valid');
@@ -70,4 +91,4 @@ function readBase64(rel) {
   return fs.readFileSync(absPath(rel)).toString('base64');
 }
 
-module.exports = { single, saveImage, absPath, readBase64, UploadError, sniffMime, ALLOWED };
+module.exports = { single, saveImage, saveOptimizedImage, removeFile, absPath, readBase64, UploadError, sniffMime, ALLOWED };

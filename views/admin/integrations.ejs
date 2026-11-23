@@ -9,6 +9,12 @@
       <p class="small"><%= it.detail %></p>
       <p class="small muted"><%= it.secret %></p>
       <% if (it.last) { %><p class="small muted"><%= it.last %></p><% } %>
+      <% if (it.action) { %>
+        <form method="post" action="<%= it.action.url %>">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-sm btn-tonal" data-busy="<%= it.action.busy %>"><%- icon('refresh', 18) %> <%= it.action.label %></button>
+        </form>
+      <% } %>
     </li>
   <% }) %>
 </ul>

@@ -1,22 +1,53 @@
 <%- include('../partials/head') %>
-<h1>Sumber Berita (RSS)</h1>
-<p class="small muted">Tambahkan hanya feed dari penerbit tepercaya yang mengizinkan penggunaannya. Aplikasi menyimpan judul, ringkasan pendek (≤ 280 karakter), tanggal asli, nama sumber, dan tautan — tidak menyalin isi artikel. Berita diurutkan menurut tanggal terbit sumber, dan duplikat dicegah.</p>
+<div class="page-head">
+  <div>
+    <h1>Sumber Berita</h1>
+    <p class="muted measure">Berita pertanian diambil dari sumber nyata lewat RSS resmi atau halaman HTML yang diizinkan robots.txt. Yang disimpan hanya judul, ringkasan singkat penerbit (≤ 280 karakter), tanggal terbit asli, nama sumber, dan tautan — isi artikel tidak disalin. Gambar utama berita divalidasi lalu ditampilkan dari tautan asli penerbit beserta kreditnya; berkas hanya disalin bila sumber diatur “salinan” karena penerbit mengizinkan.</p>
+  </div>
+  <div class="row wrap-row">
+    <form method="post" action="/admin/sumber-berita/gambar">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn btn-ghost" data-busy="Memeriksa gambar…"><%- icon('image', 20) %> Perbarui gambar berita lama</button>
+    </form>
+    <form method="post" action="/admin/sumber-berita/ambil-semua">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn" data-busy="Mengambil dari semua sumber…"><%- icon('refresh', 20) %> Ambil dari semua sumber aktif</button>
+    </form>
+  </div>
+</div>
+
 <% if (!sources.length) { %>
-  <div class="state state-inline"><%- icon('news') %><p>Belum ada sumber berita. Sampai sumber dikonfigurasi, hanya artikel berlabel “Konten Demo” yang tampil.</p></div>
+  <%- include('../partials/empty', { heading: 'Belum ada sumber berita', text: 'Tambahkan sumber RSS atau halaman berita yang mengizinkan pengambilan.', actions: [] }) %>
 <% } else { %>
 <div class="table-wrap">
 <table class="table">
-  <thead><tr><th>Sumber</th><th>Status</th><th>Terakhir diambil</th><th>Aksi</th></tr></thead>
+  <thead><tr><th>Sumber</th><th>Jenis</th><th>Status</th><th>Pengambilan terakhir</th><th>Aksi</th></tr></thead>
   <tbody>
-  <% sources.forEach((s) => { %>
+  <% sources.forEach((s) => { const rep = u.safeJson(s.last_report) || null; %>
     <tr>
-      <td><strong><%= s.name %></strong><br><span class="small break"><%= s.feed_url %></span><br><span class="small muted">Izin: <%= s.usage_note %></span></td>
-      <td><%= s.is_active ? 'Aktif' : 'Nonaktif' %><br><span class="small"><%= s.n %> berita</span></td>
-      <td class="small"><%= s.last_fetched_at ? u.fmtDate(s.last_fetched_at, true) : 'Belum pernah' %><% if (s.last_error) { %><br><span class="warn"><%= s.last_error %></span><% } %></td>
+      <td>
+        <strong><%= s.name %></strong><br>
+        <a class="small break" href="<%= s.feed_url %>" target="_blank" rel="noopener"><%= s.feed_url %></a><br>
+        <span class="small muted">Izin: <%= s.usage_note %></span>
+      </td>
+      <td class="small"><span class="badge"><%= s.kind === 'html' ? 'Halaman HTML' : 'RSS' %></span><% if (s.filter_keywords) { %><br>disaring kata kunci pertanian<% } %><br>maks. <%= s.max_items %>/ambil<br>gambar: <%= { tautan: 'tautan asli penerbit', salin: 'salinan diperkecil', tidak: 'tidak dipakai' }[s.image_policy] || s.image_policy %></td>
+      <td class="small">
+        <span class="badge <%= s.is_active ? 'badge-real' : '' %>"><%= s.is_active ? 'Aktif' : 'Nonaktif' %></span><br>
+        <%= s.n %> berita<% if (s.newest) { %>, terbaru <%= u.fmtDate(s.newest) %><% } %><br>
+        <%= s.n_img %> bergambar<% if (s.n_img_pending) { %>, <%= s.n_img_pending %> belum diperiksa<% } %><br>
+        <span class="muted">robots: <%= s.robots_status || 'belum diperiksa' %></span>
+      </td>
+      <td class="small">
+        <%= s.last_fetched_at ? u.fmtDate(s.last_fetched_at, true) : 'Belum pernah' %>
+        <% if (rep) { %><br><%= rep.added %> baru, <%= rep.skipped %> dilewati<% if (rep.reasons && Object.keys(rep.reasons).length) { %> (<%= Object.entries(rep.reasons).map(([k, n]) => k + ': ' + n).join(', ') %>)<% } %><% } %>
+        <% if (s.last_error) { %><br><span class="warn"><%- icon('alert', 14) %> <%= s.last_error %></span><% } %>
+      </td>
       <td class="actions">
+        <form method="post" action="/admin/sumber-berita/<%= s.id %>/uji"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-tonal" data-busy="Menguji…">Uji sumber</button></form>
         <form method="post" action="/admin/sumber-berita/<%= s.id %>/ambil"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm" data-busy="Mengambil…">Ambil sekarang</button></form>
         <form method="post" action="/admin/sumber-berita/<%= s.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-ghost"><%= s.is_active ? 'Nonaktifkan' : 'Aktifkan' %></button></form>
-        <form method="post" action="/admin/sumber-berita/<%= s.id %>/hapus" data-confirm="Hapus sumber ini?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-ghost btn-danger">Hapus</button></form>
+        <a class="btn btn-sm btn-ghost" href="/admin/sumber-berita/<%= s.id %>/ubah">Ubah</a>
+        <form method="post" action="/admin/sumber-berita/<%= s.id %>/hapus" data-confirm="Hapus sumber ini? Berita yang sudah diambil tetap ada."><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-ghost btn-danger">Hapus</button></form>
       </td>
     </tr>
   <% }) %>
@@ -24,14 +55,31 @@
 </table>
 </div>
 <% } %>
-<form method="post" action="/admin/sumber-berita" class="form card" novalidate>
-  <h2 class="h3">Tambah sumber</h2>
+
+<form method="post" action="<%= editing ? '/admin/sumber-berita/' + editing : '/admin/sumber-berita' %>" class="form card form-card" id="form-sumber" novalidate>
+  <h2 class="h3"><%= editing ? 'Ubah sumber' : 'Tambah sumber' %></h2>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <%- include('../partials/field', { name: 'name', label: 'Nama penerbit', value: values.name, error: errors.name, required: true }) %>
-  <%- include('../partials/field', { name: 'feed_url', label: 'URL feed RSS', type: 'url', value: values.feed_url, error: errors.feed_url, required: true }) %>
-  <%- include('../partials/field', { name: 'homepage_url', label: 'Situs penerbit', type: 'url', value: values.homepage_url, error: errors.homepage_url, optional: true }) %>
-  <%- include('../partials/field', { name: 'usage_note', label: 'Dasar izin penggunaan', type: 'textarea', rows: 2, value: values.usage_note, error: errors.usage_note, required: true, hint: 'Contoh: syarat penggunaan RSS dari halaman penerbit (tautan), atau izin tertulis.' }) %>
-  <%- include('../partials/field', { name: 'category_id', label: 'Kategori berita', type: 'select', options: categories.map((c) => [c.id, c.name]), value: values.category_id, error: errors.category_id }) %>
-  <button class="btn" type="submit">Tambah sumber</button>
+  <% if (Object.keys(errors).length) { %><div class="alert alert-error" role="alert"><%- icon('alert') %><span>Ada data yang perlu diperbaiki.</span></div><% } %>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'name', label: 'Nama penerbit / kanal', value: values.name, error: errors.name, required: true }) %>
+    <%- include('../partials/field', { name: 'kind', label: 'Jenis', type: 'select', options: [['rss', 'RSS resmi'], ['html', 'Halaman HTML (scraping)']], value: values.kind || 'rss', error: errors.kind }) %>
+  </div>
+  <%- include('../partials/field', { name: 'feed_url', label: 'URL feed RSS atau halaman daftar berita (kategori pertanian)', type: 'url', value: values.feed_url, error: errors.feed_url, required: true }) %>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'homepage_url', label: 'Situs penerbit', type: 'url', value: values.homepage_url, error: errors.homepage_url, optional: true }) %>
+    <%- include('../partials/field', { name: 'max_items', label: 'Maksimal berita per pengambilan (1–30)', type: 'number', value: values.max_items || 10, error: errors.max_items }) %>
+  </div>
+  <%- include('../partials/field', { name: 'usage_note', label: 'Dasar izin penggunaan', type: 'textarea', rows: 2, value: values.usage_note, error: errors.usage_note, required: true, hint: 'Contoh: robots.txt mengizinkan; RSS resmi; ketentuan penerbit (tautan). Jangan menambahkan sumber yang melarang, berbayar, atau butuh login.' }) %>
+  <div class="grid-2">
+    <%- include('../partials/field', { name: 'image_policy', label: 'Kebijakan gambar berita', type: 'select', options: [['tautan', 'Tautan asli penerbit (tanpa menyalin berkas)'], ['salin', 'Salinan diperkecil — hanya bila penerbit mengizinkan'], ['tidak', 'Tanpa gambar']], value: values.image_policy || 'tautan', error: errors.image_policy }) %>
+    <%- include('../partials/field', { name: 'image_hosts', label: 'Host CDN gambar yang diverifikasi', value: values.image_hosts, error: errors.image_hosts, optional: true, placeholder: 'img.contoh.com', hint: 'Domain situs sumber selalu diizinkan. Tambahkan CDN gambar resmi penerbit bila berbeda.' }) %>
+  </div>
+  <label class="check"><input type="checkbox" name="filter_keywords" value="1" <%= String(values.filter_keywords) === '1' ? 'checked' : '' %>> Saring dengan kata kunci pertanian (wajib untuk kanal umum seperti ekonomi/nasional)</label>
+  <%- include('../partials/field', { name: 'config_json', label: 'Konfigurasi HTML (khusus jenis Halaman HTML)', type: 'textarea', rows: 8, value: values.config_json, error: errors.config_json, optional: true,
+       hint: 'JSON: {"link_pattern": "regex tautan artikel", "list_item": "kotak item di daftar (opsional)", "list_date": "selektor tanggal di daftar (opsional)", "article": {"title": [selektor], "summary": [selektor], "date": [selektor tanggal terbit]}}. Pastikan selektor tanggal mengambil tanggal artikel, bukan tanggal hari ini di header situs.' }) %>
+  <div class="form-actions">
+    <button class="btn" type="submit"><%= editing ? 'Simpan perubahan' : 'Tambah sumber' %></button>
+    <% if (editing) { %><a class="btn btn-ghost" href="/admin/sumber-berita">Batal</a><% } %>
+  </div>
 </form>
 <%- include('../partials/foot') %>

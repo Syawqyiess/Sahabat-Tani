@@ -10,10 +10,15 @@ process.env.DB_PATH = path.join(tmp, 'test.db');
 process.env.UPLOAD_DIR = path.join(tmp, 'uploads');
 process.env.ANTHROPIC_API_KEY = '';
 process.env.GEMINI_API_KEY = '';
+// Login Google mati secara default di uji; test/google.test.js mengaktifkannya dengan klien uji.
+process.env.GOOGLE_CLIENT_ID = '';
+process.env.GOOGLE_CLIENT_SECRET = '';
 // Dikosongkan (bukan dihapus) agar dotenv tidak mengisinya lagi dari .env pengembang.
 process.env.AI_VISION_PROVIDER = '';
 process.env.AI_CHAT_PROVIDER = '';
 process.env.NEWS_AUTO_FETCH = '0';
+process.env.RDKK_AUTO_FETCH = '0';
+process.env.NEWS_MIN_DELAY_MS = '0'; // tes memakai situs tiruan: tanpa jeda antar permintaan
 
 const request = require('supertest');
 const db = require('../src/db');
