@@ -1,0 +1,497 @@
+{
+  "meta": {
+    "komoditas": "Padi sawah irigasi",
+    "wilayah_target": "Jawa Timur, Indonesia (Prioritas: Gresik, Sidoarjo, Mojokerto, Lamongan)",
+    "varietas_referensi": ["Inpari 32 HDB", "Ciherang", "Inpari 42 Agritan GSR"],
+    "umur_varietas_hari": [110, 120],
+    "basis_rekomendasi": [
+      "Petunjuk Teknis Budidaya Padi Jajar Legowo Super, Balitbangtan/Kementan",
+      "Petunjuk Lapang Pengelolaan Tanaman Terpadu (PTT) Padi Sawah, Balitbangtan"
+    ],
+    "catatan_pemupukan": "Dosis pupuk harus disesuaikan dengan status hara tanah/PUTS, hasil petak omisi, dan Bagan Warna Daun (BWD). Jangan memaksakan dosis tinggi bila status hara P/K sudah tinggi."
+  },
+  "stages": [
+    {
+      "stage_id": "GS-001",
+      "rentang_hst": [0, 7],
+      "nama_fase": "Vegetatif Awal - Tumbuh Kembali dan Pembentukan Akar Baru",
+      "kategori_fase": "Vegetatif",
+      "ciri_fisik_tanaman": "Bibit muda mulai tegak kembali setelah tanam; daun baru muncul, akar baru mulai tumbuh, sebagian daun tua dapat menguning sementara. Tanaman belum menutup permukaan sawah.",
+      "manajemen_air": "Tanam pada kondisi macak-macak. Setelah tanam, naikkan air bertahap 2-5 cm; hindari genangan dalam yang menenggelamkan titik tumbuh bibit muda.",
+      "rekomendasi_kegiatan_kalender": [
+        {
+          "judul": "Pemeriksaan populasi dan penyulaman",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Hitung rumpun hilang/kosong; penyulaman sebaiknya selesai sebelum 14 HST agar populasi tetap optimal."
+        },
+        {
+          "judul": "Pemupukan dasar P dan K",
+          "kategori": "pemupukan",
+          "catatan_teknis": "Seluruh pupuk P diberikan pada fase ini atau bersamaan pemupukan N pertama. KCl dosis rendah-sedang (<100 kg/ha) dapat diberikan seluruhnya; bila dosis tinggi, beri 50% sekarang dan sisanya saat primordia. Sesuaikan dengan PUTS/petak omisi."
+        },
+        {
+          "judul": "Pemupukan urea tahap I",
+          "kategori": "pemupukan",
+          "catatan_teknis": "Untuk padi inbrida seperti Ciherang/Inpari 32, umumnya 50-75 kg urea/ha sebelum 14 HST. Pada sistem Jarwo Super, 1/3 urea dapat diberikan pada 7-10 HST."
+        },
+        {
+          "judul": "Pengamatan keong mas dan tikus",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Periksa telur dan keong mas pada pematang, saluran, dan permukaan air; pasang perangkap/tikus bila terlihat jejak serangan."
+        }
+      ],
+      "ancaman_opt_utama": [
+        "Keong mas",
+        "Tikus sawah",
+        "Wereng hijau (vektor tungro)",
+        "Gulma awal"
+      ],
+      "tips_pengamatan_dan_pht": [
+        "Gunakan benih bermutu dan tanam serempak dalam satu blok irigasi.",
+        "Kumpulkan dan hancurkan telur keong mas; manfaatkan saluran/pematang untuk perangkap keong.",
+        "Pasang TBS/LTBS di areal endemik tikus, terutama sejak pra-tanam hingga awal pertumbuhan.",
+        "Cabut rumpun terserang tungro dan benamkan/musnahkan; jaga populasi musuh alami dengan menghindari penyemprotan preventif.",
+        "Sanitasi singgang/ratun dan gulma di sekitar petakan."
+      ]
+    },
+    {
+      "stage_id": "GS-002",
+      "rentang_hst": [8, 14],
+      "nama_fase": "Vegetatif Awal - Pemulihan Bibit dan Anakan Awal",
+      "kategori_fase": "Vegetatif",
+      "ciri_fisik_tanaman": "Tanaman pulih penuh, daun baru bertambah, awal anakan mulai terbentuk; pertumbuhan masih belum seragam pada beberapa rumpun.",
+      "manajemen_air": "Pertahankan air dangkal 2-5 cm. Pada pengairan berselang, biarkan sawah mengering alami sekitar 5-6 hari setelah periode awal, lalu irigasi kembali 5 cm setelah permukaan retak sekali.",
+      "rekomendasi_kegiatan_kalender": [
+        {
+          "judul": "Penyulaman akhir",
+          "kategori": "perawatan",
+          "catatan_teknis": "Selesaikan sebelum 14 HST; gunakan bibit sejenis dan umur serupa agar pertumbuhan seragam."
+        },
+        {
+          "judul": "Penyiangan awal",
+          "kategori": "perawatan",
+          "catatan_teknis": "Gunakan gosrok/landak atau cabut manual pada 10-15 HST; kondisi air 2-3 cm memudahkan pembenaman gulma."
+        },
+        {
+          "judul": "Pemupukan urea tahap I bila belum dilakukan",
+          "kategori": "pemupukan",
+          "catatan_teknis": "Maksimal sebelum 14 HST. Jangan berlebihan nitrogen karena dapat mendorong anakan tidak produktif dan memperberat serangan hama."
+        },
+        {
+          "judul": "Pengamatan hama awal",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Periksa keong mas, wereng hijau, tikus, dan gejala layu/kuning pada bibit."
+        }
+      ],
+      "ancaman_opt_utama": [
+        "Keong mas",
+        "Tikus sawah",
+        "Wereng hijau",
+        "Tungro",
+        "Gulma"
+      ],
+      "tips_pengamatan_dan_pht": [
+        "Lakukan pengamatan rutin tiap 3-7 hari, catat jumlah rumpun sakit dan hama.",
+        "Aplikasi pestisida nabati dapat dipertimbangkan sekitar satu minggu setelah tanam bila diperlukan, lalu ulangi 7-10 hari sesuai kondisi lapang.",
+        "Jangan menyemprot insektisida preventif; lindungi laba-laba, capung, dan predator lain.",
+        "Atur air agar tidak menggenangi terlalu lama pada tanah berdrainase buruk."
+      ]
+    },
+    {
+      "stage_id": "GS-003",
+      "rentang_hst": [15, 24],
+      "nama_fase": "Vegetatif Aktif - Pembentukan Anakan Maksimal",
+      "kategori_fase": "Vegetatif",
+      "ciri_fisik_tanaman": "Anakan aktif bertambah cepat, daun hijau segar, kanopi mulai terbentuk, tanaman mulai menutup ruang antar rumpun.",
+      "manajemen_air": "Pertahankan genangan dangkal 3-5 cm mulai pertengahan pembentukan anakan. Pada pengairan berselang, lanjutkan siklus kering-genang sesuai drainase dan ketersediaan air.",
+      "rekomendasi_kegiatan_kalender": [
+        {
+          "judul": "Pengukuran BWD pertama",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Mulai 25-28 HST; pilih 10 rumpun sehat, ukur daun teratas yang telah membuka penuh."
+        },
+        {
+          "judul": "Penyiangan kedua",
+          "kategori": "perawatan",
+          "catatan_teknis": "Lakukan sekitar 21 HST, terutama bila kanopi belum menutup; pembenaman gulma mendukung aerasi tanah."
+        },
+        {
+          "judul": "Pemupukan urea tahap II berbasis BWD",
+          "kategori": "pemupukan",
+          "catatan_teknis": "Umumnya 25-30 HST. Untuk inbrida, 50-75 kg urea/ha pada musim hasil rendah atau 75-100 kg/ha pada musim hasil tinggi bila BWD di bawah skala 4; sesuaikan hasil PUTS/petak omisi."
+        },
+        {
+          "judul": "Pengamatan wereng dan penggerek",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Periksa kepadatan wereng batang cokelat, gejala tungro, dan telur/jerumbai penggerek batang."
+        }
+      ],
+      "ancaman_opt_utama": [
+        "Wereng batang cokelat",
+        "Wereng hijau",
+        "Penggerek batang/sundep",
+        "Tikus sawah",
+        "Beluk",
+        "Tungro",
+        "Gulma"
+      ],
+      "tips_pengamatan_dan_pht": [
+        "Gunakan lampu perangkap untuk memantau ngengat penggerek batang dan wereng; catat puncak tangkapan.",
+        "Tanam serempak dan pergilir varietas untuk memutus siklus hama.",
+        "Jaga keseimbangan nitrogen; pupuk N berlebih memperbesar risiko hama dan penyakit.",
+        "Prioritaskan pengendalian wereng pada generasi pertama, bukan menunggu populasi tinggi."
+      ]
+    },
+    {
+      "stage_id": "GS-004",
+      "rentang_hst": [25, 34],
+      "nama_fase": "Vegetatif Aktif - Anakan Menjelang Maksimal",
+      "kategori_fase": "Vegetatif",
+      "ciri_fisik_tanaman": "Jumlah anakan mendekati maksimum, tinggi tanaman meningkat pesat, daun hijau tua bila nitrogen cukup, kanopi makin rapat.",
+      "manajemen_air": "Genangan 3-5 cm; bila menerapkan pengairan berselang, biarkan mengering hingga retak halus lalu irigasi kembali 5 cm. Hindari kekeringan berkepanjangan pada fase anakan aktif.",
+      "rekomendasi_kegiatan_kalender": [
+        {
+          "judul": "Pemupukan urea tahap II",
+          "kategori": "pemupukan",
+          "catatan_teknis": "Jadwalkan 25-30 HST bila BWD menunjukkan kebutuhan N. Jangan gabungkan dengan pemupukan berlebihan tanpa pengukuran."
+        },
+        {
+          "judul": "Pengamatan BWD berkala",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Ukur setiap 7-10 hari hingga fase primordia; gunakan hasilnya untuk menentukan urea susulan."
+        },
+        {
+          "judul": "Pemantauan OPT intensif",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Fokus pada WBC, penggerek batang, beluk, tikus, dan gejala penyakit daun."
+        },
+        {
+          "judul": "Penyiangan sisa gulma",
+          "kategori": "perawatan",
+          "catatan_teknis": "Cabut gulma yang lolos sebelum berbunga/berbiji; pastikan saluran air tidak tersumbat."
+        }
+      ],
+      "ancaman_opt_utama": [
+        "Wereng batang cokelat",
+        "Penggerek batang/sundep",
+        "Beluk",
+        "Tikus sawah",
+        "Tungro",
+        "Hawar daun bakteri"
+      ],
+      "tips_pengamatan_dan_pht": [
+        "Periksa bagian pangkal batang untuk wereng dan gejala kering semu/hopperburn.",
+        "Gunakan perangkap lampu dan pengamatan visual; hanya kendalikan bila populasi/ambang kendali tercapai.",
+        "Hindari penyemprotan siang hari saat predator aktif; utamakan bahan hayati/nabati bila perlu.",
+        "Sanitasi pematang dan saluran untuk menekan habitat tikus serta gulma."
+      ]
+    },
+    {
+      "stage_id": "GS-005",
+      "rentang_hst": [35, 45],
+      "nama_fase": "Vegetatif Akhir - Anakan Maksimal dan Persiapan Pembentukan Malai",
+      "kategori_fase": "Vegetatif",
+      "ciri_fisik_tanaman": "Jumlah anakan maksimal, sebagian anakan mulai dibedakan menjadi produktif/tidak produktif; batang menebal, daun banyak dan rapat.",
+      "manajemen_air": "Pada sistem pengairan berselang, umumnya dilakukan pengeringan berkala hingga macak-macak sekitar 45-50 HST untuk membatasi anakan tidak produktif dan merangsang akar. Pada sistem genangan, pertahankan 3-5 cm kecuali ada kebutuhan pengeringan khusus.",
+      "rekomendasi_kegiatan_kalender": [
+        {
+          "judul": "Pemupukan urea tahap III",
+          "kategori": "pemupukan",
+          "catatan_teknis": "Umumnya 40-45 HST, 1/3 dosis urea pada skema Jarwo Super. Untuk inbrida, berikan bila BWD di bawah skala 4; jangan menambah N hanya berdasarkan umur."
+        },
+        {
+          "judul": "Pengeringan berkala/pengaturan air",
+          "kategori": "perawatan",
+          "catatan_teknis": "Keringkan hingga macak-macak sekitar 45-50 HST bila drainase baik dan air terjamin; jangan sampai tanaman cekaman berat."
+        },
+        {
+          "judul": "Pengamatan anakan produktif",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Hitung perkiraan anakan produktif; catat rumpun seragam dan area pertumbuhan buruk."
+        },
+        {
+          "judul": "Pemantauan hama batang",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Cek gejala sundep: anakan mati/putus, malai putih, dan lubang pada batang."
+        }
+      ],
+      "ancaman_opt_utama": [
+        "Penggerek batang/sundep",
+        "Wereng batang cokelat",
+        "Beluk",
+        "Tikus sawah",
+        "Hawar daun bakteri",
+        "Blast"
+      ],
+      "tips_pengamatan_dan_pht": [
+        "Lakukan pengamatan mingguan pada 5 titik acak per petakan.",
+        "Gunakan feromon/lampu perangkap untuk memantau ngengat penggerek batang.",
+        "Jaga sanitasi dan hindari tanam terlambat yang membuat tanaman bertemu puncak hama.",
+        "Pertahankan musuh alami; hindari semprot rutin tanpa dasar pengamatan."
+      ]
+    },
+    {
+      "stage_id": "GS-006",
+      "rentang_hst": [46, 55],
+      "nama_fase": "Peralihan Vegetatif-Generatif - Inisiasi Primordia / Fase Bunting Awal",
+      "kategori_fase": "Generatif",
+      "ciri_fisik_tanaman": "Tanaman berhenti menambah anakan baru; pembentukan malai dimulai secara internal. Secara luar tampak tanaman tinggi dan rapat, tetapi malai belum terlihat.",
+      "manajemen_air": "Jangan biarkan cekaman air. Kembalikan genangan 3-5 cm; pada pengairan berselang, akhiri pengeringan dan irigasi kembali sebelum fase pembentukan malai.",
+      "rekomendasi_kegiatan_kalender": [
+        {
+          "judul": "Pemupukan K susulan bila dosis K tinggi",
+          "kategori": "pemupukan",
+          "catatan_teknis": "Bila kebutuhan KCl >100 kg/ha, berikan 50% sisa pada fase primordia. Untuk dosis rendah-sedang, K biasanya telah diberikan lebih awal."
+        },
+        {
+          "judul": "Pemupukan urea berbasis BWD",
+          "kategori": "pemupukan",
+          "catatan_teknis": "Bila BWD masih di bawah skala 4 menjelang primordia, berikan urea susulan sesuai rekomendasi BWD; jangan menambah N bila daun sudah hijau tua."
+        },
+        {
+          "judul": "Pengamatan primordia dan keseragaman",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Periksa ketinggian tanaman, keseragaman, dan tanda kekurangan hara; pastikan tidak ada genangan berlebihan."
+        },
+        {
+          "judul": "Pemantauan wereng dan penggerek",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Fase ini krusial untuk melindungi malai; pantau WBC, penggerek, dan tikus."
+        }
+      ],
+      "ancaman_opt_utama": [
+        "Wereng batang cokelat",
+        "Penggerek batang/sundep",
+        "Tikus sawah",
+        "Blast",
+        "Hawar daun bakteri",
+        "Beluk"
+      ],
+      "tips_pengamatan_dan_pht": [
+        "Lakukan pengamatan dua kali seminggu, terutama pagi hari.",
+        "Hindari pemupukan N berlebihan menjelang primordia karena meningkatkan risiko penyakit dan hama.",
+        "Gunakan varietas tahan, tanam serempak, dan sanitasi ratun untuk menekan sumber hama/penyakit.",
+        "Bila perlu pengendalian, pilih pendekatan hayati/nabati lebih dulu dan patuhi ambang kendali."
+      ]
+    },
+    {
+      "stage_id": "GS-007",
+      "rentang_hst": [56, 65],
+      "nama_fase": "Generatif - Pembentukan Primordia dan Pembesaran Malai",
+      "kategori_fase": "Generatif",
+      "ciri_fisik_tanaman": "Malai mulai terbentuk di dalam pelepah daun bendera; tanaman tampak hijau tua, tinggi stabil, dan pelepah daun mulai membengkak pada beberapa rumpun.",
+      "manajemen_air": "Pertahankan genangan 3-5 cm secara konsisten. Jangan keringkan sawah pada fase pembentukan malai karena kekurangan air dapat menurunkan jumlah malai dan bulir.",
+      "rekomendasi_kegiatan_kalender": [
+        {
+          "judul": "Pemupukan K primordia",
+          "kategori": "pemupukan",
+          "catatan_teknis": "Terapkan sisa K bila skema pemupukan membagi K dua tahap. Sesuaikan dengan hasil PUTS/petak omisi."
+        },
+        {
+          "judul": "Pemupukan urea primordia bila diperlukan",
+          "kategori": "pemupukan",
+          "catatan_teknis": "Berikan hanya bila BWD menunjukkan kekurangan N; untuk inbrida, umumnya 50-75 kg/ha pada musim hasil rendah atau 75-100 kg/ha pada musim hasil tinggi sesuai kondisi lapang."
+        },
+        {
+          "judul": "Pengamatan hama dan penyakit malai",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Periksa wereng, penggerek, beluk, tikus, blast, dan hawar daun bakteri."
+        },
+        {
+          "judul": "Perawatan saluran dan pematang",
+          "kategori": "perawatan",
+          "catatan_teknis": "Pastikan distribusi air merata; perbaiki rembesan dan sumbatan saluran."
+        }
+      ],
+      "ancaman_opt_utama": [
+        "Wereng batang cokelat",
+        "Penggerek batang/sundep",
+        "Beluk",
+        "Tikus sawah",
+        "Blast",
+        "Hawar daun bakteri"
+      ],
+      "tips_pengamatan_dan_pht": [
+        "Pantau WBC pada pangkal batang dan gunakan ambang kendali sebelum memutuskan tindakan.",
+        "Jaga tanaman tidak cekaman air dan hindari pupuk N berlebihan.",
+        "Periksa daun bendera dan pelepah untuk gejala blast/hawar; pisahkan dan musnahkan tanaman sangat sakit bila perlu.",
+        "Aktifkan koordinasi petani untuk pengamatan dan tindakan serentak."
+      ]
+    },
+    {
+      "stage_id": "GS-008",
+      "rentang_hst": [66, 75],
+      "nama_fase": "Generatif - Keluar Malai dan Pembungaan",
+      "kategori_fase": "Generatif",
+      "ciri_fisik_tanaman": "Malai keluar dari pelepah daun bendera, bunga mekar bertahap; tanaman paling sensitif terhadap cekaman air dan suhu tinggi.",
+      "manajemen_air": "Pertahankan genangan 3-5 cm. Jangan keringkan sawah selama pembungaan; pastikan air tersedia merata hingga sekitar 10 hari sebelum panen.",
+      "rekomendasi_kegiatan_kalender": [
+        {
+          "judul": "Pengamatan pembungaan dan keseragaman",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Catat tanggal 50% tanaman berbunga sebagai acuan estimasi panen dan jadwal pengamatan walang sangit."
+        },
+        {
+          "judul": "Pengamatan walang sangit",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Periksa pagi hari pada malai; walang sangit menyebabkan bulir hampa dan menurunkan mutu gabah."
+        },
+        {
+          "judul": "Pengamatan penyakit bulir dan malai",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Awasi blast malai/bulir, hawar bulir, serta busuk tangkai bila cuaca lembap/hujan."
+        },
+        {
+          "judul": "Pengaturan air pembungaan",
+          "kategori": "perawatan",
+          "catatan_teknis": "Jaga genangan 3-5 cm; hindari banjir mendadak dan kekeringan."
+        }
+      ],
+      "ancaman_opt_utama": [
+        "Walang sangit",
+        "Wereng batang cokelat",
+        "Penggerek batang/sundep",
+        "Beluk",
+        "Blast malai/bulir",
+        "Hawar bulir",
+        "Tikus sawah",
+        "Burung"
+      ],
+      "tips_pengamatan_dan_pht": [
+        "Pantau walang sangit pada pagi hari; gunakan perangkap/jaring atau pengendalian hayati bila populasi melewati ambang.",
+        "Hindari penyemprotan pada puncak pembungaan kecuali benar-benar diperlukan agar tidak mengganggu penyerbukan dan musuh alami.",
+        "Jaga drainase dan hindari genangan berlebih yang memperberat penyakit.",
+        "Koordinasikan pengendalian burung dan tikus secara komunal."
+      ]
+    },
+    {
+      "stage_id": "GS-009",
+      "rentang_hst": [76, 90],
+      "nama_fase": "Generatif - Pengisian Bulir / Masak Susu",
+      "kategori_fase": "Generatif",
+      "ciri_fisik_tanaman": "Bulir mulai terisi cairan putih seperti susu; malai menunduk perlahan, daun bendera masih hijau, gabah belum menguning.",
+      "manajemen_air": "Pertahankan genangan 3-5 cm. Pada pengairan berselang, tetap jaga kelembaban/genangan dangkal selama pengisian bulir hingga masak susu; jangan keringkan tanaman.",
+      "rekomendasi_kegiatan_kalender": [
+        {
+          "judul": "Pengamatan pengisian bulir",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Cek persentase bulir terisi, bulir hampa, dan serangan walang sangit."
+        },
+        {
+          "judul": "Pengendalian walang sangit berbasis ambang",
+          "kategori": "perawatan",
+          "catatan_teknis": "Gunakan perangkap mekanis, pengendalian hayati, atau pestisida nabati bila populasi tinggi; hindari semprot preventif."
+        },
+        {
+          "judul": "Pengamatan penyakit malai",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Periksa blast malai/bulir dan hawar bulir, terutama saat hujan/kelembapan tinggi."
+        },
+        {
+          "judul": "Pengamatan tikus dan burung",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Perkuat pengendalian komunal karena malai mulai menarik tikus dan burung."
+        }
+      ],
+      "ancaman_opt_utama": [
+        "Walang sangit",
+        "Tikus sawah",
+        "Burung",
+        "Blast malai/bulir",
+        "Hawar bulir",
+        "Wereng batang cokelat",
+        "Penggerek batang/sundep"
+      ],
+      "tips_pengamatan_dan_pht": [
+        "Lakukan pengamatan pagi dan sore; catat lokasi serangan agar tindakan tepat sasaran.",
+        "Gunakan perangkap, pagar, dan koordinasi komunal untuk tikus/burung.",
+        "Pertahankan musuh alami; hindari penyemprotan luas tanpa dasar pengamatan.",
+        "Jangan menambah pupuk N pada fase ini karena tidak lagi efektif meningkatkan hasil dan dapat memperpanjang masa vegetatif."
+      ]
+    },
+    {
+      "stage_id": "GS-010",
+      "rentang_hst": [91, 100],
+      "nama_fase": "Pematangan - Masak Kunyit",
+      "kategori_fase": "Pemasakan",
+      "ciri_fisik_tanaman": "Bulir menguning bertahap dari ujung malai; kandungan air gabah menurun, malai makin menunduk, daun bawah mulai menguning.",
+      "manajemen_air": "Pertahankan genangan dangkal 3-5 cm hingga sekitar satu minggu sebelum panen; kemudian mulai keringkan bertahap agar petakan siap panen.",
+      "rekomendasi_kegiatan_kalender": [
+        {
+          "judul": "Pengamatan kematangan gabah",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Periksa warna gabah dan kadar air; target panen saat 90-95% bulir menguning atau kadar air gabah sekitar 22-27%."
+        },
+        {
+          "judul": "Persiapan panen",
+          "kategori": "perawatan",
+          "catatan_teknis": "Siapkan combine harvester/sabit, tenaga kerja, penampungan, dan pengeringan; hindari menunda panen hingga gabah rontok."
+        },
+        {
+          "judul": "Pengamatan tikus dan burung",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Perkuat pengendalian komunal karena risiko kehilangan hasil meningkat menjelang panen."
+        },
+        {
+          "judul": "Pengaturan air menjelang panen",
+          "kategori": "perawatan",
+          "catatan_teknis": "Mulai keringkan sekitar 10 hari sebelum panen agar mesin panen dapat bekerja dan tanah tidak terlalu basah."
+        }
+      ],
+      "ancaman_opt_utama": [
+        "Tikus sawah",
+        "Burung",
+        "Walang sangit",
+        "Busuk tangkai",
+        "Penyakit bulir"
+      ],
+      "tips_pengamatan_dan_pht": [
+        "Lakukan patroli komunal untuk tikus dan burung.",
+        "Jangan menyemprot pestisida menjelang panen tanpa dasar pengamatan dan pertimbangan jeda aman.",
+        "Pantau cuaca; panen segera bila gabah sudah matang agar mengurangi kerontokan dan serangan penyakit."
+      ]
+    },
+    {
+      "stage_id": "GS-011",
+      "rentang_hst": [101, 115],
+      "nama_fase": "Pematangan Penuh dan Panen",
+      "kategori_fase": "Panen",
+      "ciri_fisik_tanaman": "Sebagian besar gabah menguning keemasan, daun dan batang menguning, malai menunduk; tanaman matang fisiologis dan siap panen.",
+      "manajemen_air": "Keringkan sawah sekitar 10 hari sebelum panen agar permukaan cukup kuat untuk mesin/tenaga kerja. Hindari menggenangi kembali setelah tanaman matang.",
+      "rekomendasi_kegiatan_kalender": [
+        {
+          "judul": "Penentuan tanggal panen",
+          "kategori": "pengamatan-hama",
+          "catatan_teknis": "Panen ketika 90-95% bulir menguning; umumnya sekitar 30-35 hari setelah pembungaan, tergantung varietas dan cuaca."
+        },
+        {
+          "judul": "Panen padi",
+          "kategori": "panen",
+          "catatan_teknis": "Gunakan combine harvester atau sabit bergerigi; minimalkan kehilangan hasil dan kontaminasi gabah."
+        },
+        {
+          "judul": "Perontokan dan pengeringan gabah",
+          "kategori": "perawatan",
+          "catatan_teknis": "Segera rontokkan gabah; jemur 5-7 cm tebal dan balik tiap 2 jam hingga kadar air sekitar 14% untuk gabah konsumsi."
+        },
+        {
+          "judul": "Pengemasan dan penyimpanan",
+          "kategori": "perawatan",
+          "catatan_teknis": "Simpan gabah bersih dan kering di wadah berventilasi, terlindung dari tikus, burung, dan kelembapan."
+        }
+      ],
+      "ancaman_opt_utama": [
+        "Tikus sawah",
+        "Burung",
+        "Kerontokan gabah",
+        "Jamur/penurunan mutu akibat kelembapan"
+      ],
+      "tips_pengamatan_dan_pht": [
+        "Panen tepat waktu untuk menekan kerontokan dan penurunan mutu.",
+        "Gunakan alas/tirai saat perontokan untuk mengurangi kehilangan gabah.",
+        "Keringkan segera setelah panen; gabah lembap rentan jamur dan penurunan mutu.",
+        "Bersihkan peralatan dan gudang sebelum menyimpan gabah."
+      ]
+    }
+  ]
+}

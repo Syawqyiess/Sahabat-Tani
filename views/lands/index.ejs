@@ -20,9 +20,12 @@
       <li class="land-card">
         <%- include('photo', { l, eager: i < 2 }) %>
         <div class="land-card-body">
-          <div>
-            <h2><a href="/lahan/<%= l.id %>"><%= l.name %></a></h2>
-            <p class="land-loc"><%- icon('location', 16) %> <%= l.address_desc || 'Lokasi belum diisi' %></p>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+            <div>
+              <h2><a href="/lahan/<%= l.id %>"><%= l.name %></a></h2>
+              <p class="land-loc"><%- icon('location', 16) %> <%= l.address_desc || 'Lokasi belum diisi' %></p>
+            </div>
+            <a href="/lahan/<%= l.id %>" class="action-circle" title="Detail <%= l.name %>" style="text-decoration: none;" aria-hidden="true">↗</a>
           </div>
           <dl class="land-facts">
             <div><dt>Jenis Tanaman</dt><dd><%- l.commodity ? u.stripHtml(l.commodity) : '<span class="empty-val">Belum diisi</span>' %></dd></div>

@@ -1,0 +1,92 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Growth Stage Padi Sawah",
+    "type": "object",
+    "required": [
+        "stage_id",
+        "rentang_hst",
+        "nama_fase",
+        "kategori_fase",
+        "manajemen_air",
+        "kegiatan",
+        "ancaman_opt",
+        "tips_pht"
+    ],
+    "properties": {
+        "stage_id": {
+            "type": "string",
+            "pattern": "^GS-[0-9]{3}$"
+        },
+        "rentang_hst": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 150
+            }
+        },
+        "nama_fase": {
+            "type": "string"
+        },
+        "kategori_fase": {
+            "type": "string",
+            "enum": [
+                "Vegetatif",
+                "Generatif/Reproduktif",
+                "Pematangan"
+            ]
+        },
+        "manajemen_air": {
+            "type": "object",
+            "required": [
+                "metode",
+                "tinggi_air_cm"
+            ],
+            "properties": {
+                "metode": {
+                    "type": "string"
+                },
+                "tinggi_air_cm": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "number",
+                        "minimum": 0
+                    }
+                }
+            }
+        },
+        "kegiatan": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "task_id",
+                    "judul",
+                    "kategori"
+                ],
+                "properties": {
+                    "task_id": {
+                        "type": "string"
+                    },
+                    "judul": {
+                        "type": "string"
+                    },
+                    "kategori": {
+                        "type": "string",
+                        "enum": [
+                            "pemupukan",
+                            "perawatan",
+                            "pengamatan",
+                            "irigasi",
+                            "pascapanen"
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}

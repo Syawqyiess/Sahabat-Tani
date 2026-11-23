@@ -32,30 +32,51 @@
 
 <section class="summary" aria-label="Ringkasan">
   <div class="tile tile-air">
-    <div class="tile-head"><span><%- icon('air') %> Kualitas Udara</span><a href="/udara<%= airLand ? '?lahan=' + airLand.id : '' %>">Lihat detail</a></div>
+    <div class="tile-head">
+      <span class="tile-head-title"><%- icon('air', 18) %> Kualitas Udara</span>
+      <a class="tile-head-action" href="/udara<%= airLand ? '?lahan=' + airLand.id : '' %>" title="Buka detail kualitas udara">
+        <span>Detail</span>
+        <span class="action-circle-sm">↗</span>
+      </a>
+    </div>
     <div data-fragment="/udara/ringkas<%= airLand ? '?lahan=' + airLand.id : '' %>" aria-busy="true">
-      <div class="aq" aria-hidden="true">
-        <div class="skeleton sk-num"></div>
-        <div><div class="skeleton sk-line" style="width:160px;height:30px;border-radius:999px"></div><div class="skeleton sk-line" style="width:200px"></div></div>
+      <div class="aq-card-inner" aria-hidden="true">
+        <div class="skeleton sk-num" style="width: 100px; height: 44px; border-radius: 12px;"></div>
+        <div class="skeleton sk-line" style="width: 140px; height: 26px; border-radius: 9999px; margin-top: 8px;"></div>
+        <div class="skeleton sk-line" style="width: 180px; height: 18px; margin-top: 8px;"></div>
       </div>
       <span class="visually-hidden">Memuat informasi kualitas udara…</span>
       <noscript><a href="/udara">Lihat informasi kualitas udara</a></noscript>
     </div>
   </div>
 
-  <a class="tile" href="/lahan">
-    <div class="tile-head"><span><%- icon('field') %> Lahan Saya</span></div>
-    <div class="tile-stats">
-      <div><span class="big-num"><%= summary.count %></span><span class="small muted">lahan</span></div>
-      <div><span class="big-num"><%= summary.totalArea != null ? summary.totalLabel.replace(' ha', '') : '—' %></span><span class="small muted">hektare tercatat<%= summary.noArea && summary.withArea ? ' (sebagian)' : '' %></span></div>
+  <a class="tile tile-land" href="/lahan">
+    <div class="tile-head">
+      <span class="tile-head-title"><%- icon('field', 18) %> Lahan Saya</span>
+      <span class="action-circle-sm" aria-hidden="true">↗</span>
     </div>
-    <span class="small muted">
-      <% if (!summary.count) { %>Belum ada lahan — tambahkan lahan pertama.<% } else { %>
-        <% if (summary.noArea) { %><%= summary.noArea %> lahan belum diisi luasnya. <% } %>
-        <% if (summary.demoCount) { %><span class="badge badge-demo">Data Demo</span> <%= summary.demoCount %> lahan contoh<% } %>
+    <div class="tile-stats-bento">
+      <div class="stat-box">
+        <span class="big-num"><%= summary.count %></span>
+        <span class="stat-label">Petak Lahan</span>
+      </div>
+      <div class="stat-box">
+        <span class="big-num"><%= summary.totalArea != null ? summary.totalLabel.replace(' ha', '') : '—' %><small>ha</small></span>
+        <span class="stat-label">Total Luas</span>
+      </div>
+    </div>
+    <div class="tile-info-row">
+      <% if (!summary.count) { %>
+        <span class="pill-info-tag">Belum ada lahan — tambah lahan</span>
+      <% } else if (summary.demoCount) { %>
+        <span class="pill-info-tag"><span class="badge badge-demo badge-xs">Data Demo</span> <%= summary.demoCount %> lahan contoh</span>
+      <% } else if (summary.noArea) { %>
+        <span class="pill-info-tag"><%= summary.noArea %> lahan belum diisi luas</span>
+      <% } else { %>
+        <span class="pill-info-tag"><%- icon('check', 14) %> Semua data aktif</span>
       <% } %>
-    </span>
-    <span class="tile-go"><%= summary.count ? 'Kelola lahan' : 'Tambah lahan' %> <%- icon('arrowRight', 18) %></span>
+    </div>
+    <span class="tile-go"><%= summary.count ? 'Kelola Lahan' : 'Tambah Lahan' %> <%- icon('arrowRight', 16) %></span>
   </a>
 
   <%- include('../partials/calendar-tile', { calendar, lands }) %>

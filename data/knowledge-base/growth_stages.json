@@ -1,0 +1,85 @@
+{
+    "dataset": "padi_sawah_irigasi_growth_stages",
+    "version": "1.0.0",
+    "updated_at": "2026-11-23",
+    "region": {
+        "province": "Jawa Timur",
+        "priority_regencies": [
+            "Gresik",
+            "Sidoarjo",
+            "Mojokerto",
+            "Lamongan"
+        ]
+    },
+    "crop": {
+        "name": "Padi sawah irigasi",
+        "variety_group": "Inbrida umur sedang",
+        "reference_varieties": [
+            "Inpari 32 HDB",
+            "Ciherang",
+            "Inpari 42 Agritan GSR"
+        ]
+    },
+    "stages": [
+        {
+            "stage_id": "GS-001",
+            "rentang_hst": [
+                0,
+                7
+            ],
+            "nama_fase": "Vegetatif Awal - Tumbuh Kembali dan Pembentukan Akar Baru",
+            "nama_umum": "Masa adaptasi setelah tanam",
+            "kategori_fase": "Vegetatif",
+            "ciri_fisik_tanaman": "Bibit mulai tegak kembali, akar baru tumbuh, daun baru muncul.",
+            "manajemen_air": {
+                "metode": "macak-macak_ke_genangan_dangkal",
+                "tinggi_air_cm": [
+                    2,
+                    5
+                ],
+                "catatan": "Hindari genangan dalam yang menenggelamkan titik tumbuh bibit muda."
+            },
+            "kegiatan": [
+                {
+                    "task_id": "TASK-001",
+                    "judul": "Pemeriksaan populasi dan penyulaman",
+                    "kategori": "pengamatan",
+                    "hari_rekomendasi": [
+                        3,
+                        7
+                    ],
+                    "catatan_teknis": "Selesaikan penyulaman sebelum 14 HST."
+                },
+                {
+                    "task_id": "TASK-002",
+                    "judul": "Pemupukan dasar P dan K",
+                    "kategori": "pemupukan",
+                    "hari_rekomendasi": [
+                        0,
+                        7
+                    ],
+                    "catatan_teknis": "Seluruh P diberikan pada fase ini; K sesuai dosis dan PUTS."
+                }
+            ],
+            "ancaman_opt": [
+                {
+                    "opt_id": "OPT-KEONG-MAS",
+                    "nama": "Keong mas",
+                    "tipe": "hama",
+                    "tingkat_risiko": "tinggi"
+                },
+                {
+                    "opt_id": "OPT-TIKUS",
+                    "nama": "Tikus sawah",
+                    "tipe": "hama",
+                    "tingkat_risiko": "sedang"
+                }
+            ],
+            "tips_pht": [
+                "Kumpulkan dan hancurkan telur keong mas.",
+                "Pasang perangkap tikus pada areal endemik.",
+                "Hindari penyemprotan preventif."
+            ]
+        }
+    ]
+}

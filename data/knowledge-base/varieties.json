@@ -1,0 +1,64 @@
+{
+    "dataset": "padi_varieties_gresik",
+    "version": "1.0.0",
+    "varieties": [
+        {
+            "variety_id": "VAR-INPARI-32",
+            "nama": "Inpari 32 HDB",
+            "tipe": "inbrida",
+            "umur_panen_hst": [
+                110,
+                120
+            ],
+            "umur_panen_hari_setelah_sebar": [
+                115,
+                125
+            ],
+            "rata_rata_hasil_t_ha": [
+                6.4,
+                6.5
+            ],
+            "potensi_hasil_t_ha": [
+                7.0,
+                9.0
+            ],
+            "ketahanan": {
+                "hdb": "tinggi",
+                "wbc": "perlu_pengamatan",
+                "blast": "perlu_pengamatan"
+            },
+            "kecocokan_lahan": {
+                "irigasi": true,
+                "salin": false,
+                "rawan_banjir": false
+            },
+            "manajemen_air": {
+                "fase_anakan_cm": [
+                    3,
+                    5
+                ],
+                "fase_primordia_cm": [
+                    3,
+                    5
+                ],
+                "pengeringan_vegetatif": "macak-macak_45_50_hst"
+            },
+            "pemupukan": {
+                "basis_rekomendasi": "PUTS_dan_BWD",
+                "urea_tahap_1_kg_ha": [
+                    50,
+                    75
+                ],
+                "urea_tahap_2_kg_ha": [
+                    50,
+                    100
+                ],
+                "urea_tahap_3_kg_ha": "berdasarkan_BWD"
+            },
+            "rekomendasi_wilayah": {
+                "gresik": "utama",
+                "catatan": "Cocok untuk sawah irigasi produktif; gunakan PHT ketat pada areal WBC."
+            }
+        }
+    ]
+}

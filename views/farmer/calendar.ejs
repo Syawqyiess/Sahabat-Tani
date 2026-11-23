@@ -51,6 +51,20 @@
     <% } else { %><strong>—</strong><% } %>
   </div>
 </section>
+<% if (land.planting_date && !isPast) { %>
+  <div class="panel cal-auto-banner" style="margin: 0 0 var(--s-4); display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; background: var(--bg-card-warm, #F5EFEA); border: 1px solid var(--border-subtle, #E0E4E1); border-radius: var(--radius-card, 18px); padding: 16px 20px;">
+    <div>
+      <strong style="display: flex; align-items: center; gap: 8px; color: var(--color-primary-dark, #0A2E1D);"><%- icon('check', 18) %> Paket Kalender Otomatis Balitbangtan / Kementan</strong>
+      <p class="small" style="margin: 3px 0 0; color: var(--text-body, #5C6660);">23 kegiatan budidaya padi (0–115 HST) dijadwalkan otomatis: pemupukan Urea I, II, III (BWD), pengamatan OPT, pengairan berkala, hingga panen.</p>
+    </div>
+    <form method="post" action="/kalender/otomatis">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="land_id" value="<%= land.id %>">
+      <input type="hidden" name="bulan" value="<%= bulan %>">
+      <button class="btn btn-sm btn-pill" type="submit"><%- icon('plus', 16) %> Generate Ulang Jadwal</button>
+    </form>
+  </div>
+<% } %>
 <% if (isPast) { %>
   <div class="alert alert-info"><%- icon('info') %><span>Menampilkan musim tanam sebelumnya (tanam <%= fmtSeason(musim) %>). <a href="<%= calUrl({ lahan: land.id, tanggal: today }) %>">Kembali ke musim aktif</a>.</span></div>
 <% } %>

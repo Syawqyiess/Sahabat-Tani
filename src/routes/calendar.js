@@ -39,6 +39,15 @@ async function render(req, res, { status = 200, errors = {}, values = null, edit
   let musim = '';
   let items = [];
   if (land) {
+    if (land.planting_date) {
+      const existing = await db.get(
+        'SELECT COUNT(*) as count FROM land_reminders WHERE user_id = ? AND land_id = ? AND season_start = ?',
+        uid, land.id, land.planting_date
+      );
+      if (existing && Number(existing.count) === 0) {
+        await cal.generateAutoReminders(uid, land);
+      }
+    }
     seasons = await cal.seasons(uid, land);
     musim = seasons.some((s) => s.value && s.value === req.query.musim) ? req.query.musim : '';
     items = await cal.forSeason(uid, land, musim, today);
@@ -90,6 +99,19 @@ function backTo(req, landId, date) {
   const musim = cal.isISODate(req.body.musim) ? req.body.musim : '';
   return calUrl({ lahan: landId, musim, tanggal: date }, '#detail-hari');
 }
+
+router.post('/kalender/otomatis', farmerOnly, async (req, res) => {
+  const land = await ownedLand(req, req.body.land_id);
+  if (!land) return notFound(res, 'Lahan');
+  if (!land.planting_date) {
+    req.session.flash = { type: 'error', text: 'Tanggal tanam lahan belum diisi.' };
+    return res.redirect(calUrl({ lahan: land.id }));
+  }
+  const count = await cal.generateAutoReminders(req.user.id, land);
+  req.session.flash = { type: 'success', text: `${count} kegiatan rekomendasi otomatis berhasil dijadwalkan!` };
+  const bulan = req.body.bulan || crop.todayISO().slice(0, 7);
+  res.redirect(calUrl({ lahan: land.id, bulan }));
+});
 
 router.post('/kalender', farmerOnly, async (req, res) => {
   const land = await ownedLand(req, req.body.land_id);

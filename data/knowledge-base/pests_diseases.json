@@ -1,0 +1,30 @@
+{
+    "opt_id": "OPT-WBC",
+    "nama": "Wereng batang cokelat",
+    "tipe": "hama",
+    "gejala": [
+        "Tanaman kering seperti terbakar",
+        "Pangkal batang banyak wereng",
+        "Hoppper burn pada serangan berat"
+    ],
+    "fase_risiko_hst": [
+        [
+            15,
+            45
+        ],
+        [
+            46,
+            90
+        ]
+    ],
+    "ambang_kendali": {
+        "deskripsi": "Gunakan ambang kendali berdasarkan pengamatan populasi dan gejala di lapang",
+        "tindakan_non_kimia": [
+            "Tanam serempak",
+            "Sanitasi ratun",
+            "Perangkap lampu",
+            "Lindungi musuh alami"
+        ],
+        "tindakan_kimia": "Hanya bila ambang kendali tercapai; ikuti rekomendasi penyuluh dan label produk"
+    }
+}

@@ -1,41 +1,53 @@
 <%- include('partials/head') %>
-<section class="hero">
+<section class="hero bento-hero">
   <div>
-    <h1>Teman di sawah, dari foto hama sampai kabar pertanian.</h1>
+    <h1>Teman di sawah, <span class="pill-badge"><%- icon('field', 18) %> Modern AgriTech</span> dari foto hama sampai kabar pertanian.</h1>
     <p class="lead">Foto tanaman padi yang bergejala, dapatkan dugaan awal hamanya, lalu tanyakan langkah berikutnya ke Asisten AI — semuanya dari ponsel.</p>
     <div class="hero-cta">
-      <a class="btn btn-lg" href="/daftar">Daftar Gratis</a>
-      <a class="btn btn-lg btn-ghost" href="/masuk">Saya sudah punya akun</a>
+      <a class="btn btn-lg btn-pill" href="/daftar">Daftar Gratis <span style="font-size:1.1em; margin-left:4px">→</span></a>
+      <a class="btn btn-lg btn-ghost btn-pill" href="/masuk">Saya sudah punya akun</a>
     </div>
   </div>
   <div class="hero-art"><%- include('partials/terrace', { variant: 'day' }) %></div>
 </section>
 
-<h2 class="h3">Cara kerjanya</h2>
+<div class="section-head" style="margin-top: var(--s-10);">
+  <span class="tag-caption">LANGKAH MUDAH</span>
+  <h2 class="h3">Cara kerjanya</h2>
+</div>
 <ol class="steps-line">
-  <li><div><h3>Foto bagian yang bergejala</h3><p>Pakai kamera ponsel atau pilih foto dari galeri.</p></div></li>
-  <li><div><h3>Dapatkan dugaan awal</h3><p>Ciri yang terlihat di foto dijelaskan dengan bahasa sederhana.</p></div></li>
-  <li><div><h3>Lanjut tanya Asisten AI</h3><p>Foto dan hasilnya sudah ada di percakapan — tidak perlu unggah ulang.</p></div></li>
+  <li><div class="bento-step"><span class="step-num">01</span><h3>Foto bagian yang bergejala</h3><p>Pakai kamera ponsel atau pilih foto dari galeri.</p></div></li>
+  <li><div class="bento-step"><span class="step-num">02</span><h3>Dapatkan dugaan awal</h3><p>Ciri yang terlihat di foto dijelaskan dengan bahasa sederhana.</p></div></li>
+  <li><div class="bento-step"><span class="step-num">03</span><h3>Lanjut tanya Asisten AI</h3><p>Foto dan hasilnya sudah ada di percakapan — tidak perlu unggah ulang.</p></div></li>
 </ol>
 
-<h2 class="h3">Yang bisa Anda lakukan</h2>
-<div class="feature-list">
-  <div class="feature"><span class="ic-wrap"><%- icon('field', 26) %></span><h3>Catat lahan</h3><p>Luas, varietas, tanggal tanam, dan lokasi di peta bila koordinat tersedia.</p></div>
-  <div class="feature"><span class="ic-wrap"><%- icon('air', 26) %></span><h3>Pantau kualitas udara</h3><p>Estimasi wilayah dari Open-Meteo untuk menjaga kesehatan saat bekerja di sawah.</p></div>
-  <div class="feature"><span class="ic-wrap"><%- icon('article', 26) %></span><h3>Baca dan simpan artikel</h3><p>Budidaya, pemupukan, dan hama — simpan yang penting untuk dibaca lagi.</p></div>
-  <div class="feature"><span class="ic-wrap"><%- icon('chat', 26) %></span><h3>Riwayat tersimpan</h3><p>Scan dan percakapan tetap ada setelah keluar dan masuk lagi.</p></div>
-  <div class="feature"><span class="ic-wrap"><%- icon('shield', 26) %></span><h3>Data pribadi terjaga</h3><p>Foto dan percakapan hanya bisa dilihat pemilik akunnya.</p></div>
-  <div class="feature"><span class="ic-wrap"><%- icon('users', 26) %></span><h3>Didampingi admin</h3><p>Admin dan penyuluh bisa membantu melengkapi profil dan data lahan.</p></div>
+<div class="section-head" style="margin-top: var(--s-10);">
+  <span class="tag-caption">FITUR UNGGULAN</span>
+  <h2 class="h3">Yang bisa Anda lakukan</h2>
+</div>
+<div class="feature-list bento-grid">
+  <div class="feature bento-card"><div class="bento-card-head"><span class="ic-wrap"><%- icon('field', 24) %></span><span class="action-circle">↗</span></div><h3>Catat lahan</h3><p>Luas, varietas, tanggal tanam, dan lokasi di peta bila koordinat tersedia.</p></div>
+  <div class="feature bento-card"><div class="bento-card-head"><span class="ic-wrap"><%- icon('air', 24) %></span><span class="action-circle">↗</span></div><h3>Pantau kualitas udara</h3><p>Estimasi wilayah dari Open-Meteo untuk menjaga kesehatan saat bekerja di sawah.</p></div>
+  <div class="feature bento-card"><div class="bento-card-head"><span class="ic-wrap"><%- icon('article', 24) %></span><span class="action-circle">↗</span></div><h3>Baca dan simpan artikel</h3><p>Budidaya, pemupukan, dan hama — simpan yang penting untuk dibaca lagi.</p></div>
+  <div class="feature bento-card"><div class="bento-card-head"><span class="ic-wrap"><%- icon('chat', 24) %></span><span class="action-circle">↗</span></div><h3>Riwayat tersimpan</h3><p>Scan dan percakapan tetap ada setelah keluar dan masuk lagi.</p></div>
+  <div class="feature bento-card"><div class="bento-card-head"><span class="ic-wrap"><%- icon('shield', 24) %></span><span class="action-circle">↗</span></div><h3>Data pribadi terjaga</h3><p>Foto dan percakapan hanya bisa dilihat pemilik akunnya.</p></div>
+  <div class="feature bento-card"><div class="bento-card-head"><span class="ic-wrap"><%- icon('users', 24) %></span><span class="action-circle">↗</span></div><h3>Didampingi admin</h3><p>Admin dan penyuluh bisa membantu melengkapi profil dan data lahan.</p></div>
 </div>
 
 <% if (latest.length) { %>
-<section class="section">
-  <div class="section-head"><h2 class="h3">Bacaan terbaru</h2><a href="/artikel">Semua artikel</a></div>
+<section class="section" style="margin-top: var(--s-10);">
+  <div class="section-head">
+    <div>
+      <span class="tag-caption">EDUKASI PETANI</span>
+      <h2 class="h3">Bacaan terbaru</h2>
+    </div>
+    <a href="/artikel" class="btn btn-sm btn-ghost btn-pill">Semua artikel ↗</a>
+  </div>
   <div class="article-grid">
     <% latest.forEach((a) => { %><%- include('partials/article-card', { a, saved: null }) %><% }) %>
   </div>
 </section>
 <% } %>
 
-<p class="notice"><%- icon('info') %> <span>Ini versi demo. Hasil identifikasi foto bersifat dugaan awal dan tidak menggantikan pemeriksaan penyuluh pertanian.</span></p>
+<p class="notice" style="margin-top: var(--s-8);"><%- icon('info') %> <span>Ini versi demo. Hasil identifikasi foto bersifat dugaan awal dan tidak menggantikan pemeriksaan penyuluh pertanian.</span></p>
 <%- include('partials/foot') %>

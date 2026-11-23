@@ -6,6 +6,18 @@ const news = require('./services/news');
 const rdkk = require('./services/rdkk');
 const SqliteStore = require('./db/session-store');
 
+// Tangani galat jaringan sementara (mis. pooler Supabase memutus koneksi menganggur) agar server tidak padam
+process.on('uncaughtException', (err) => {
+  if (err && (err.code === 'ECONNRESET' || err.code === 'EPIPE' || err.code === 'ETIMEDOUT')) {
+    console.warn('[server] Terjadi pemutusan koneksi jaringan sementara (transient):', err.code);
+    return;
+  }
+  console.error('[server] Uncaught exception:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.warn('[server] Unhandled rejection:', reason);
+});
+
 async function main() {
   db.open();
   const applied = await db.migrate();

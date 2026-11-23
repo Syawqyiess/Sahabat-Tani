@@ -1,0 +1,167 @@
+{
+  "meta": {
+    "komoditas": "Padi sawah irigasi",
+    "wilayah": "Gresik dan Jawa Timur",
+    "sumber": "Kementan / Balitbangtan / Repository Pertanian"
+  },
+  "varieties": [
+    {
+      "variety_id": "VAR-CIHERANG",
+      "nama": "Ciherang",
+      "tipe": "Inbrida",
+      "umur_hss": "116–125 HSS",
+      "umur_hst": [110, 120],
+      "rata_rata_hasil": "5–7 t/ha GKG",
+      "potensi_hasil": "6–8 t/ha GKG",
+      "ketahanan_opt": "Agak tahan WBC biotipe 2 dan 3; agak tahan HDB patotipe IV. Rentan bila populasi WBC tinggi atau patogen HDB berbeda.",
+      "manajemen_air": "Cocok untuk sawah irigasi dataran rendah. Gunakan pengairan genang-kering sesuai fase: macak-macak awal, 3–5 cm sejak anakan aktif, dan jangan cekaman saat primordia–berbunga.",
+      "pemupukan": "Pupuk N dibagi: awal sebelum 14 HST, susulan 25–30 HST, dan susulan primordia hanya bila BWD <4. Gunakan PUTS untuk P dan K.",
+      "kesesuaian_lahan": "Sawah irigasi umum dengan produktivitas stabil.",
+      "is_priority_gresik": 1
+    },
+    {
+      "variety_id": "VAR-INPARI-32",
+      "nama": "Inpari 32 HDB",
+      "tipe": "Inbrida",
+      "umur_hss": "120 HSS",
+      "umur_hst": [110, 120],
+      "rata_rata_hasil": "6,4–6,5 t/ha GKG (Gresik)",
+      "potensi_hasil": "8,4–9,0 t/ha GKG",
+      "ketahanan_opt": "Tahan Hawar Daun Bakteri (HDB) patotipe III, agak tahan patotipe IV dan VIII; agak tahan blast ras 073; rentan WBC semua biotipe sehingga perlu pengamatan ketat.",
+      "manajemen_air": "Sawah irigasi dengan drainase baik. Jaga genangan 3–5 cm pada anakan aktif hingga masak susu; pengeringan macak-macak sekitar 45–50 HST bila irigasi mendukung.",
+      "pemupukan": "Pemupukan N berbasis BWD; hindari N berlebih menjelang primordia agar tidak memperberat tekanan HDB/hama. Pupuk dasar P dan K sesuai PUTS.",
+      "kesesuaian_lahan": "Sawah irigasi produktif; sangat cocok untuk areal dengan riwayat serangan Hawar Daun Bakteri (kresek).",
+      "is_priority_gresik": 1
+    },
+    {
+      "variety_id": "VAR-INPARI-42",
+      "nama": "Inpari 42 Agritan GSR",
+      "tipe": "Inbrida Green Super Rice",
+      "umur_hss": "112–115 HSS",
+      "umur_hst": [110, 120],
+      "rata_rata_hasil": "7,1 t/ha GKG",
+      "potensi_hasil": "10,5 t/ha GKG",
+      "ketahanan_opt": "Tahan WBC biotipe 1, agak tahan biotipe 2; tahan HDB patotipe III, IV, dan VIII; tahan blast ras 073 dan 133.",
+      "manajemen_air": "Sawah irigasi dengan manajemen air teratur. Terapkan pengairan berselang pada vegetatif awal–anakan aktif bila drainase baik, genangan 3–5 cm sejak primordia hingga masak susu.",
+      "pemupukan": "Pupuk dasar P dan K sesuai PUTS; N dibagi berbasis BWD, bukan dosis tunggal besar.",
+      "kesesuaian_lahan": "Sawah irigasi subur dan optimal; varietas GSR efisien hara dan input.",
+      "is_priority_gresik": 1
+    },
+    {
+      "variety_id": "VAR-MEKONGGA",
+      "nama": "Mekongga",
+      "tipe": "Inbrida",
+      "umur_hss": "115–125 HSS",
+      "umur_hst": [115, 125],
+      "rata_rata_hasil": "5–7 t/ha GKG",
+      "potensi_hasil": "6–8 t/ha GKG",
+      "ketahanan_opt": "Agak tahan WBC biotipe 2 dan 3; agak tahan HDB patotipe IV. Perlu pengawasan ketat pada WBC biotipe baru dan blast pada musim lembap.",
+      "manajemen_air": "Sawah irigasi dataran rendah. Disarankan untuk kondisi rendaman vegetatif lebih dari 14 hari bila areal rawan genangan.",
+      "pemupukan": "Pupuk N dibagi bertahap; K diberikan penuh bila dosis rendah atau 50% saat tanam dan 50% primordia bila dosis tinggi.",
+      "kesesuaian_lahan": "Sawah irigasi dataran rendah hingga ketinggian 500 mdpl.",
+      "is_priority_gresik": 0
+    },
+    {
+      "variety_id": "VAR-IR-64",
+      "nama": "IR 64",
+      "tipe": "Inbrida",
+      "umur_hss": "110–120 HSS",
+      "umur_hst": [110, 120],
+      "rata_rata_hasil": "5–7 t/ha GKG",
+      "potensi_hasil": "6 t/ha GKG",
+      "ketahanan_opt": "Umumnya rentan terhadap WBC dan HDB dibanding varietas modern; jangan diandalkan sebagai varietas tahan.",
+      "manajemen_air": "Pola umum padi sawah irigasi; genangan 3–5 cm saat fase aktif.",
+      "pemupukan": "Pemupukan standar berimbang sesuai anjuran setempat.",
+      "kesesuaian_lahan": "Hanya untuk lahan dengan tekanan OPT rendah dengan penerapan PHT ketat.",
+      "is_priority_gresik": 0
+    },
+    {
+      "variety_id": "VAR-INPARI-34-SALIN",
+      "nama": "Inpari 34 Salin Agritan",
+      "tipe": "Inbrida Toleran Salin",
+      "umur_hss": "102 HSS",
+      "umur_hst": [95, 105],
+      "rata_rata_hasil": "5,1 t/ha GKG",
+      "potensi_hasil": "8,4–9,5 t/ha GKG",
+      "ketahanan_opt": "Toleran salinitas pada fase bibit; tahan blast dan agak tahan WBC.",
+      "manajemen_air": "Pesisir/intrusi air laut. Jaga air irigasi tidak terlalu asin; lakukan pencucian/pembilasan bila memungkinkan. Umur genjah membantu hindari kekeringan/panen terlambat.",
+      "pemupukan": "Hindari pupuk N berlebih; gunakan pupuk berimbang sesuai uji tanah.",
+      "kesesuaian_lahan": "Pilihan utama petakan pesisir atau terdampak intrusi air laut (misal Pantura Gresik).",
+      "is_priority_gresik": 1
+    },
+    {
+      "variety_id": "VAR-INPARI-35-SALIN",
+      "nama": "Inpari 35 Salin Agritan",
+      "tipe": "Inbrida Toleran Salin",
+      "umur_hss": "106 HSS",
+      "umur_hst": [100, 110],
+      "rata_rata_hasil": "5,3 t/ha GKG",
+      "potensi_hasil": "8,3–9,6 t/ha GKG",
+      "ketahanan_opt": "Toleran salinitas pada fase bibit; tahan blast dan agak tahan WBC.",
+      "manajemen_air": "Kelola air agar salinitas tidak menumpuk, terutama fase bibit dan anakan.",
+      "pemupukan": "Berbasis PUTS dan hindari pupuk kandang/gypsum tanpa analisis tanah.",
+      "kesesuaian_lahan": "Sawah salin ringan hingga sedang di kawasan pantai.",
+      "is_priority_gresik": 1
+    },
+    {
+      "variety_id": "VAR-INPARI-29-RENDAMAN",
+      "nama": "Inpari 29 Rendaman",
+      "tipe": "Inbrida Toleran Banjir",
+      "umur_hss": "110 HSS",
+      "umur_hst": [100, 110],
+      "rata_rata_hasil": "6,5 t/ha GKG",
+      "potensi_hasil": "9,5 t/ha GKG",
+      "ketahanan_opt": "Toleran rendaman vegetatif; tetap pantau WBC, penggerek, dan penyakit daun.",
+      "manajemen_air": "Petakan rawan banjir/genangan. Pastikan saluran pembuangan berfungsi; segera kuras genangan berlebih.",
+      "pemupukan": "Pemupukan N dibagi dan dikurangi bila tanaman baru mengalami cekaman rendaman.",
+      "kesesuaian_lahan": "Petakan sawah bantaran sungai atau dataran banjir/rawan genangan.",
+      "is_priority_gresik": 1
+    },
+    {
+      "variety_id": "VAR-INPARI-30-CIHERANG-SUB1",
+      "nama": "Inpari 30 Ciherang Sub-1",
+      "tipe": "Inbrida Toleran Banjir",
+      "umur_hss": "111 HSS",
+      "umur_hst": [100, 110],
+      "rata_rata_hasil": "7,2 t/ha GKG",
+      "potensi_hasil": "9,6 t/ha GKG",
+      "ketahanan_opt": "Toleran rendaman vegetatif hingga 14 hari; karakter agronomis dan rasa nasi mendekati Ciherang.",
+      "manajemen_air": "Sawah rawan banjir dengan drainase terbatas. Jaga genangan dangkal setelah cekaman berakhir.",
+      "pemupukan": "Hindari pemupukan N tinggi saat tanaman stres akibat rendaman.",
+      "kesesuaian_lahan": "Areal persawahan rawan luapan banjir dengan rasa nasi pulen disukai pasar.",
+      "is_priority_gresik": 1
+    }
+  ],
+  "recommendations_by_condition": [
+    {
+      "kondisi": "Sawah irigasi umum, produktivitas stabil",
+      "varietas_prioritas": ["Inpari 32 HDB", "Inpari 42 Agritan GSR", "Ciherang"],
+      "alasan": "Paling umum di Jawa Timur/Gresik, ketersediaan benih luas, dan hasil terbukti stabil."
+    },
+    {
+      "kondisi": "Areal dengan riwayat penyakit Hawar Daun Bakteri (HDB / kresek)",
+      "varietas_prioritas": ["Inpari 32 HDB"],
+      "alasan": "Dirancang spesifik untuk ketahanan HDB; tetap terapkan rotasi varietas dan PHT."
+    },
+    {
+      "kondisi": "Areal rawan Wereng Batang Cokelat (WBC)",
+      "varietas_prioritas": ["Inpari 42 Agritan GSR", "Inpari 32 HDB"],
+      "alasan": "Terapkan tanam serempak, hindari pupuk N berlebih, dan pantau populasi sejak dini."
+    },
+    {
+      "kondisi": "Pesisir / salinitas ringan–sedang (pantai utara Gresik)",
+      "varietas_prioritas": ["Inpari 34 Salin Agritan", "Inpari 35 Salin Agritan"],
+      "alasan": "Toleran salinitas fase bibit dan potensi hasil tinggi di tanah pesisir."
+    },
+    {
+      "kondisi": "Rawan banjir / genangan air",
+      "varietas_prioritas": ["Inpari 29 Rendaman", "Inpari 30 Ciherang Sub-1"],
+      "alasan": "Toleran rendaman vegetatif hingga 14 hari dengan potensi hasil 9,5–9,6 t/ha."
+    },
+    {
+      "kondisi": "Membutuhkan panen lebih cepat (genjah)",
+      "varietas_prioritas": ["Inpari 34 Salin Agritan", "Inpari 35 Salin Agritan"],
+      "alasan": "Umur sekitar 102–106 hari setelah sebar (95–105 HST), lebih cepat dibanding Ciherang/Inpari 32."
+    }
+  ]
+}

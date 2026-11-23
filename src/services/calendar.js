@@ -129,6 +129,58 @@ function monthGrid(ym) {
   return weeks;
 }
 
+// Standar paket kegiatan rekomendasi PTT Padi Sawah / Jarwo Super Balitbangtan Kementan
+const STANDARD_TASKS = [
+  { hst: 0, category: 'tanam', title: 'Tanam bibit padi', note: 'Tanam bibit (umur 15-21 HSS), sistem jajar legowo kondisi air macak-macak.' },
+  { hst: 0, category: 'pemupukan', title: 'Pemupukan dasar P & K', note: 'Seluruh pupuk P (SP-36) dan KCl dosis dasar diberikan saat tanam atau 0-7 HST sesuai PUTS.' },
+  { hst: 5, category: 'pengamatan-hama', title: 'Pengamatan keong mas & pasang perangkap tikus', note: 'Periksa telur dan keong mas di saluran air/pematang; kendalikan manual sebelum merusak bibit muda.' },
+  { hst: 7, category: 'pengamatan-hama', title: 'Pemeriksaan populasi rumpun & penyulaman awal', note: 'Cek rumpun mati/kosong; segera sulam agar pertumbuhan seragam sebelum 14 HST.' },
+  { hst: 10, category: 'pemupukan', title: 'Pemupukan Urea tahap I', note: 'Aplikasi 50-75 kg Urea/ha (sekitar 1/3 dosis total N). Jangan berlebihan agar anakan produktif.' },
+  { hst: 12, category: 'perawatan', title: 'Penyiangan gulma awal (gosrok / manual)', note: 'Gunakan landak/gosrok atau cabut manual dengan kondisi air dangkal 2-3 cm untuk membenamkan gulma.' },
+  { hst: 14, category: 'perawatan', title: 'Batas akhir penyulaman bibit', note: 'Selesaikan penyulaman agar populasi tanaman optimal dan panen serempak.' },
+  { hst: 21, category: 'perawatan', title: 'Penyiangan gulma kedua', note: 'Lakukan penyiangan kedua sebelum kanopi menutup ruang antar rumpun.' },
+  { hst: 21, category: 'pengamatan-hama', title: 'Pengamatan wereng batang cokelat & penggerek (sundep)', note: 'Amati pangkal batang dekat air untuk nimfa wereng dan pucuk layu tanda sundep.' },
+  { hst: 28, category: 'pemupukan', title: 'Pengukuran BWD & Pemupukan Urea tahap II', note: 'Ukur warna daun dengan Bagan Warna Daun (BWD) pada 10 rumpun. Bila skala <4, beri 50-75 kg Urea/ha.' },
+  { hst: 35, category: 'pengamatan-hama', title: 'Pemantauan intensif OPT (WBC, sundep, tikus)', note: 'Pengamatan rutin 5 titik acak; periksa gejala hopperburn dan sarang tikus di pematang.' },
+  { hst: 42, category: 'pemupukan', title: 'Pemupukan Urea tahap III (bila BWD <4)', note: 'Aplikasi susulan terakhir bila daun masih pucat (BWD <4). Jangan tambah N bila daun sudah hijau tua.' },
+  { hst: 48, category: 'perawatan', title: 'Pengeringan berkala (intermittent) / macak-macak', note: 'Keringkan sawah hingga retak rambut selama 4-5 hari untuk menekan anakan tidak produktif dan memperkuat akar.' },
+  { hst: 50, category: 'pemupukan', title: 'Pemupukan K susulan / primordia (bila dosis K tinggi)', note: 'Aplikasi 50% sisa KCl untuk memperkuat malai dan pengisian bulir.' },
+  { hst: 55, category: 'pengamatan-hama', title: 'Pengamatan inisiasi primordia (fase bunting awal)', note: 'Batang mulai membengkak; pastikan air kembali digenang 3-5 cm, jangan sampai tanaman kekeringan.' },
+  { hst: 65, category: 'pengamatan-hama', title: 'Pengamatan hama malai & penyakit hawar/blast', note: 'Periksa pelepah daun bendera dari bercak blast atau hawar daun bakteri (HDB).' },
+  { hst: 70, category: 'pengamatan-hama', title: 'Pengamatan 50% pembungaan & walang sangit', note: 'Catat tanggal mekar bunga; amati walang sangit pada malai saat pagi hari.' },
+  { hst: 80, category: 'pengamatan-hama', title: 'Pengamatan masak susu / pengisian bulir', note: 'Jaga air tetap tergenang 3-5 cm selama pengisian bulir; cegah serangan burung dan tikus.' },
+  { hst: 85, category: 'pengamatan-hama', title: 'Pengendalian tikus & burung komunal', note: 'Pasang orang-orangan sawah, kincir, atau ronda petakan karena bulir mulai menguning.' },
+  { hst: 95, category: 'pengamatan-hama', title: 'Pemeriksaan kematangan gabah & persiapan panen', note: 'Cek persentase gabah kuning (target 90-95% menguning); siapkan alat/mesin panen.' },
+  { hst: 100, category: 'perawatan', title: 'Pengeringan petakan menjelang panen (7-10 hari pra-panen)', note: 'Kuras dan keringkan sawah agar permukaan tanah padat saat pemanenan dan gabah tidak kotor.' },
+  { hst: 110, category: 'panen', title: 'Panen padi (90-95% bulir menguning)', note: 'Lakukan panen dengan sabit bergerigi atau combine harvester untuk meminimalkan kehilangan hasil.' },
+  { hst: 112, category: 'perawatan', title: 'Perontokan dan pengeringan gabah (target KA 14%)', note: 'Segera rontokkan dan jemur gabah dengan ketebalan 5-7 cm, balik setiap 2 jam.' },
+];
+
+async function generateAutoReminders(userId, land) {
+  if (!land || !land.planting_date) return 0;
+  const existing = await db.all(
+    'SELECT title, due_date FROM land_reminders WHERE user_id = ? AND land_id = ? AND season_start = ?',
+    userId, land.id, land.planting_date,
+  );
+  const existingKeys = new Set(existing.map((e) => `${e.title}|${e.due_date}`));
+
+  let added = 0;
+  await db.tx(async () => {
+    for (const t of STANDARD_TASKS) {
+      const dueDate = crop.addDays(land.planting_date, t.hst);
+      const key = `${t.title}|${dueDate}`;
+      if (!existingKeys.has(key)) {
+        await db.run(
+          'INSERT INTO land_reminders (user_id, land_id, season_start, due_date, category, title, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          userId, land.id, land.planting_date, dueDate, t.category, t.title, t.note,
+        );
+        added++;
+      }
+    }
+  });
+  return added;
+}
+
 function parse(body, v, errors) {
   return {
     title: v.str(body.title, { max: 120, required: true, label: 'Nama kegiatan' }, errors, 'title'),
@@ -141,4 +193,5 @@ function parse(body, v, errors) {
 module.exports = {
   CATEGORIES, CAT_LABEL, MONTHS, DAYS, ownedLands, pickLand, forLand, forSeason, seasons, todayPreview, nextReminder, parse, decorate,
   isISODate, isMonth, shiftMonth, monthLabel, longDate, monthGrid, weekday,
+  STANDARD_TASKS, generateAutoReminders,
 };

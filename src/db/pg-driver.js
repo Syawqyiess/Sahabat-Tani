@@ -89,6 +89,9 @@ function create({ connectionString, fallbackConnectionString, schema = 'public',
       ssl: ssl || { rejectUnauthorized: false },
     });
     p.on('error', (err) => { console.error('[postgres] koneksi menganggur terputus:', err.code || err.message); });
+    p.on('connect', (client) => {
+      client.on('error', (err) => { console.warn('[postgres] klien database terputus:', err.code || err.message); });
+    });
     return p;
   };
   // Koneksi utama (mis. langsung ke database, IPv6) + cadangan (pooler Supabase, IPv4).

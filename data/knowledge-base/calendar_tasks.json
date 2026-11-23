@@ -1,0 +1,35 @@
+{
+    "task_id": "TASK-UREA-2",
+    "judul": "Pemupukan urea tahap II",
+    "kategori": "pemupukan",
+    "trigger": {
+        "tipe": "hst",
+        "rentang_hst": [
+            25,
+            30
+        ],
+        "kondisi_tambahan": "BWD_di_bawah_skala_4"
+    },
+    "input_petani": [
+        {
+            "field": "bwd_skala",
+            "tipe": "number",
+            "required": true,
+            "range": [
+                1,
+                8
+            ]
+        }
+    ],
+    "rekomendasi": {
+        "urea_kg_ha": [
+            50,
+            100
+        ],
+        "catatan": "Sesuaikan dengan PUTS, petak omisi, dan kondisi tanaman."
+    },
+    "notifikasi": {
+        "judul": "Waktunya cek BWD dan pertimbangkan urea tahap II",
+        "pesan": "Periksa warna daun pada 10 rumpun sehat. Bila BWD di bawah skala 4, lakukan pemupukan urea sesuai rekomendasi."
+    }
+}

@@ -9,18 +9,30 @@
 <% } else {
   const tone = data.category ? data.category.tone : 'none';
   const catIcon = { good: 'smile', moderate: 'info', none: 'info' }[tone] || 'alert'; %>
-  <div class="aq tone-<%= tone %>">
-    <span class="aq-num"><%= data.aqi != null ? Math.round(data.aqi) : '—' %></span>
-    <div>
-      <span class="aq-cat"><%- icon(catIcon, 20) %> <%= data.category ? data.category.label : 'Kategori tidak tersedia' %></span>
-      <p class="small muted" style="margin:6px 0 0"><%= data.indexName %> · PM2.5 <%= data.params[0].value ?? '—' %> <%= data.params[0].unit %></p>
+  <div class="aq-card-inner tone-<%= tone %>">
+    <div class="aq-primary-row">
+      <div class="aq-figure">
+        <span class="aq-num"><%= data.aqi != null ? Math.round(data.aqi) : '—' %></span>
+        <span class="aq-scale-label">US AQI</span>
+      </div>
+      <div class="aq-status-wrap">
+        <span class="aq-cat-pill">
+          <%- icon(catIcon, 15) %> <%= data.category ? data.category.label : 'Kategori tidak tersedia' %>
+        </span>
+        <span class="aq-param-pill">PM2.5 <%= data.params && data.params[0] && data.params[0].value != null ? data.params[0].value : '—' %> <%= data.params && data.params[0] && data.params[0].unit ? data.params[0].unit : 'µg/m³' %></span>
+      </div>
     </div>
-    <div class="aq-meta">
-      <span><%- icon('location', 16) %> <%= loc.label %></span>
-      <span><%- icon('clock', 16) %> <%= data.dataTime ? data.dataTime.slice(11, 16) + ' ' + (data.tzAbbr || '') : '—' %></span>
-      <% if (loc.kind === 'demo' || loc.kind === 'land-demo') { %><span class="badge badge-demo">Lokasi Demo</span><% } %>
+
+    <div class="aq-meta-bar">
+      <span class="aq-meta-item"><%- icon('location', 14) %> <%= loc.label %></span>
+      <span class="aq-meta-item"><%- icon('clock', 14) %> <%= data.dataTime ? data.dataTime.slice(11, 16) + ' ' + (data.tzAbbr || 'WIB') : '—' %></span>
+      <% if (loc.kind === 'demo' || loc.kind === 'land-demo') { %><span class="badge badge-demo badge-xs">Demo</span><% } %>
     </div>
+
+    <% if (data.stale || (typeof warning !== 'undefined' && warning)) { %>
+      <p class="small warn" style="margin: 4px 0 0;"><%- icon('alert', 14) %> Data lama (<%= u.fmtDate(data.fetchedAt, true) %>)</p>
+    <% } %>
+
+    <p class="aq-footnote">Estimasi wilayah model Open-Meteo &amp; CAMS.</p>
   </div>
-  <% if (data.stale || (typeof warning !== 'undefined' && warning)) { %><p class="small warn" style="margin:var(--s-3) 0 0"><%- icon('alert', 16) %> Data lama — diambil <%= u.fmtDate(data.fetchedAt, true) %>.</p><% } %>
-  <p class="xs muted" style="margin:var(--s-3) 0 0">Estimasi wilayah dari model, bukan sensor di lahan. Sumber: Open-Meteo &amp; CAMS.</p>
 <% } %>

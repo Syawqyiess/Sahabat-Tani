@@ -3,6 +3,7 @@ const db = require('../db');
 const ai = require('./ai');
 const storage = require('./storage');
 const scans = require('./scans');
+const crop = require('../lib/crop');
 const { findReferences, toSources } = require('./ai/references');
 
 async function getOwnedSession(userId, sessionId) {
@@ -23,9 +24,30 @@ async function generateReply(user, session) {
   const history = await messagesOf(session.id);
   const scan = await scanContext(user.id, session);
   const lastUser = [...history].reverse().find((m) => m.role === 'user');
+
+  // Ambil konteks lahan aktif/pertama milik petani (HST & varietas)
+  let landContextStr = '';
+  try {
+    const lands = await db.all('SELECT * FROM lands WHERE user_id = ? ORDER BY created_at', user.id);
+    const primaryLand = lands.find((l) => l.planting_date) || lands[0] || null;
+    if (primaryLand) {
+      const age = crop.cropAge(primaryLand);
+      const parts = [
+        primaryLand.variety && `varietas ${primaryLand.variety}`,
+        age.status === 'growing' && `${age.days} HST`,
+        age.phase && `fase ${age.phase}`,
+      ].filter(Boolean);
+      landContextStr = parts.join(' ');
+    }
+  } catch (err) {
+    console.warn('[chat] Gagal membaca konteks lahan:', err.message);
+  }
+
   const refs = await findReferences(
     scan && scan.result && scan.result.suspected_pest_name,
+    scan && scan.notes && scan.notes.plant_age_days != null ? `${scan.notes.plant_age_days} HST` : '',
     lastUser && lastUser.content,
+    landContextStr,
   );
   const chatSvc = ai.chat();
   const visionSvc = ai.vision();
