@@ -13,7 +13,7 @@ const local = require('../src/services/ai/local-scanner');
 // merah → kelas 0, hijau → "wereng batang cokelat", biru → "bukan hama padi".
 async function colorImage(r, g, b, size = 400) {
   const buffer = await sharp({ create: { width: size, height: size, channels: 3, background: { r, g, b } } }).jpeg().toBuffer();
-  return storage.saveImage({ buffer, size: buffer.length }, 777, 'scan').relPath;
+  return (await storage.saveImage({ buffer, size: buffer.length }, 777, 'scan')).relPath;
 }
 
 before(async () => {
@@ -80,7 +80,7 @@ describe('Penyedia scanner lokal (ONNX)', () => {
       .field('_csrf', f1.csrf).field('idempotency_key', crypto.randomUUID())
       .attach('photo', buffer, { filename: 'hijau.png', contentType: 'image/png' });
     assert.equal(res.body.ok, true, JSON.stringify(res.body));
-    const scan = h.db.get('SELECT provider, mode, model FROM pest_scans WHERE id = ?', res.body.scanId);
+    const scan = await h.db.get('SELECT provider, mode, model FROM pest_scans WHERE id = ?', res.body.scanId);
     assert.equal(scan.provider, 'lokal');
     assert.equal(scan.mode, 'ai');
     const page = await f1.get(res.body.redirect);

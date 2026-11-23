@@ -9,8 +9,8 @@ const router = express.Router();
 const farmerOnly = requireRole('farmer');
 
 // Menentukan lokasi: lahan terpilih → lokasi perangkat (dengan izin) → lahan pertama berkoordinat → lokasi demo.
-function resolveLocation(req) {
-  const lands = db.all('SELECT id, name, lat, lng, data_source FROM lands WHERE user_id = ? AND lat IS NOT NULL AND lng IS NOT NULL ORDER BY created_at', req.user.id);
+async function resolveLocation(req) {
+  const lands = await db.all('SELECT id, name, lat, lng, data_source FROM lands WHERE user_id = ? AND lat IS NOT NULL AND lng IS NOT NULL ORDER BY created_at', req.user.id);
   const landId = Number(req.query.lahan);
   if (landId) {
     const l = lands.find((x) => x.id === landId);
@@ -30,7 +30,7 @@ function resolveLocation(req) {
 }
 
 router.get('/udara', farmerOnly, async (req, res) => {
-  const { lands, loc } = resolveLocation(req);
+  const { lands, loc } = await resolveLocation(req);
   const out = await air.getAirQuality(loc.lat, loc.lng, { force: req.query.segarkan === '1' });
   const layer = WINDY_LAYERS.find((l) => l.id === req.query.lapisan) || WINDY_LAYERS[0];
   res.render('farmer/air', {
@@ -76,7 +76,7 @@ router.windyUrl = windyUrl;
 
 // Potongan HTML untuk dashboard (dimuat setelah halaman tampil agar dashboard tetap cepat).
 router.get('/udara/ringkas', farmerOnly, async (req, res) => {
-  const { loc } = resolveLocation(req);
+  const { loc } = await resolveLocation(req);
   const out = await air.getAirQuality(loc.lat, loc.lng);
   res.render('partials/air-summary', { loc, ...out });
 });

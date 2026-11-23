@@ -14,14 +14,14 @@ const router = express.Router();
 const farmerOnly = requireRole('farmer');
 const AFFECTED_PARTS = ['Daun', 'Batang', 'Pangkal batang', 'Akar', 'Malai/bulir', 'Seluruh tanaman', 'Tidak yakin'];
 
-router.get('/scan', farmerOnly, (req, res) => {
+router.get('/scan', farmerOnly, async (req, res) => {
   // HST tiap lahan dari perhitungan terpusat (tanggal tanam musim aktif, zona Asia/Jakarta).
-  const lands = db.all('SELECT id, name, commodity, planting_date, season_status FROM lands WHERE user_id = ? ORDER BY name', req.user.id)
+  const lands = (await db.all('SELECT id, name, commodity, planting_date, season_status FROM lands WHERE user_id = ? ORDER BY name', req.user.id))
     .map((l) => ({ ...l, age: crop.cropAge(l) }));
-  const recent = db.all(
+  const recent = (await db.all(
     `SELECT s.id, s.status, s.mode, s.result_json, s.created_at, s.image_path, s.chat_session_id, l.name AS land_name
        FROM pest_scans s LEFT JOIN lands l ON l.id = s.land_id WHERE s.user_id = ? ORDER BY s.id DESC LIMIT 3`, req.user.id,
-  ).map((s) => ({ ...s, result: safeJson(s.result_json) }));
+  )).map((s) => ({ ...s, result: safeJson(s.result_json) }));
   res.render('scans/new', {
     title: 'Scan Hama Padi', lands, recent, parts: AFFECTED_PARTS, maxMb: Math.round(config.maxUploadBytes / 1048576), idemKey: crypto.randomUUID(),
   });
@@ -41,7 +41,7 @@ router.post('/scan', farmerOnly, limits.scan, storage.single('photo'), verifyCsr
 
   const errors = {};
   let landId = v.num(req.body.land_id, { min: 1, int: true, label: 'Lahan' }, errors, 'land_id');
-  if (landId && !db.get('SELECT 1 FROM lands WHERE id = ? AND user_id = ?', landId, req.user.id)) errors.land_id = 'Lahan tidak ditemukan.';
+  if (landId && !await db.get('SELECT 1 FROM lands WHERE id = ? AND user_id = ?', landId, req.user.id)) errors.land_id = 'Lahan tidak ditemukan.';
   const plantAge = v.num(req.body.plant_age_days, { min: 0, max: 200, int: true, label: 'Umur tanaman' }, errors, 'plant_age_days');
   const affectedPart = v.oneOf(req.body.affected_part || null, AFFECTED_PARTS, { label: 'Bagian tanaman' }, errors, 'affected_part');
   const symptoms = v.str(req.body.symptoms, { max: 500, label: 'Gejala' }, errors, 'symptoms');
@@ -61,16 +61,16 @@ router.post('/scan', farmerOnly, limits.scan, storage.single('photo'), verifyCsr
   res.redirect(redirect);
 });
 
-router.get('/scan/riwayat', farmerOnly, (req, res) => {
-  const rows = db.all(
+router.get('/scan/riwayat', farmerOnly, async (req, res) => {
+  const rows = (await db.all(
     `SELECT s.id, s.status, s.mode, s.result_json, s.created_at, s.image_path, s.chat_session_id, s.error_message, l.name AS land_name
        FROM pest_scans s LEFT JOIN lands l ON l.id = s.land_id WHERE s.user_id = ? ORDER BY s.id DESC LIMIT 100`, req.user.id,
-  ).map((s) => ({ ...s, result: safeJson(s.result_json) }));
+  )).map((s) => ({ ...s, result: safeJson(s.result_json) }));
   res.render('scans/index', { title: 'Riwayat Scan', scans: rows });
 });
 
-router.get('/scan/:id', farmerOnly, (req, res) => {
-  const s = scans.getOwnedScan(req.user.id, req.params.id);
+router.get('/scan/:id', farmerOnly, async (req, res) => {
+  const s = await scans.getOwnedScan(req.user.id, req.params.id);
   if (!s) return res.status(404).render('errors/error', { title: 'Scan tidak ditemukan', status: 404, message: 'Scan tidak ditemukan atau bukan milik Anda.' });
   res.render('scans/show', { title: `Scan #${s.id}`, scan: scans.scanView(s), SUBJECT_LABEL: scans.SUBJECT_LABEL });
 });

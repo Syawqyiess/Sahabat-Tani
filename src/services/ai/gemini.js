@@ -67,8 +67,8 @@ async function generate(models, body) {
   throw lastErr;
 }
 
-function imagePart(relPath, mime) {
-  return { inline_data: { mime_type: mime, data: storage.readBase64(relPath) } };
+async function imagePart(relPath, mime) {
+  return { inline_data: { mime_type: mime, data: await storage.readBase64(relPath) } };
 }
 
 function systemOf(base, references) {
@@ -87,7 +87,7 @@ const vision = {
     const schemaHint = `\n\nBalas HANYA dengan satu objek JSON yang mengikuti skema berikut (semua kolom wajib ada):\n${JSON.stringify(VISION_SCHEMA)}`;
     const { text, model } = await generate(config.ai.geminiVisionModels, {
       systemInstruction: systemOf(VISION_SYSTEM + schemaHint, references),
-      contents: [{ role: 'user', parts: [imagePart(imagePath, mime), { text: `Keterangan dari petani:\n${notesText(notes)}\n\nAnalisis foto ini.` }] }],
+      contents: [{ role: 'user', parts: [await imagePart(imagePath, mime), { text: `Keterangan dari petani:\n${notesText(notes)}\n\nAnalisis foto ini.` }] }],
       generationConfig: { responseMimeType: 'application/json', temperature: 0.2, maxOutputTokens: 8192 },
     });
     let result;
@@ -115,14 +115,14 @@ const chat = {
     };
     if (scan) {
       const ctx = [{ text: `Konteks hasil scan (otomatis dari aplikasi, status: ${scan.status}):\n${JSON.stringify(chatScanView(scan.result) || { error: scan.error_message }, null, 1)}\n\nKeterangan petani:\n${notesText(scan.notes)}` }];
-      if (scan.image_path) ctx.unshift(imagePart(scan.image_path, scan.image_mime));
+      if (scan.image_path) ctx.unshift(await imagePart(scan.image_path, scan.image_mime));
       push('user', ctx);
     }
     for (const m of history) {
       if (m.role === 'system') continue;
       const role = m.role === 'assistant' ? 'model' : 'user';
       const parts = [];
-      if (m.image_path && role === 'user') parts.push(imagePart(m.image_path, m.image_mime));
+      if (m.image_path && role === 'user') parts.push(await imagePart(m.image_path, m.image_mime));
       parts.push({ text: m.content || '(foto tambahan)' });
       if (!contents.length && role === 'model') push('user', [{ text: 'Halo.' }]);
       push(role, parts);

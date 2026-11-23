@@ -37,8 +37,8 @@ function textOf(resp) {
   return resp.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
 }
 
-function imageBlock(relPath, mime) {
-  return { type: 'image', source: { type: 'base64', media_type: mime, data: storage.readBase64(relPath) } };
+async function imageBlock(relPath, mime) {
+  return { type: 'image', source: { type: 'base64', media_type: mime, data: await storage.readBase64(relPath) } };
 }
 
 const vision = {
@@ -55,7 +55,7 @@ const vision = {
       output_config: { effort: 'medium', format: { type: 'json_schema', schema: VISION_SCHEMA } },
       messages: [{
         role: 'user',
-        content: [imageBlock(imagePath, mime), { type: 'text', text: `Keterangan dari petani:\n${notesText(notes)}\n\nAnalisis foto ini.` }],
+        content: [await imageBlock(imagePath, mime), { type: 'text', text: `Keterangan dari petani:\n${notesText(notes)}\n\nAnalisis foto ini.` }],
       }],
     });
     const text = textOf(resp);
@@ -78,7 +78,7 @@ const chat = {
     const ctx = [];
     if (scan) {
       ctx.push({ type: 'text', text: `Konteks hasil scan (otomatis dari aplikasi, status: ${scan.status}):\n${JSON.stringify(chatScanView(scan.result) || { error: scan.error_message }, null, 1)}\n\nKeterangan petani:\n${notesText(scan.notes)}` });
-      if (scan.image_path) ctx.unshift(imageBlock(scan.image_path, scan.image_mime));
+      if (scan.image_path) ctx.unshift(await imageBlock(scan.image_path, scan.image_mime));
     }
     const messages = [];
     const push = (role, blocks) => {
@@ -90,7 +90,7 @@ const chat = {
     for (const m of history) {
       if (m.role === 'system') continue;
       const blocks = [];
-      if (m.image_path && m.role === 'user') blocks.push(imageBlock(m.image_path, m.image_mime));
+      if (m.image_path && m.role === 'user') blocks.push(await imageBlock(m.image_path, m.image_mime));
       blocks.push({ type: 'text', text: m.content || '(foto tambahan)' });
       if (!messages.length && m.role === 'assistant') push('user', [{ type: 'text', text: 'Halo.' }]);
       push(m.role, blocks);

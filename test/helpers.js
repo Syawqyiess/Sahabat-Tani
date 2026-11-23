@@ -19,6 +19,13 @@ process.env.AI_CHAT_PROVIDER = '';
 process.env.NEWS_AUTO_FETCH = '0';
 process.env.RDKK_AUTO_FETCH = '0';
 process.env.NEWS_MIN_DELAY_MS = '0'; // tes memakai situs tiruan: tanpa jeda antar permintaan
+// Database uji: SQLite sementara (npm test) atau Postgres Supabase di skema terpisah "uji_otomatis" (npm run test:supabase).
+// Data aplikasi di skema public tidak pernah disentuh. Foto uji selalu di folder sementara.
+const PG_TEST = process.env.npm_lifecycle_event === 'test:supabase' || process.env.TEST_DB === 'postgres';
+if (PG_TEST) require('dotenv').config({ quiet: true });
+process.env.DB_DRIVER = PG_TEST ? 'postgres' : 'sqlite';
+process.env.PG_SCHEMA = 'uji_otomatis';
+process.env.STORAGE_DRIVER = 'local';
 
 const request = require('supertest');
 const db = require('../src/db');
@@ -29,6 +36,7 @@ let app;
 async function setup() {
   if (app) return app;
   db.open();
+  if (PG_TEST) await db.exec('DROP SCHEMA IF EXISTS uji_otomatis CASCADE'); // mulai dari skema uji kosong
   await seed({ quiet: true });
   app = createApp();
   return app;

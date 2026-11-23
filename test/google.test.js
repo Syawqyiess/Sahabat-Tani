@@ -70,7 +70,7 @@ async function googleLogin(agent, claims, { tokenOpts, mutate } = {}) {
   nextError = null;
   return agent.get(`/auth/google/callback?code=kode-uji&state=${encodeURIComponent(p.get('state'))}`);
 }
-const users = () => h.db.get('SELECT COUNT(*) n FROM users').n;
+const users = async () => (await h.db.get('SELECT COUNT(*) n FROM users')).n;
 const flashOf = async (agent, url = '/masuk') => (await agent.get(url)).text;
 
 describe('Masuk/Daftar dengan Google', () => {
@@ -109,38 +109,38 @@ describe('Masuk/Daftar dengan Google', () => {
   });
 
   test('pengguna baru: akun petani + profil dibuat dari token terverifikasi, tanpa kata sandi; login ulang ke akun yang sama', async () => {
-    const before = users();
+    const before = await users();
     const agent = h.request.agent(h.getApp());
     const cb = await googleLogin(agent, { sub: 'google-sub-100', email: 'Siti.Petani@Gmail.com', name: 'Siti Aminah' });
     assert.equal(cb.status, 302);
     assert.equal(cb.headers.location, '/profil/lengkapi');
     assert.ok(lastVerifier && lastVerifier.length >= 43, 'PKCE verifier dikirim saat menukar kode');
-    assert.equal(users(), before + 1);
-    const u = h.db.get("SELECT * FROM users WHERE email = 'siti.petani@gmail.com'");
+    assert.equal(await users(), before + 1);
+    const u = await h.db.get("SELECT * FROM users WHERE email = 'siti.petani@gmail.com'");
     assert.equal(u.role, 'farmer', 'bukan admin');
     assert.equal(u.password_hash, null, 'tanpa kata sandi tiruan');
     assert.equal(u.phone, null, 'nomor HP tidak dikarang');
-    assert.equal(h.db.get('SELECT full_name FROM farmer_profiles WHERE user_id = ?', u.id).full_name, 'Siti Aminah');
-    assert.equal(h.db.get("SELECT subject FROM user_identities WHERE user_id = ? AND provider = 'google'", u.id).subject, 'google-sub-100');
+    assert.equal((await h.db.get('SELECT full_name FROM farmer_profiles WHERE user_id = ?', u.id)).full_name, 'Siti Aminah');
+    assert.equal((await h.db.get("SELECT subject FROM user_identities WHERE user_id = ? AND provider = 'google'", u.id)).subject, 'google-sub-100');
     // Profil singkat (opsional) lalu Dashboard.
     const quick = await agent.get('/profil/lengkapi');
     assert.match(quick.text, /Nomor HP[\s\S]*Desa\/kelurahan[\s\S]*Kelompok tani/);
     const csrf = h.csrfFrom(quick.text);
     const save = await agent.post('/profil/lengkapi').type('form').send({ _csrf: csrf, phone: '081377770055', village: 'Mojopuro Wetan', farmer_group: '' });
     assert.equal(save.status, 302);
-    assert.equal(h.db.get('SELECT phone FROM users WHERE id = ?', u.id).phone, '081377770055');
+    assert.equal((await h.db.get('SELECT phone FROM users WHERE id = ?', u.id)).phone, '081377770055');
     // Data antarpengguna terpisah: akun baru tidak melihat lahan petani lain.
     assert.doesNotMatch((await agent.get('/lahan')).text, /Sawah Blok A \(Demo\)/);
     // Nama diubah di Sahabat Tani tidak ditimpa saat login Google berikutnya.
-    h.db.run("UPDATE farmer_profiles SET full_name = 'Bu Siti' WHERE user_id = ?", u.id);
+    await h.db.run("UPDATE farmer_profiles SET full_name = 'Bu Siti' WHERE user_id = ?", u.id);
     const out = h.csrfFrom((await agent.get('/dashboard')).text);
     await agent.post('/keluar').type('form').send({ _csrf: out });
     assert.equal((await agent.get('/dashboard')).status, 302, 'logout mengakhiri sesi');
     const again = await googleLogin(agent, { sub: 'google-sub-100', email: 'siti.petani@gmail.com', name: 'Siti Aminah (Google)' });
     assert.equal(again.headers.location, '/dashboard');
-    assert.equal(users(), before + 1, 'login ulang tidak membuat akun baru');
-    assert.equal(h.db.get('SELECT full_name FROM farmer_profiles WHERE user_id = ?', u.id).full_name, 'Bu Siti');
-    assert.equal(h.db.get('SELECT COUNT(*) n FROM farmer_profiles WHERE user_id = ?', u.id).n, 1, 'tanpa profil ganda');
+    assert.equal(await users(), before + 1, 'login ulang tidak membuat akun baru');
+    assert.equal((await h.db.get('SELECT full_name FROM farmer_profiles WHERE user_id = ?', u.id)).full_name, 'Bu Siti');
+    assert.equal((await h.db.get('SELECT COUNT(*) n FROM farmer_profiles WHERE user_id = ?', u.id)).n, 1, 'tanpa profil ganda');
     const dash = await agent.get('/dashboard');
     assert.equal(dash.status, 200);
     // Login lokal untuk akun tanpa kata sandi gagal dengan aman (bukan galat server).
@@ -159,32 +159,32 @@ describe('Masuk/Daftar dengan Google', () => {
     const reg = h.request.agent(h.getApp());
     const c = h.csrfFrom((await reg.get('/daftar')).text);
     await reg.post('/daftar').type('form').send({ _csrf: c, full_name: 'Pak Budi', phone: '081366660001', email: 'budi@contoh.id', password: 'sandibudi123', password_confirm: 'sandibudi123' });
-    const budi = h.db.get("SELECT id FROM users WHERE email = 'budi@contoh.id'");
-    const before = users();
+    const budi = await h.db.get("SELECT id FROM users WHERE email = 'budi@contoh.id'");
+    const before = await users();
     const agent = h.request.agent(h.getApp());
     const cb = await googleLogin(agent, { sub: 'google-sub-budi', email: 'budi@contoh.id', name: 'Budi G' });
     assert.equal(cb.headers.location, '/auth/google/tautkan');
-    assert.equal(users(), before, 'tidak membuat akun duplikat');
+    assert.equal(await users(), before, 'tidak membuat akun duplikat');
     assert.equal((await agent.get('/dashboard')).status, 302, 'belum masuk sebelum terbukti');
-    assert.equal(h.db.get("SELECT COUNT(*) n FROM user_identities WHERE subject = 'google-sub-budi'").n, 0);
+    assert.equal((await h.db.get("SELECT COUNT(*) n FROM user_identities WHERE subject = 'google-sub-budi'")).n, 0);
     const page = await agent.get('/auth/google/tautkan');
     assert.match(page.text, /budi@contoh\.id/);
     const csrf = h.csrfFrom(page.text);
     const wrong = await agent.post('/auth/google/tautkan').type('form').send({ _csrf: csrf, password: 'salah-sekali' });
     assert.equal(wrong.status, 401);
-    assert.equal(h.db.get("SELECT COUNT(*) n FROM user_identities WHERE subject = 'google-sub-budi'").n, 0);
+    assert.equal((await h.db.get("SELECT COUNT(*) n FROM user_identities WHERE subject = 'google-sub-budi'")).n, 0);
     const ok = await agent.post('/auth/google/tautkan').type('form').send({ _csrf: csrf, password: 'sandibudi123' });
     assert.equal(ok.status, 302);
-    assert.equal(h.db.get("SELECT user_id FROM user_identities WHERE subject = 'google-sub-budi'").user_id, budi.id);
+    assert.equal((await h.db.get("SELECT user_id FROM user_identities WHERE subject = 'google-sub-budi'")).user_id, budi.id);
     // Berikutnya langsung masuk dengan Google ke akun yang sama.
     const next = h.request.agent(h.getApp());
     const cb2 = await googleLogin(next, { sub: 'google-sub-budi', email: 'budi@contoh.id' });
     assert.equal(cb2.headers.location, '/dashboard');
-    assert.equal(users(), before);
+    assert.equal(await users(), before);
   });
 
   test('token tidak valid ditolak: signature palsu, audience lain, kedaluwarsa, issuer lain, nonce salah, state salah', async () => {
-    const before = users();
+    const before = await users();
     const cases = [
       ['signature', { tokenOpts: { key: other.privateKey } }],
       ['audience', { mutate: (c) => ({ ...c, aud: 'klien-lain.apps.googleusercontent.com' }) }],
@@ -209,7 +209,7 @@ describe('Masuk/Daftar dengan Google', () => {
     assert.match(await flashOf(agent), /kedaluwarsa atau tidak valid/);
     const direct = await h.request.agent(h.getApp()).get('/auth/google/callback?code=x&state=y');
     assert.equal(direct.headers.location, '/masuk');
-    assert.equal(users(), before, 'tidak ada akun dibuat dari token tidak valid');
+    assert.equal(await users(), before, 'tidak ada akun dibuat dari token tidak valid');
   });
 
   test('dibatalkan, koneksi gagal, email belum terverifikasi, akun dinonaktifkan', async () => {
@@ -238,20 +238,20 @@ describe('Masuk/Daftar dengan Google', () => {
     agent = h.request.agent(h.getApp());
     await googleLogin(agent, { sub: 'sub-unverified', email: 'belum@gmail.com', email_verified: false });
     assert.match(await flashOf(agent), /belum terverifikasi/);
-    assert.equal(h.db.get("SELECT COUNT(*) n FROM users WHERE email = 'belum@gmail.com'").n, 0);
+    assert.equal((await h.db.get("SELECT COUNT(*) n FROM users WHERE email = 'belum@gmail.com'")).n, 0);
 
-    const siti = h.db.get("SELECT id FROM users WHERE email = 'siti.petani@gmail.com'");
-    h.db.run('UPDATE users SET is_active = 0 WHERE id = ?', siti.id);
+    const siti = await h.db.get("SELECT id FROM users WHERE email = 'siti.petani@gmail.com'");
+    await h.db.run('UPDATE users SET is_active = 0 WHERE id = ?', siti.id);
     agent = h.request.agent(h.getApp());
     const cb = await googleLogin(agent, { sub: 'google-sub-100', email: 'siti.petani@gmail.com' });
     assert.equal(cb.headers.location, '/masuk');
     assert.match(await flashOf(agent), /dinonaktifkan/);
-    h.db.run('UPDATE users SET is_active = 1 WHERE id = ?', siti.id);
+    await h.db.run('UPDATE users SET is_active = 1 WHERE id = ?', siti.id);
   });
 
   test('profil: status Google, tautkan butuh kata sandi, akun Google lain ditolak, putus hanya bila ada cara masuk lain', async () => {
     const f1 = await h.agentFor(...h.FARMER1);
-    const me = h.db.get('SELECT id FROM users WHERE phone = ?', h.FARMER1[0]).id;
+    const me = (await h.db.get('SELECT id FROM users WHERE phone = ?', h.FARMER1[0])).id;
     assert.match((await f1.get('/profil')).text, /Belum terhubung/);
     // Kata sandi salah → tidak diarahkan ke Google.
     let { res } = await startFlow(f1, { intent: 'link', password: 'salah' });
@@ -268,18 +268,18 @@ describe('Masuk/Daftar dengan Google', () => {
     nextToken = makeIdToken({ sub: 'google-sub-sarno', email: 'sarno@gmail.com', nonce: p.get('nonce') });
     const linked = await f1.get(`/auth/google/callback?code=x&state=${encodeURIComponent(p.get('state'))}`);
     assert.equal(linked.headers.location, '/profil/google');
-    assert.equal(h.db.get("SELECT user_id FROM user_identities WHERE subject = 'google-sub-sarno'").user_id, me);
+    assert.equal((await h.db.get("SELECT user_id FROM user_identities WHERE subject = 'google-sub-sarno'")).user_id, me);
     assert.match((await f1.get('/profil')).text, /Google terhubung/);
     // Punya kata sandi → boleh putus.
     const csrf = h.csrfFrom((await f1.get('/profil/google')).text);
     await f1.post('/profil/google/putus').type('form').send({ _csrf: csrf });
-    assert.equal(h.db.get('SELECT COUNT(*) n FROM user_identities WHERE user_id = ?', me).n, 0);
+    assert.equal((await h.db.get('SELECT COUNT(*) n FROM user_identities WHERE user_id = ?', me)).n, 0);
     // Akun khusus Google (tanpa kata sandi) tidak bisa memutus satu-satunya cara masuk.
     const g = h.request.agent(h.getApp());
     await googleLogin(g, { sub: 'google-sub-100', email: 'siti.petani@gmail.com' });
     const gc = h.csrfFrom((await g.get('/profil/google')).text);
     await g.post('/profil/google/putus').type('form').send({ _csrf: gc });
-    assert.equal(h.db.get("SELECT COUNT(*) n FROM user_identities WHERE subject = 'google-sub-100'").n, 1);
+    assert.equal((await h.db.get("SELECT COUNT(*) n FROM user_identities WHERE subject = 'google-sub-100'")).n, 1);
     assert.match(await flashOf(g, '/profil/google'), /Buat kata sandi terlebih dahulu/);
   });
 });

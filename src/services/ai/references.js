@@ -2,10 +2,10 @@
 const db = require('../../db');
 
 // Mencari referensi hama yang relevan dengan teks (nama hasil scan, gejala, pertanyaan).
-function findReferences(...texts) {
+async function findReferences(...texts) {
   const hay = texts.filter(Boolean).join(' ').toLowerCase();
   if (!hay.trim()) return [];
-  const refs = db.all('SELECT * FROM pest_references ORDER BY is_verified DESC, name');
+  const refs = await db.all('SELECT * FROM pest_references ORDER BY is_verified DESC, name');
   return refs.filter((r) => {
     const keys = [r.name, r.scientific_name, ...(r.aliases || '').split(',')]
       .map((k) => (k || '').trim().toLowerCase())

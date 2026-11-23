@@ -185,9 +185,8 @@ async function validate(candidate, { allowHost, policy }) {
   let display = res.url;
   if (policy === 'salin') {
     const name = crypto.createHash('sha256').update(res.url).digest('hex').slice(0, 32) + '.webp';
-    const dir = path.join(config.uploadDir, 'berita');
-    fs.mkdirSync(dir, { recursive: true });
-    await sharp(b).rotate().resize({ width: 1280, height: 1280, fit: 'inside', withoutEnlargement: true }).webp({ quality: 78 }).toFile(path.join(dir, name));
+    const out = await sharp(b).rotate().resize({ width: 1280, height: 1280, fit: 'inside', withoutEnlargement: true }).webp({ quality: 78 }).toBuffer();
+    await require('../storage').putFile(`berita/${name}`, out, 'image/webp');
     display = '/media-berita/' + name;
   }
   return { ok: true, status: 'ok', url: res.url, display, width: meta.width, height: meta.height };
@@ -208,7 +207,7 @@ async function resolve(article, source, { html = null, rssItem = null } = {}) {
     for (const c of dedupe(list).filter((x) => !tried.has(x.url)).slice(0, 4)) {
       tried.add(c.url);
       // Gambar yang sudah dipakai berita lain dari sumber yang sama = gambar umum situs, bukan foto berita ini.
-      if (db.get("SELECT 1 FROM articles WHERE source_id = ? AND id != ? AND image_source_url = ? AND image_status = 'ok'", source.id, article.id || 0, c.url)) {
+      if (await db.get("SELECT 1 FROM articles WHERE source_id = ? AND id != ? AND image_source_url = ? AND image_status = 'ok'", source.id, article.id || 0, c.url)) {
         last = { status: 'ditolak', note: 'gambar umum situs (dipakai berita lain)' };
         continue;
       }
@@ -248,16 +247,16 @@ async function resolve(article, source, { html = null, rssItem = null } = {}) {
   return r || last || { status: 'tidak-ada', note: 'sumber tidak menyediakan gambar utama' };
 }
 
-function save(articleId, r) {
+async function save(articleId, r) {
   if (r.status === 'ok') {
-    db.run(
+    await db.run(
       `UPDATE articles SET image_url = ?, image_source_url = ?, image_alt = ?, image_credit = ?, image_caption = ?, image_kind = 'sumber',
               image_status = 'ok', image_note = ?, image_checked_at = datetime('now') WHERE id = ? AND origin = 'external'`,
       r.display, r.sourceUrl, r.alt, r.credit, r.caption, `dari ${r.from}`, articleId,
     );
   } else {
     // Tidak menghapus gambar valid yang sudah ada; hanya mencatat status untuk artikel yang belum bergambar.
-    db.run(
+    await db.run(
       `UPDATE articles SET image_kind = 'fallback', image_status = ?, image_note = ?, image_checked_at = datetime('now')
         WHERE id = ? AND origin = 'external' AND (image_status IS NULL OR image_status != 'ok')`,
       r.status, (r.note || '').slice(0, 300), articleId,
@@ -269,13 +268,13 @@ function save(articleId, r) {
 // 'gagal' (galat jaringan) dicoba lagi setelah 6 jam. Satu kegagalan tidak menghentikan proses.
 async function processPending({ sourceId = null, limit = 200, force = false, onItem = null } = {}) {
   const report = { checked: 0, updated: 0, fallback: 0, failed: 0, skipped: 0, items: [] };
-  const rows = db.all(
+  const rows = await db.all(
     `SELECT a.id, a.title, a.source_url, a.source_id, a.image_status FROM articles a
       WHERE a.origin = 'external' AND a.source_url IS NOT NULL ${sourceId ? 'AND a.source_id = ?' : ''}
         AND (${force ? "a.image_status IS NULL OR a.image_status != 'ok'" : "a.image_status IS NULL OR (a.image_status = 'gagal' AND a.image_checked_at < datetime('now', '-6 hours'))"})
       ORDER BY a.id LIMIT ?`, ...(sourceId ? [sourceId] : []), limit,
   );
-  const sources = new Map(db.all('SELECT * FROM news_sources').map((s) => [s.id, s]));
+  const sources = new Map((await db.all('SELECT * FROM news_sources')).map((s) => [s.id, s]));
   const blockedHosts = new Set();
   for (const a of rows) {
     const source = sources.get(a.source_id);
@@ -291,7 +290,7 @@ async function processPending({ sourceId = null, limit = 200, force = false, onI
       }
     }
     if (r.status === 'diblokir' && /halaman artikel/.test(r.note || '')) blockedHosts.add(host);
-    save(a.id, r);
+    await save(a.id, r);
     report.checked++;
     if (r.status === 'ok') report.updated++;
     else if (r.status === 'gagal') report.failed++;

@@ -16,10 +16,13 @@
     "cek-ai": "node src/cek-ai.js",
     "uji-chatbot": "node src/uji-chatbot.js",
     "test": "node --test --test-concurrency=1 test/*.test.js",
-    "backfill-gambar": "node src/backfill-gambar.js"
+    "backfill-gambar": "node src/backfill-gambar.js",
+    "pindah-supabase": "node src/db/pindah-ke-supabase.js",
+    "test:supabase": "node --test --test-concurrency=1 test/*.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
+    "@supabase/supabase-js": "^2.119.2",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
     "dotenv": "^18.0.9",
@@ -33,6 +36,7 @@
     "marked": "^18.1.2",
     "multer": "^2.5.0",
     "onnxruntime-node": "^1.31.1",
+    "pg": "^8.23.1",
     "rss-parser": "^3.13.0",
     "sanitize-html": "^2.18.1",
     "sharp": "^0.35.5"

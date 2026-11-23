@@ -29,7 +29,7 @@ const answer = (content) => ({ json: { model: 'gemma3:4b', message: { role: 'ass
 let imgRel;
 before(async () => {
   await h.setup();
-  imgRel = storage.saveImage({ buffer: h.demoPng(64, 64), size: 100 }, 888, 'scan').relPath;
+  imgRel = (await storage.saveImage({ buffer: h.demoPng(64, 64), size: 100 }, 888, 'scan')).relPath;
 });
 afterEach(() => { global.fetch = realFetch; });
 after(() => { config.ai.chatProvider = 'demo'; });
@@ -114,7 +114,7 @@ describe('Penyedia chat Ollama (lokal)', () => {
     const r = await f1.post(`/asisten/${sid}/pesan`).set('Accept', 'application/json').set('X-CSRF-Token', f1.csrf)
       .field('_csrf', f1.csrf).field('message', 'Bagaimana mencegahnya?');
     assert.equal(r.body.ok, true, JSON.stringify(r.body));
-    const msg = h.db.get("SELECT provider, model, content FROM chat_messages WHERE session_id = ? AND role = 'assistant' ORDER BY id DESC LIMIT 1", sid);
+    const msg = await h.db.get("SELECT provider, model, content FROM chat_messages WHERE session_id = ? AND role = 'assistant' ORDER BY id DESC LIMIT 1", sid);
     assert.deepEqual({ ...msg }, { provider: 'ollama', model: 'gemma3:4b', content: 'Tanam serempak dan gunakan varietas tahan.' });
     config.ai.chatProvider = 'demo';
   });

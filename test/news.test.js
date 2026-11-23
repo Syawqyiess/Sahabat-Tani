@@ -56,13 +56,13 @@ function htmlSite(extra = {}) {
   };
 }
 
-function addSource(fields) {
-  const r = h.db.run(
+async function addSource(fields) {
+  const r = await h.db.run(
     `INSERT INTO news_sources (name, feed_url, homepage_url, usage_note, kind, config_json, filter_keywords, max_items, is_active)
      VALUES (?, ?, ?, 'uji', ?, ?, ?, ?, 1)`,
     fields.name, fields.feed_url, fields.homepage_url || null, fields.kind, fields.config_json || null, fields.filter_keywords || 0, fields.max_items || 10,
   );
-  return h.db.get('SELECT * FROM news_sources WHERE id = ?', r.lastInsertRowid);
+  return await h.db.get('SELECT * FROM news_sources WHERE id = ?', r.lastInsertRowid);
 }
 
 before(async () => { await h.setup(); });
@@ -103,11 +103,11 @@ describe('Ekstraksi & robots.txt', () => {
 describe('Pengambilan dari sumber', () => {
   test('HTML: hanya metadata, tanggal asli (bukan tanggal header), tanpa tanggal tetap kosong, tanpa duplikat', async () => {
     mockSites(htmlSite());
-    const src = addSource({ name: 'Contoh Tani', feed_url: 'https://contoh-tani.test/berita', kind: 'html', config_json: JSON.stringify(HTML_CFG) });
+    const src = await addSource({ name: 'Contoh Tani', feed_url: 'https://contoh-tani.test/berita', kind: 'html', config_json: JSON.stringify(HTML_CFG) });
     const r = await news.fetchSource(src);
     assert.equal(r.error, null);
     assert.equal(r.added, 3);
-    const rows = h.db.all('SELECT * FROM articles WHERE source_id = ? ORDER BY id', src.id);
+    const rows = await h.db.all('SELECT * FROM articles WHERE source_id = ? ORDER BY id', src.id);
     const pompa = rows.find((a) => a.title === 'Pompa Air untuk Sawah Kering');
     assert.equal(pompa.published_at, '2026-10-20T02:30:00.000Z');
     assert.equal(pompa.date_source, 'artikel');
@@ -119,23 +119,23 @@ describe('Pengambilan dari sumber', () => {
     assert.equal(wereng.date_source, 'daftar berita');
     const tanpa = rows.find((a) => a.title === 'Pupuk Organik Tanpa Tanggal');
     assert.equal(tanpa.published_at, null, 'tanggal tidak dikarang');
-    const slug = (id) => h.db.get('SELECT c.slug FROM articles a JOIN article_categories c ON c.id = a.category_id WHERE a.id = ?', id).slug;
-    assert.equal(slug(pompa.id), 'irigasi-dan-pengelolaan-air');
-    assert.equal(slug(wereng.id), 'hama-dan-penyakit-tanaman');
+    const slug = async (id) => (await h.db.get('SELECT c.slug FROM articles a JOIN article_categories c ON c.id = a.category_id WHERE a.id = ?', id)).slug;
+    assert.equal(await slug(pompa.id), 'irigasi-dan-pengelolaan-air');
+    assert.equal(await slug(wereng.id), 'hama-dan-penyakit-tanaman');
     assert.ok(!requested.some((u) => u.includes('/tentang')), 'tautan non-berita tidak dibuka');
 
     // Pengambilan kedua: tidak ada duplikat, dan artikel yang sudah ada tidak dibuka lagi.
     mockSites(htmlSite());
-    const r2 = await news.fetchSource(h.db.get('SELECT * FROM news_sources WHERE id = ?', src.id));
+    const r2 = await news.fetchSource(await h.db.get('SELECT * FROM news_sources WHERE id = ?', src.id));
     assert.equal(r2.added, 0);
     assert.equal(requested.filter((u) => u.includes('/berita/')).length, 0);
-    const s = h.db.get('SELECT * FROM news_sources WHERE id = ?', src.id);
+    const s = await h.db.get('SELECT * FROM news_sources WHERE id = ?', src.id);
     assert.ok(s.last_ok_at && s.robots_status);
   });
 
   test('robots.txt melarang: tidak ada yang diambil', async () => {
     mockSites(htmlSite({ 'https://contoh-tani.test/robots.txt': { type: 'text/plain', body: 'User-agent: *\nDisallow: /berita' } }));
-    const src = addSource({ name: 'Dilarang', feed_url: 'https://contoh-tani.test/berita?sumber=2', kind: 'html', config_json: JSON.stringify(HTML_CFG) });
+    const src = await addSource({ name: 'Dilarang', feed_url: 'https://contoh-tani.test/berita?sumber=2', kind: 'html', config_json: JSON.stringify(HTML_CFG) });
     const r = await news.fetchSource(src);
     assert.match(r.error, /diblokir robots\.txt/);
     assert.equal(r.added, 0);
@@ -144,12 +144,12 @@ describe('Pengambilan dari sumber', () => {
 
   test('akses dibatasi (403) atau halaman CAPTCHA: berhenti, tidak diakali', async () => {
     mockSites(htmlSite({ 'https://contoh-tani.test/berita?sumber=3': { status: 403, body: 'Forbidden' } }));
-    let src = addSource({ name: 'Terkunci', feed_url: 'https://contoh-tani.test/berita?sumber=3', kind: 'html', config_json: JSON.stringify(HTML_CFG) });
+    let src = await addSource({ name: 'Terkunci', feed_url: 'https://contoh-tani.test/berita?sumber=3', kind: 'html', config_json: JSON.stringify(HTML_CFG) });
     let r = await news.fetchSource(src);
     assert.match(r.error, /akses dibatasi/);
     robots._reset();
     mockSites(htmlSite({ 'https://contoh-tani.test/berita?sumber=4': { body: '<html><head><title>Just a moment...</title></head><body>cek</body></html>' } }));
-    src = addSource({ name: 'Captcha', feed_url: 'https://contoh-tani.test/berita?sumber=4', kind: 'html', config_json: JSON.stringify(HTML_CFG) });
+    src = await addSource({ name: 'Captcha', feed_url: 'https://contoh-tani.test/berita?sumber=4', kind: 'html', config_json: JSON.stringify(HTML_CFG) });
     r = await news.fetchSource(src);
     assert.match(r.error, /halaman verifikasi/);
     assert.equal(r.added, 0);
@@ -165,17 +165,17 @@ describe('Pengambilan dari sumber', () => {
       'https://kantor-berita.test/robots.txt': { type: 'text/plain', body: 'User-agent: *\nAllow: /' },
       'https://kantor-berita.test/rss.xml': { type: 'application/rss+xml', body: rss },
     });
-    const src = addSource({ name: 'Kantor Berita', feed_url: 'https://kantor-berita.test/rss.xml', kind: 'rss', filter_keywords: 1 });
-    const before = h.db.get('SELECT COUNT(*) n FROM articles').n;
+    const src = await addSource({ name: 'Kantor Berita', feed_url: 'https://kantor-berita.test/rss.xml', kind: 'rss', filter_keywords: 1 });
+    const before = (await h.db.get('SELECT COUNT(*) n FROM articles')).n;
     const dry = await news.fetchSource(src, { dryRun: true });
-    assert.equal(h.db.get('SELECT COUNT(*) n FROM articles').n, before, 'mode uji tidak menyimpan');
+    assert.equal((await h.db.get('SELECT COUNT(*) n FROM articles')).n, before, 'mode uji tidak menyimpan');
     assert.deepEqual(dry.items.map((i) => i.title), ['Harga gabah di tingkat petani naik']);
     const reasons = dry.skipped.map((s) => s.reason).sort();
     assert.deepEqual(reasons, ['bukan topik pertanian', 'duplikat (judul sama dari sumber lain)']);
     mockSites(sites);
     const r = await news.fetchSource(src);
     assert.equal(r.added, 1);
-    const a = h.db.get("SELECT * FROM articles WHERE title = 'Harga gabah di tingkat petani naik'");
+    const a = await h.db.get("SELECT * FROM articles WHERE title = 'Harga gabah di tingkat petani naik'");
     assert.equal(a.published_at, '2026-11-13T01:00:00.000Z');
     assert.equal(a.date_source, 'rss');
   });
@@ -194,9 +194,9 @@ describe('Kanal Berita & Artikel Pertanian', () => {
     assert.doesNotMatch(page.text, /badge-demo">Konten Demo/);
     assert.doesNotMatch(page.text, /Artikel Sahabat Tani/, 'tab artikel internal sudah dihapus');
     assert.match(page.text, /Berita dan artikel pertanian dari berbagai sumber tepercaya\./);
-    const demo = h.db.get("SELECT slug FROM articles WHERE origin = 'internal' AND status = 'published' LIMIT 1");
+    const demo = await h.db.get("SELECT slug FROM articles WHERE origin = 'internal' AND status = 'published' LIMIT 1");
     assert.doesNotMatch(page.text, new RegExp('/artikel/' + demo.slug + '"'), 'artikel internal tidak tampil');
-    assert.ok(h.db.get("SELECT 1 FROM articles WHERE slug = ?", demo.slug), 'artikel internal tidak dihapus dari database');
+    assert.ok(await h.db.get("SELECT 1 FROM articles WHERE slug = ?", demo.slug), 'artikel internal tidak dihapus dari database');
     const irigasi = await f1.get('/artikel?kategori=irigasi-dan-pengelolaan-air');
     assert.match(irigasi.text, /Pompa Air untuk Sawah Kering/);
     assert.doesNotMatch(irigasi.text, /Serangan Wereng di Karawang/);
@@ -205,12 +205,12 @@ describe('Kanal Berita & Artikel Pertanian', () => {
   test('admin: uji sumber, aktif/nonaktif, dan validasi konfigurasi', async () => {
     const admin = await h.agentFor(...h.ADMIN);
     mockSites(htmlSite());
-    const src = h.db.get("SELECT * FROM news_sources WHERE name = 'Contoh Tani'");
+    const src = await h.db.get("SELECT * FROM news_sources WHERE name = 'Contoh Tani'");
     const uji = await admin.post(`/admin/sumber-berita/${src.id}/uji`).type('form').send({ _csrf: admin.csrf });
     assert.equal(uji.status, 200);
     assert.match(uji.text, /duplikat/, 'pratinjau menjelaskan alasan dilewati');
     await admin.post(`/admin/sumber-berita/${src.id}/status`).type('form').send({ _csrf: admin.csrf });
-    assert.equal(h.db.get('SELECT is_active FROM news_sources WHERE id = ?', src.id).is_active, 0);
+    assert.equal((await h.db.get('SELECT is_active FROM news_sources WHERE id = ?', src.id)).is_active, 0);
     const bad = await admin.post('/admin/sumber-berita').type('form').send({ _csrf: admin.csrf, name: 'X', kind: 'html', feed_url: 'https://contoh-tani.test/x', usage_note: 'uji', config_json: '{"link_pattern": "(" }' });
     assert.equal(bad.status, 422);
     assert.match(bad.text, /Konfigurasi HTML tidak valid/);

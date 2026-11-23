@@ -10,8 +10,8 @@ before(async () => {
   f2 = await h.agentFor(...h.FARMER2);
 });
 
-const uid = (phone) => h.db.get('SELECT id FROM users WHERE phone = ?', phone).id;
-const countSessions = (userId) => h.db.get('SELECT COUNT(*) n FROM chat_sessions WHERE user_id = ?', userId).n;
+const uid = async (phone) => (await h.db.get('SELECT id FROM users WHERE phone = ?', phone)).id;
+const countSessions = async (userId) => (await h.db.get('SELECT COUNT(*) n FROM chat_sessions WHERE user_id = ?', userId)).n;
 
 describe('Dashboard: visualisasi data RDKK', () => {
   test('tanpa data tersimpan: pesan jujur, tanpa embed Tableau; CSP tidak lagi membuka Tableau', async () => {
@@ -42,7 +42,7 @@ describe('Lahan Saya: jenis tanaman & foto', () => {
     const add = await f2.post('/lahan').field('_csrf', f2.csrf).field('name', 'Petak bawang').field('commodity', 'Bawang merah')
       .attach('photo', h.demoPng(2400, 1200), { filename: 'lahan.png', contentType: 'image/png' });
     assert.equal(add.status, 302);
-    const land = h.db.get("SELECT * FROM lands WHERE name = 'Petak bawang'");
+    const land = await h.db.get("SELECT * FROM lands WHERE name = 'Petak bawang'");
     assert.match(land.photo_path, /^\d+\/land-[0-9a-f-]{36}\.webp$/);
     const sharp = require('sharp');
     const meta = await sharp(require('node:fs').readFileSync(require('../src/services/storage').absPath(land.photo_path))).metadata();
@@ -63,11 +63,11 @@ describe('Lahan Saya: jenis tanaman & foto', () => {
     const upd = await f2.post(`/lahan/${land.id}`).field('_csrf', f2.csrf).field('name', 'Petak bawang').field('commodity', 'Bawang merah')
       .attach('photo', h.demoPng(300, 200), { filename: 'baru.png', contentType: 'image/png' });
     assert.equal(upd.status, 302);
-    const after = h.db.get('SELECT photo_path FROM lands WHERE id = ?', land.id).photo_path;
+    const after = (await h.db.get('SELECT photo_path FROM lands WHERE id = ?', land.id)).photo_path;
     assert.notEqual(after, old);
     assert.equal(require('node:fs').existsSync(require('../src/services/storage').absPath(old)), false);
     await f2.post(`/lahan/${land.id}`).field('_csrf', f2.csrf).field('name', 'Petak bawang').field('remove_photo', '1');
-    assert.equal(h.db.get('SELECT photo_path FROM lands WHERE id = ?', land.id).photo_path, null);
+    assert.equal((await h.db.get('SELECT photo_path FROM lands WHERE id = ?', land.id)).photo_path, null);
   });
 
   test('berkas bukan gambar ditolak; petani lain tidak bisa mengganti foto', async () => {
@@ -75,19 +75,19 @@ describe('Lahan Saya: jenis tanaman & foto', () => {
       .attach('photo', Buffer.from('bukan gambar sama sekali'), { filename: 'x.png', contentType: 'image/png' });
     assert.equal(bad.status, 422);
     assert.match(bad.text, /bukan gambar yang valid/);
-    assert.equal(h.db.get("SELECT COUNT(*) n FROM lands WHERE name = 'Petak palsu'").n, 0);
-    const own = h.db.get('SELECT id FROM lands WHERE user_id = ? LIMIT 1', uid('081200000001'));
+    assert.equal((await h.db.get("SELECT COUNT(*) n FROM lands WHERE name = 'Petak palsu'")).n, 0);
+    const own = await h.db.get('SELECT id FROM lands WHERE user_id = ? LIMIT 1', await uid('081200000001'));
     const res = await f2.post(`/lahan/${own.id}`).field('_csrf', f2.csrf).field('name', 'Diretas')
       .attach('photo', h.demoPng(), { filename: 'x.png', contentType: 'image/png' });
     assert.equal(res.status, 404);
-    assert.equal(h.db.get('SELECT photo_path FROM lands WHERE id = ?', own.id).photo_path, null);
+    assert.equal((await h.db.get('SELECT photo_path FROM lands WHERE id = ?', own.id)).photo_path, null);
   });
 });
 
 describe('Asisten AI: Percakapan Baru', () => {
   test('menu membuka Percakapan Baru tanpa membuat sesi kosong', async () => {
-    const id = uid('081200000001');
-    const before = countSessions(id);
+    const id = await uid('081200000001');
+    const before = await countSessions(id);
     for (let i = 0; i < 3; i++) {
       const res = await f1.get('/asisten');
       assert.equal(res.status, 200);
@@ -96,30 +96,30 @@ describe('Asisten AI: Percakapan Baru', () => {
       assert.match(res.text, /data-starter=/);
       assert.match(res.text, /href="\/asisten\/riwayat"/);
     }
-    assert.equal(countSessions(id), before);
+    assert.equal(await countSessions(id), before);
     // Tautan lama POST /asisten/baru juga tidak membuat sesi.
     const old = await f1.post('/asisten/baru').type('form').send({ _csrf: f1.csrf });
     assert.equal(old.headers.location, '/asisten');
-    assert.equal(countSessions(id), before);
+    assert.equal(await countSessions(id), before);
   });
 
   test('pesan pertama membuat satu sesi; kirim ulang dengan kunci sama tidak menggandakan', async () => {
-    const id = uid('081200000001');
-    const before = countSessions(id);
+    const id = await uid('081200000001');
+    const before = await countSessions(id);
     const empty = await f1.post('/asisten/mulai').field('_csrf', f1.csrf).field('message', '  ');
     assert.equal(empty.status, 422);
-    assert.equal(countSessions(id), before);
+    assert.equal(await countSessions(id), before);
     const send = () => f1.post('/asisten/mulai').field('_csrf', f1.csrf).field('idempotency_key', 'kunci-1').field('message', 'Bagaimana cara memupuk padi?');
     const r1 = await send();
     assert.match(r1.headers.location, /^\/asisten\/\d+#akhir$/);
     const r2 = await send();
     assert.equal(r2.headers.location, r1.headers.location);
-    assert.equal(countSessions(id), before + 1);
+    assert.equal(await countSessions(id), before + 1);
     const sid = Number(/\/asisten\/(\d+)/.exec(r1.headers.location)[1]);
     const room = await f1.get(`/asisten/${sid}`);
     assert.equal(room.status, 200, 'URL sesi langsung tetap membuka sesi itu');
     assert.match(room.text, /Bagaimana cara memupuk padi\?/);
-    const msgs = h.db.all('SELECT role FROM chat_messages WHERE session_id = ? ORDER BY id', sid).map((m) => m.role);
+    const msgs = (await h.db.all('SELECT role FROM chat_messages WHERE session_id = ? ORDER BY id', sid)).map((m) => m.role);
     assert.deepEqual(msgs.slice(0, 2), ['user', 'assistant']);
     const hist = await f1.get('/asisten/riwayat');
     assert.equal(hist.status, 200);

@@ -15,15 +15,15 @@ function config(source) {
   try { return JSON.parse(source.config_json || '{}'); } catch { throw new Error('Konfigurasi HTML sumber tidak valid (JSON).'); }
 }
 
-function categoryId(slug) {
-  const r = db.get('SELECT id FROM article_categories WHERE slug = ?', slug) || db.get("SELECT id FROM article_categories WHERE slug = 'berita-pertanian-umum'");
+async function categoryId(slug) {
+  const r = await db.get('SELECT id FROM article_categories WHERE slug = ?', slug) || await db.get("SELECT id FROM article_categories WHERE slug = 'berita-pertanian-umum'");
   return r ? r.id : null;
 }
 
-function exists(url, titleKey) {
+async function exists(url, titleKey) {
   const guid = 'url:' + ex.urlKey(url);
-  if (db.get('SELECT 1 FROM articles WHERE external_guid = ?', guid)) return 'duplikat (tautan sama)';
-  if (titleKey && db.get("SELECT 1 FROM articles WHERE origin = 'external' AND title_key = ?", titleKey)) return 'duplikat (judul sama dari sumber lain)';
+  if (await db.get('SELECT 1 FROM articles WHERE external_guid = ?', guid)) return 'duplikat (tautan sama)';
+  if (titleKey && await db.get("SELECT 1 FROM articles WHERE origin = 'external' AND title_key = ?", titleKey)) return 'duplikat (judul sama dari sumber lain)';
   return null;
 }
 
@@ -50,7 +50,7 @@ async function collect(source, report) {
   for (const l of links) {
     if (out.length >= limit) break;
     // Lewati yang sudah tersimpan sebelum membuka halamannya — hemat permintaan ke situs sumber.
-    if (exists(l.url, null)) { report.skipped.push({ url: l.url, title: l.listTitle, reason: 'duplikat (tautan sama)' }); continue; }
+    if (await exists(l.url, null)) { report.skipped.push({ url: l.url, title: l.listTitle, reason: 'duplikat (tautan sama)' }); continue; }
     const r = await robots.isAllowed(l.url);
     if (!r.allowed) { report.skipped.push({ url: l.url, title: l.listTitle, reason: 'diblokir robots.txt' }); continue; }
     let art;
@@ -92,28 +92,28 @@ async function fetchSource(source, { dryRun = false } = {}) {
     if (!title || !c.url || !/^https?:\/\//.test(c.url)) { report.skipped.push({ url: c.url, title, reason: 'judul/tautan tidak lengkap' }); continue; }
     if (source.filter_keywords && !isRelevant(title, c.summary)) { report.skipped.push({ url: c.url, title, reason: 'bukan topik pertanian' }); continue; }
     const tKey = ex.titleKey(title);
-    const dup = exists(c.url, tKey) || (report.items.some((i) => i.titleKey === tKey) && 'duplikat dalam satu pengambilan');
+    const dup = await exists(c.url, tKey) || (report.items.some((i) => i.titleKey === tKey) && 'duplikat dalam satu pengambilan');
     if (dup) { report.skipped.push({ url: c.url, title, reason: dup }); continue; }
     const slug = classify(title, c.summary);
     report.items.push({ ...c, title, titleKey: tKey, categorySlug: slug });
   }
 
   if (!dryRun) {
-    db.tx(() => {
+    await db.tx(async () => {
       for (const it of report.items) {
-        it.id = db.run(
+        it.id = (await db.run(
           `INSERT INTO articles (slug, title, summary, category_id, status, origin, source_id, source_name, source_url, external_guid,
                                  published_at, date_source, fetched_at, title_key)
            VALUES (?, ?, ?, ?, 'published', 'external', ?, ?, ?, ?, ?, ?, datetime('now'), ?)`,
           `${slugify(it.title).slice(0, 70)}-${source.id}-${Date.now().toString(36)}${report.added}`,
-          it.title, it.summary || null, categoryId(it.categorySlug), source.id, source.name, it.url, 'url:' + ex.urlKey(it.url),
+          it.title, it.summary || null, await categoryId(it.categorySlug), source.id, source.name, it.url, 'url:' + ex.urlKey(it.url),
           it.publishedAt ? it.publishedAt.toISOString() : null, it.dateSource, it.titleKey,
-        ).lastInsertRowid;
+        )).lastInsertRowid;
         report.added++;
       }
-      db.run(
+      await db.run(
         `UPDATE news_sources SET last_fetched_at = datetime('now'), last_error = ?, robots_status = ?, last_report = ?,
-                last_ok_at = CASE WHEN ? IS NULL THEN datetime('now') ELSE last_ok_at END WHERE id = ?`,
+                last_ok_at = CASE WHEN CAST(? AS TEXT) IS NULL THEN datetime('now') ELSE last_ok_at END WHERE id = ?`,
         report.error, report.robots, JSON.stringify({ added: report.added, skipped: report.skipped.length, reasons: countReasons(report.skipped) }),
         report.error, source.id,
       );
@@ -136,7 +136,7 @@ async function attachImages(source, report, dryRun) {
     }
     it.image = r;
     if (r.status === 'ok') report.images.ok++; else report.images.fallback++;
-    if (!dryRun && it.id) images.save(Number(it.id), r);
+    if (!dryRun && it.id) await images.save(Number(it.id), r);
     delete it.html;
   }
 }
@@ -147,7 +147,7 @@ function countReasons(skipped) {
 
 async function fetchAll() {
   const out = [];
-  for (const s of db.all('SELECT * FROM news_sources WHERE is_active = 1 ORDER BY id')) {
+  for (const s of await db.all('SELECT * FROM news_sources WHERE is_active = 1 ORDER BY id')) {
     const r = await fetchSource(s);
     out.push({ source: s.name, added: r.added, skipped: r.skipped.length, error: r.error });
   }

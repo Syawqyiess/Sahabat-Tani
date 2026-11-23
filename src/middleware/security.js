@@ -6,11 +6,11 @@ const config = require('../config');
 
 // ---------- Autentikasi & peran ----------
 
-function loadUser(req, res, next) {
+async function loadUser(req, res, next) {
   res.locals.currentUser = null;
   const uid = req.session && req.session.userId;
   if (!uid) return next();
-  const user = db.get(
+  const user = await db.get(
     `SELECT u.id, u.phone, u.email, u.role, u.is_active, u.is_demo, p.full_name, p.photo_path
        FROM users u LEFT JOIN farmer_profiles p ON p.user_id = u.id WHERE u.id = ?`, uid,
   );

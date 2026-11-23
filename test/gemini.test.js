@@ -29,7 +29,7 @@ let imgRel;
 before(async () => {
   await h.setup();
   config.ai.geminiKey = 'kunci-gemini-uji';
-  imgRel = storage.saveImage({ buffer: h.demoPng(64, 64), size: 100 }, 999, 'scan').relPath;
+  imgRel = (await storage.saveImage({ buffer: h.demoPng(64, 64), size: 100 }, 999, 'scan')).relPath;
 });
 afterEach(() => { global.fetch = realFetch; });
 after(() => {
@@ -150,7 +150,7 @@ describe('Penyedia Gemini', () => {
       .field('_csrf', f1.csrf).field('idempotency_key', crypto.randomUUID())
       .attach('photo', h.demoPng(320, 320), { filename: 'a.png', contentType: 'image/png' });
     assert.equal(res.body.ok, true, JSON.stringify(res.body));
-    const scan = h.db.get('SELECT provider, model, mode FROM pest_scans WHERE id = ?', res.body.scanId);
+    const scan = await h.db.get('SELECT provider, model, mode FROM pest_scans WHERE id = ?', res.body.scanId);
     assert.deepEqual({ ...scan }, { provider: 'gemini', model: 'gemini-uji-001', mode: 'ai' });
     let page = await f1.get(res.body.redirect);
     assert.match(page.text, /Dugaan awal:<\/strong> Wereng batang cokelat/);

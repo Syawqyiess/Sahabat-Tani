@@ -85,8 +85,8 @@ function scanSummary(scan) {
   return L.join('\n');
 }
 
-function img(relPath) {
-  try { return storage.readBase64(relPath); } catch { return null; }
+async function img(relPath) {
+  try { return await storage.readBase64(relPath); } catch { return null; }
 }
 
 const chat = {
@@ -100,7 +100,7 @@ const chat = {
     const messages = [{ role: 'system', content: system }];
     if (scan) {
       const first = { role: 'user', content: `Konteks hasil scan (otomatis dari aplikasi):\n${scanSummary(scan)}` };
-      const b64 = config.ai.ollamaVision && scan.image_path ? img(scan.image_path) : null;
+      const b64 = config.ai.ollamaVision && scan.image_path ? await img(scan.image_path) : null;
       if (b64) first.images = [b64];
       messages.push(first, { role: 'assistant', content: 'Baik, saya sudah melihat konteks scan tersebut.' });
     }
@@ -110,7 +110,7 @@ const chat = {
       const msg = { role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content || '(foto tambahan)' };
       // Hanya foto tambahan terakhir yang dikirim agar ringan di GPU kecil.
       if (config.ai.ollamaVision && m.id === lastImageId && m.image_path && m.image_path !== (scan && scan.image_path)) {
-        const b64 = img(m.image_path);
+        const b64 = await img(m.image_path);
         if (b64) msg.images = [b64];
       }
       const prev = messages[messages.length - 1];

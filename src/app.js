@@ -45,8 +45,12 @@ function createApp() {
   app.use('/static', express.static(path.join(config.root, 'public'), { maxAge: config.isProd ? '7d' : 0 }));
   // Leaflet (pustaka peta terbuka) disajikan langsung dari paket npm.
   // Salinan gambar berita (hanya untuk sumber yang mengizinkan penyalinan) — publik seperti beritanya.
-  app.use('/media-berita', express.static(path.join(config.uploadDir, 'berita'), { maxAge: '7d', index: false, fallthrough: false,
-    setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff') }));
+  app.get('/media-berita/:name', async (req, res) => {
+    if (!/^[0-9a-f]{32}\.webp$/.test(req.params.name)) return res.status(404).end();
+    const buf = await require('./services/storage').readFile(`berita/${req.params.name}`);
+    if (!buf) return res.status(404).end();
+    res.set({ 'Cache-Control': 'public, max-age=604800', 'X-Content-Type-Options': 'nosniff' }).type('image/webp').send(buf);
+  });
   app.use('/static/vendor/leaflet', express.static(path.join(config.root, 'node_modules', 'leaflet', 'dist'), { maxAge: config.isProd ? '30d' : 0 }));
   app.use(express.urlencoded({ extended: false, limit: '200kb' }));
   app.use(express.json({ limit: '200kb' }));

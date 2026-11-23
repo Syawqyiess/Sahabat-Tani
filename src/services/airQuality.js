@@ -35,8 +35,8 @@ function cacheKey(lat, lng) {
   return `${lat.toFixed(2)},${lng.toFixed(2)}`; // ~1 km grid, hemat permintaan
 }
 
-function logEvent(ok, message) {
-  try { db.run('INSERT INTO integration_events (service, ok, message) VALUES (?, ?, ?)', 'open-meteo', ok ? 1 : 0, message); } catch { /* abaikan */ }
+async function logEvent(ok, message) {
+  try { await db.run('INSERT INTO integration_events (service, ok, message) VALUES (?, ?, ?)', 'open-meteo', ok ? 1 : 0, message); } catch { /* abaikan */ }
 }
 
 async function fetchRemote(lat, lng) {
@@ -88,7 +88,7 @@ function shape(data, fetchedAt, stale) {
 async function getAirQuality(lat, lng, { force = false } = {}) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return { error: 'Koordinat lokasi tidak valid.' };
   const key = cacheKey(lat, lng);
-  const cached = db.get('SELECT payload, fetched_at FROM air_quality_cache WHERE cache_key = ?', key);
+  const cached = await db.get('SELECT payload, fetched_at FROM air_quality_cache WHERE cache_key = ?', key);
   const ageMin = cached ? (Date.now() - Date.parse(cached.fetched_at)) / 60000 : Infinity;
   if (cached && !force && ageMin < config.air.cacheMinutes) {
     return { data: shape(JSON.parse(cached.payload), cached.fetched_at, false), fromCache: true };
@@ -96,18 +96,18 @@ async function getAirQuality(lat, lng, { force = false } = {}) {
   try {
     const raw = await fetchRemote(lat, lng);
     const fetchedAt = new Date().toISOString();
-    db.run(
+    await db.run(
       `INSERT INTO air_quality_cache (cache_key, payload, fetched_at) VALUES (?, ?, ?)
        ON CONFLICT(cache_key) DO UPDATE SET payload = excluded.payload, fetched_at = excluded.fetched_at`,
       key, JSON.stringify(raw), fetchedAt,
     );
-    logEvent(true, `OK ${key}`);
+    await logEvent(true, `OK ${key}`);
     return { data: shape(raw, fetchedAt, false), fromCache: false };
   } catch (err) {
     const reason = err.name === 'TimeoutError' || err.name === 'AbortError'
       ? 'Layanan kualitas udara tidak merespons (waktu habis).'
       : err.code ? err.message : 'Tidak dapat terhubung ke layanan kualitas udara.';
-    logEvent(false, reason);
+    await logEvent(false, reason);
     if (cached) return { data: shape(JSON.parse(cached.payload), cached.fetched_at, true), warning: `${reason} Menampilkan data terakhir yang tersimpan.` };
     return { error: reason };
   }

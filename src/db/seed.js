@@ -30,8 +30,8 @@ function demoPng(w = 96, h = 96) {
 
 async function seed({ withScans = true, quiet = false } = {}) {
   const log = quiet ? () => {} : console.log;
-  db.migrate();
-  if (db.get('SELECT 1 FROM users LIMIT 1')) {
+  await db.migrate();
+  if (await db.get('SELECT 1 FROM users LIMIT 1')) {
     log('Data sudah ada — seed dilewati. Hapus file database untuk mengulang dari awal.');
     return;
   }
@@ -41,20 +41,20 @@ async function seed({ withScans = true, quiet = false } = {}) {
   }
   const rounds = config.isTest ? 4 : 10;
   const ids = {};
-  db.tx(() => {
-    for (const name of demo.categories) db.run('INSERT INTO article_categories (name, slug) VALUES (?, ?)', name, slugify(name));
+  await db.tx(async () => {
+    for (const name of demo.categories) await db.run('INSERT INTO article_categories (name, slug) VALUES (?, ?)', name, slugify(name));
     for (const u of demo.users) {
-      const r = db.run('INSERT INTO users (phone, email, password_hash, role, is_demo) VALUES (?, ?, ?, ?, 1)', u.phone, u.email, bcrypt.hashSync(u.password, rounds), u.role);
+      const r = await db.run('INSERT INTO users (phone, email, password_hash, role, is_demo) VALUES (?, ?, ?, ?, 1)', u.phone, u.email, bcrypt.hashSync(u.password, rounds), u.role);
       const id = Number(r.lastInsertRowid);
       ids[u.key] = id;
       const p = u.profile;
-      db.run(
+      await db.run(
         `INSERT INTO farmer_profiles (user_id, full_name, village, district, regency, province, farmer_group, experience_years, main_commodity)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         id, p.full_name, p.village || null, p.district || null, p.regency || null, p.province || null, p.farmer_group || null, p.experience_years ?? null, p.main_commodity || null,
       );
       for (const l of u.lands || []) {
-        db.run(
+        await db.run(
           `INSERT INTO lands (user_id, name, address_desc, area_ha, commodity, variety, planting_date, season_status, lat, lng, polygon_json, data_source,
                               illustration_path, illustration_kind, illustration_credit, illustration_source_url)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'demo', ?, ?, ?, ?)`,
@@ -64,22 +64,22 @@ async function seed({ withScans = true, quiet = false } = {}) {
       }
     }
     for (const p of demo.pests) {
-      db.run(
+      await db.run(
         `INSERT INTO pest_references (slug, name, scientific_name, aliases, symptoms, visual_signs, ipm_control, prevention, when_to_consult, is_verified, is_demo)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)`,
         slugify(p.name), p.name, p.scientific_name, p.aliases, p.symptoms, p.visual_signs, p.ipm_control, p.prevention, p.when_to_consult,
       );
     }
-    demo.articles.forEach((a, i) => {
-      const cat = db.get('SELECT id FROM article_categories WHERE name = ?', a.cat);
+    for (const [i, a] of demo.articles.entries()) {
+      const cat = await db.get('SELECT id FROM article_categories WHERE name = ?', a.cat);
       const when = new Date(Date.now() - (i + 1) * 86400000 * 2).toISOString();
-      db.run(
+      await db.run(
         `INSERT INTO articles (slug, title, summary, body_md, body_html, author_name, author_id, category_id, tags, status, is_demo, published_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', 1, ?)`,
         slugify(a.title), a.title, a.summary, a.body, renderMarkdown(a.body), 'Tim Sahabat Tani (Konten Demo)', ids.admin, cat.id, a.tags, when,
       );
-    });
-    db.run(
+    }
+    await db.run(
       `INSERT INTO articles (slug, title, summary, body_md, body_html, author_name, author_id, category_id, status, is_demo)
        VALUES ('draft-contoh', 'Draft: Jadwal Pengamatan Mingguan', 'Contoh draft yang belum diterbitkan.', 'Isi draft.', '<p>Isi draft.</p>', 'Admin Demo', ?, NULL, 'draft', 1)`,
       ids.admin,
@@ -95,7 +95,7 @@ async function seed({ withScans = true, quiet = false } = {}) {
     const file = { buffer: demoPng(), size: 0 };
     file.size = file.buffer.length;
     for (const key of ['sarno', 'wati']) {
-      const land = db.get('SELECT id FROM lands WHERE user_id = ? LIMIT 1', ids[key]);
+      const land = await db.get('SELECT id FROM lands WHERE user_id = ? LIMIT 1', ids[key]);
       await scans.createScan({ id: ids[key] }, {
         file, idempotencyKey: `seed-${crypto.randomUUID()}`, landId: land && land.id, plantAge: key === 'sarno' ? 35 : null,
         affectedPart: 'Daun', symptoms: key === 'sarno' ? 'Daun menguning di beberapa rumpun (contoh data demo)' : null,

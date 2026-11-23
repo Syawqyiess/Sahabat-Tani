@@ -12,7 +12,7 @@ before(async () => {
   f1 = await h.agentFor(...h.FARMER1);
   f2 = await h.agentFor(...h.FARMER2);
 });
-const uid = (phone) => h.db.get('SELECT id FROM users WHERE phone = ?', phone).id;
+const uid = async (phone) => (await h.db.get('SELECT id FROM users WHERE phone = ?', phone)).id;
 
 describe('Tahap 1 — perhitungan terpusat', () => {
   test('total luas 0,50 + 0,35 = 0,85 ha, sama di Dashboard, Lahan Saya, dan Profil', async () => {
@@ -41,7 +41,7 @@ describe('Tahap 1 — perhitungan terpusat', () => {
   });
 
   test('HST konsisten di Lahan Saya, Dashboard, dan scanner', async () => {
-    const land = h.db.get("SELECT * FROM lands WHERE name = 'Sawah Blok A (Demo)'");
+    const land = await h.db.get("SELECT * FROM lands WHERE name = 'Sawah Blok A (Demo)'");
     const days = crop.cropAge(land).days;
     assert.match((await f1.get('/lahan')).text, new RegExp(`\\(${days} HST\\)`));
     assert.match((await f1.get(`/dashboard?kalender=${land.id}`)).text, new RegExp(`<span class="cal-today-hst">${days} HST`));
@@ -49,32 +49,32 @@ describe('Tahap 1 — perhitungan terpusat', () => {
   });
 
   test('sesi chat kosong diarsipkan; sesi dengan konteks scan tidak; riwayat menyaring arsip', async () => {
-    const id = uid('081200000002');
-    const empty = h.db.run("INSERT INTO chat_sessions (user_id, title) VALUES (?, 'Percakapan baru')", id).lastInsertRowid;
-    const scanOnly = h.db.run("INSERT INTO chat_sessions (user_id, title) VALUES (?, 'Scan tanpa pesan')", id).lastInsertRowid;
-    h.db.run("INSERT INTO pest_scans (user_id, idempotency_key, image_path, image_mime, image_bytes, chat_session_id) VALUES (?, 'k-arsip-1', 'x/scan-a.jpg', 'image/jpeg', 1, ?)", id, scanOnly);
+    const id = await uid('081200000002');
+    const empty = (await h.db.run("INSERT INTO chat_sessions (user_id, title) VALUES (?, 'Percakapan baru')", id)).lastInsertRowid;
+    const scanOnly = (await h.db.run("INSERT INTO chat_sessions (user_id, title) VALUES (?, 'Scan tanpa pesan')", id)).lastInsertRowid;
+    await h.db.run("INSERT INTO pest_scans (user_id, idempotency_key, image_path, image_mime, image_bytes, chat_session_id) VALUES (?, 'k-arsip-1', 'x/scan-a.jpg', 'image/jpeg', 1, ?)", id, scanOnly);
     // Jalankan pernyataan pengarsipan dari migrasi 007 apa adanya.
     const sql = fs.readFileSync(path.join(__dirname, '../src/db/migrations/007_revisi_navbar_kalender.sql'), 'utf8');
     const stmt = /UPDATE chat_sessions SET archived_at[\s\S]*?;/.exec(sql)[0];
-    h.db.open().exec(stmt);
-    assert.ok(h.db.get('SELECT archived_at FROM chat_sessions WHERE id = ?', empty).archived_at);
-    assert.equal(h.db.get('SELECT archived_at FROM chat_sessions WHERE id = ?', scanOnly).archived_at, null, 'sesi dengan scan tidak dihapus/diarsipkan');
+    await h.db.run(stmt);
+    assert.ok((await h.db.get('SELECT archived_at FROM chat_sessions WHERE id = ?', empty)).archived_at);
+    assert.equal((await h.db.get('SELECT archived_at FROM chat_sessions WHERE id = ?', scanOnly)).archived_at, null, 'sesi dengan scan tidak dihapus/diarsipkan');
     const hist = await f2.get('/asisten/riwayat');
     assert.doesNotMatch(hist.text, new RegExp(`href="/asisten/${empty}"`));
     assert.match(hist.text, new RegExp(`href="/asisten/${scanOnly}"`));
-    assert.ok(h.db.get('SELECT 1 FROM chat_sessions WHERE id = ?', empty), 'tetap tersimpan untuk ditinjau (bukan dihapus)');
+    assert.ok(await h.db.get('SELECT 1 FROM chat_sessions WHERE id = ?', empty), 'tetap tersimpan untuk ditinjau (bukan dihapus)');
   });
 
   test('hanya berita eksternal: headline = terbaru, pagination 7 lalu 9 tanpa duplikasi; internal tidak tampil, topik sama dari sumber eksternal tetap tampil', async () => {
-    const cat = h.db.get("SELECT id, slug FROM article_categories WHERE slug = 'teknologi-pertanian'");
-    const other = h.db.get("SELECT id, slug FROM article_categories WHERE slug = 'budidaya-padi'");
+    const cat = await h.db.get("SELECT id, slug FROM article_categories WHERE slug = 'teknologi-pertanian'");
+    const other = await h.db.get("SELECT id, slug FROM article_categories WHERE slug = 'budidaya-padi'");
     for (let i = 0; i < 30; i++) {
-      h.db.run(`INSERT INTO articles (slug, title, status, origin, category_id, published_at, external_guid, source_name, source_url) VALUES (?, ?, 'published', 'external', ?, ?, ?, 'Uji', ?)`,
+      await h.db.run(`INSERT INTO articles (slug, title, status, origin, category_id, published_at, external_guid, source_name, source_url) VALUES (?, ?, 'published', 'external', ?, ?, ?, 'Uji', ?)`,
         `uji-hal-${i}`, `Berita uji halaman ${i}`, cat.id, new Date(Date.UTC(2026, 9, 1 + i)).toISOString(), `url:uji-${i}`, `https://uji.test/berita-${i}`);
     }
     // Materi internal lama (pernah disematkan) dan berita eksternal dengan topik yang sama.
-    h.db.run(`INSERT INTO articles (slug, title, status, origin, category_id, published_at, is_pinned, pin_order, body_md, body_html) VALUES ('materi-pin', 'Materi Penggerek Batang internal', 'published', 'internal', ?, '2026-12-01T00:00:00Z', 1, 1, 'x', '<p>x</p>')`, other.id);
-    h.db.run(`INSERT INTO articles (slug, title, status, origin, category_id, published_at, external_guid, source_name, source_url) VALUES ('ext-penggerek', 'Petani waspadai penggerek batang dan blas', 'published', 'external', ?, '2026-10-30T00:00:00Z', 'url:ext-pb', 'Uji', 'https://uji.test/penggerek')`, other.id);
+    await h.db.run(`INSERT INTO articles (slug, title, status, origin, category_id, published_at, is_pinned, pin_order, body_md, body_html) VALUES ('materi-pin', 'Materi Penggerek Batang internal', 'published', 'internal', ?, '2026-12-01T00:00:00Z', 1, 1, 'x', '<p>x</p>')`, other.id);
+    await h.db.run(`INSERT INTO articles (slug, title, status, origin, category_id, published_at, external_guid, source_name, source_url) VALUES ('ext-penggerek', 'Petani waspadai penggerek batang dan blas', 'published', 'external', ?, '2026-10-30T00:00:00Z', 'url:ext-pb', 'Uji', 'https://uji.test/penggerek')`, other.id);
     const seen = new Set();
     const titles = (html) => [...html.matchAll(/<h3><a href="\/artikel\/([^"]+)"/g)].map((m) => m[1]);
     const r1 = await f1.get(`/artikel?kategori=${cat.slug}`);
@@ -134,12 +134,12 @@ describe('Tahap 2–3 — navbar, publik, Masuk/Daftar', () => {
 
 describe('Tahap 4 — Kalender Tanam', () => {
   test('pengingat: tambah, tersimpan setelah muat ulang, ubah, tandai selesai; milik pengguna lain ditolak', async () => {
-    const land = h.db.get("SELECT * FROM lands WHERE name = 'Sawah Blok B (Demo)'");
+    const land = await h.db.get("SELECT * FROM lands WHERE name = 'Sawah Blok B (Demo)'");
     const due = crop.addDays(crop.todayISO(), 3);
     const add = await f1.post('/kalender').type('form').send({ _csrf: f1.csrf, land_id: land.id, title: 'Pengamatan wereng', due_date: due, category: 'pengamatan-hama' });
     assert.equal(add.status, 302);
     assert.equal(add.headers.location, `/kalender-tanam?lahan=${land.id}&tanggal=${due}#detail-hari`, 'kembali ke tanggal kegiatan');
-    const r = h.db.get("SELECT * FROM land_reminders WHERE title = 'Pengamatan wereng'");
+    const r = await h.db.get("SELECT * FROM land_reminders WHERE title = 'Pengamatan wereng'");
     assert.equal(r.season_start, land.planting_date, 'tersimpan per musim tanam');
     const page = await f1.get(`/kalender-tanam?lahan=${land.id}&tanggal=${due}`);
     assert.match(page.text, /Pengamatan wereng/);
@@ -148,7 +148,7 @@ describe('Tahap 4 — Kalender Tanam', () => {
     assert.equal((await f1.get('/kalender-tanam')).status, 200, 'dibuka langsung tanpa konteks');
     await f1.post(`/kalender/${r.id}`).type('form').send({ _csrf: f1.csrf, land_id: land.id, title: 'Pengamatan wereng batang', due_date: r.due_date, category: 'pengamatan-hama' });
     await f1.post(`/kalender/${r.id}/selesai`).type('form').send({ _csrf: f1.csrf });
-    const after = h.db.get('SELECT * FROM land_reminders WHERE id = ?', r.id);
+    const after = await h.db.get('SELECT * FROM land_reminders WHERE id = ?', r.id);
     assert.equal(after.title, 'Pengamatan wereng batang');
     assert.ok(after.done_at);
     assert.equal((await f2.post(`/kalender/${r.id}/selesai`).type('form').send({ _csrf: f2.csrf })).status, 404);
@@ -156,11 +156,11 @@ describe('Tahap 4 — Kalender Tanam', () => {
     assert.equal((await f2.get(`/kalender-tanam?lahan=${land.id}`)).text.includes('Pengamatan wereng batang'), false, 'lahan orang lain tidak bisa dibuka');
     const missing = await f1.post('/kalender').type('form').send({ _csrf: f1.csrf, land_id: land.id, title: 'Tanpa tanggal', category: 'lainnya' });
     assert.equal(missing.status, 422);
-    assert.equal(h.db.get("SELECT COUNT(*) n FROM land_reminders WHERE title = 'Tanpa tanggal'").n, 0);
+    assert.equal((await h.db.get("SELECT COUNT(*) n FROM land_reminders WHERE title = 'Tanpa tanggal'")).n, 0);
   });
 
   test('kalender bulanan: Senin–Minggu, hari ini terpilih, navigasi bulan, kategori baru, hapus', async () => {
-    const land = h.db.get("SELECT * FROM lands WHERE name = 'Sawah Blok A (Demo)'");
+    const land = await h.db.get("SELECT * FROM lands WHERE name = 'Sawah Blok A (Demo)'");
     const today = crop.todayISO();
     const page = await f1.get(`/kalender-tanam?lahan=${land.id}`);
     assert.equal(page.status, 200);
@@ -174,13 +174,13 @@ describe('Tahap 4 — Kalender Tanam', () => {
     assert.equal(add.status, 302, 'kategori Tanam diterima');
     const panen = await f1.post('/kalender').type('form').send({ _csrf: f1.csrf, land_id: land.id, title: 'Panen', due_date: crop.addDays(today, 40), category: 'panen' });
     assert.equal(panen.status, 302, 'kategori Panen diterima');
-    const id = h.db.get("SELECT id FROM land_reminders WHERE title = 'Tanam bibit sulam'").id;
+    const id = (await h.db.get("SELECT id FROM land_reminders WHERE title = 'Tanam bibit sulam'")).id;
     const day = await f1.get(`/kalender-tanam?lahan=${land.id}&tanggal=${today}`);
     assert.match(day.text, /Tanam bibit sulam/);
     assert.match(day.text, /data-confirm="Hapus kegiatan/, 'hapus dengan konfirmasi');
     const del = await f1.post(`/kalender/${id}/hapus`).type('form').send({ _csrf: f1.csrf });
     assert.equal(del.status, 302);
-    assert.equal(h.db.get('SELECT 1 FROM land_reminders WHERE id = ?', id), undefined);
+    assert.equal(await h.db.get('SELECT 1 FROM land_reminders WHERE id = ?', id), undefined);
     const next = await f1.get(`/kalender-tanam?lahan=${land.id}&bulan=2027-02`);
     assert.match(next.text, /Februari 2027/);
     assert.match(next.text, /is-selected[^"]*"[^>]*tanggal=2027-02-01/, 'bulan lain → tanggal 1 terpilih');
@@ -188,7 +188,7 @@ describe('Tahap 4 — Kalender Tanam', () => {
   });
 
   test('kartu Dashboard: hanya hari ini, satu tautan, sinkron dengan kalender, tanpa kalender sebulan', async () => {
-    const land = h.db.get("SELECT * FROM lands WHERE name = 'Sawah Blok A (Demo)'");
+    const land = await h.db.get("SELECT * FROM lands WHERE name = 'Sawah Blok A (Demo)'");
     const today = crop.todayISO();
     const dashUrl = `/dashboard?kalender=${land.id}`;
     let dash = await f1.get(dashUrl);
@@ -215,25 +215,25 @@ describe('Tahap 4 — Kalender Tanam', () => {
     assert.doesNotMatch(dash.text, /Kegiatan besok/, 'kegiatan besok tidak menggantikan hari ini');
     assert.match(dash.text, /badge cat-pemupukan">Pemupukan/);
     // Ubah & selesai di kalender → tampil di kartu.
-    const r = h.db.get("SELECT * FROM land_reminders WHERE title = 'Cek wereng'");
+    const r = await h.db.get("SELECT * FROM land_reminders WHERE title = 'Cek wereng'");
     await f1.post(`/kalender/${r.id}`).type('form').send({ _csrf: f1.csrf, land_id: land.id, title: 'Cek wereng batang cokelat', due_date: today, category: 'pengamatan-hama' });
     await f1.post(`/kalender/${r.id}/selesai`).type('form').send({ _csrf: f1.csrf });
     // Kegiatan yang belum selesai didahulukan; yang selesai turun ke urutan akhir.
-    const gulma = h.db.get("SELECT id FROM land_reminders WHERE title = 'Bersihkan gulma'");
+    const gulma = await h.db.get("SELECT id FROM land_reminders WHERE title = 'Bersihkan gulma'");
     await f1.post(`/kalender/${gulma.id}/hapus`).type('form').send({ _csrf: f1.csrf });
     dash = await f1.get(dashUrl);
     assert.doesNotMatch(dash.text, /Bersihkan gulma/, 'hapus di kalender → hilang dari kartu');
     assert.doesNotMatch(dash.text, /kegiatan lainnya/);
     assert.match(dash.text, /Atur air[\s\S]*?<li class="is-done">[\s\S]*?Cek wereng batang cokelat/, 'selesai ditandai & diurutkan terakhir');
     // Hapus semua kegiatan hari ini → kembali ke keadaan kosong.
-    for (const x of h.db.all('SELECT id FROM land_reminders WHERE land_id = ? AND due_date = ?', land.id, today)) {
+    for (const x of await h.db.all('SELECT id FROM land_reminders WHERE land_id = ? AND due_date = ?', land.id, today)) {
       await f1.post(`/kalender/${x.id}/hapus`).type('form').send({ _csrf: f1.csrf });
     }
     assert.match((await f1.get(dashUrl)).text, /Belum ada kegiatan hari ini/);
     // Navigasi bolak-balik tidak membuat kegiatan baru.
-    const before = h.db.get('SELECT COUNT(*) n FROM land_reminders').n;
+    const before = (await h.db.get('SELECT COUNT(*) n FROM land_reminders')).n;
     await f1.get(`/kalender-tanam?lahan=${land.id}`); await f1.get(dashUrl); await f1.get(`/kalender-tanam?lahan=${land.id}`);
-    assert.equal(h.db.get('SELECT COUNT(*) n FROM land_reminders').n, before);
+    assert.equal((await h.db.get('SELECT COUNT(*) n FROM land_reminders')).n, before);
   });
 
   test('kartu & kalender tanpa lahan: tanggal tetap tampil, arah ke Tambahkan Lahan', async () => {
@@ -264,7 +264,7 @@ describe('Tahap 5–6 — scanner, udara, profil', () => {
       .field('_csrf', f1.csrf).field('idempotency_key', 'snap-hst-1').field('plant_age_days', '40').field('plant_age_source', 'tanggal-tanam')
       .attach('photo', h.demoPng(640, 640), { filename: 'daun.png', contentType: 'image/png' });
     assert.equal(res.status, 200);
-    const s = h.db.get("SELECT plant_age_days, plant_age_source FROM pest_scans WHERE idempotency_key = 'snap-hst-1'");
+    const s = await h.db.get("SELECT plant_age_days, plant_age_source FROM pest_scans WHERE idempotency_key = 'snap-hst-1'");
     assert.deepEqual([s.plant_age_days, s.plant_age_source], [40, 'tanggal-tanam']);
   });
 
@@ -324,18 +324,18 @@ describe('Footer baru & halaman informasi', () => {
   });
 
   test('artikel internal yang sudah tersimpan ditandai tidak tersedia dan dapat dihapus dari simpanan', async () => {
-    const uid = h.db.get("SELECT id FROM users WHERE phone = ?", h.FARMER1[0]).id;
-    const internal = h.db.get("SELECT id, title FROM articles WHERE origin = 'internal' AND status = 'published' LIMIT 1");
-    const ext = h.db.get("SELECT id, title FROM articles WHERE origin = 'external' AND status = 'published' AND source_url IS NOT NULL LIMIT 1");
-    h.db.run('INSERT OR IGNORE INTO saved_articles (user_id, article_id) VALUES (?, ?)', uid, internal.id);
-    if (ext) h.db.run('INSERT OR IGNORE INTO saved_articles (user_id, article_id) VALUES (?, ?)', uid, ext.id);
+    const uid = (await h.db.get("SELECT id FROM users WHERE phone = ?", h.FARMER1[0])).id;
+    const internal = await h.db.get("SELECT id, title FROM articles WHERE origin = 'internal' AND status = 'published' LIMIT 1");
+    const ext = await h.db.get("SELECT id, title FROM articles WHERE origin = 'external' AND status = 'published' AND source_url IS NOT NULL LIMIT 1");
+    await h.db.run('INSERT OR IGNORE INTO saved_articles (user_id, article_id) VALUES (?, ?)', uid, internal.id);
+    if (ext) await h.db.run('INSERT OR IGNORE INTO saved_articles (user_id, article_id) VALUES (?, ?)', uid, ext.id);
     const page = await f1.get('/artikel-tersimpan');
     assert.match(page.text, /Tidak lagi tersedia/);
     assert.match(page.text, /Hapus dari simpanan/);
     const rm = await f1.post(`/artikel/${internal.id}/simpan`).type('form').send({ _csrf: f1.csrf, back: '/artikel-tersimpan' });
     assert.equal(rm.status, 302);
-    assert.equal(h.db.get('SELECT 1 FROM saved_articles WHERE user_id = ? AND article_id = ?', uid, internal.id), undefined);
-    if (ext) assert.ok(h.db.get('SELECT 1 FROM saved_articles WHERE user_id = ? AND article_id = ?', uid, ext.id), 'simpanan berita eksternal tetap');
-    assert.ok(h.db.get('SELECT 1 FROM articles WHERE id = ?', internal.id), 'artikel tidak dihapus');
+    assert.equal(await h.db.get('SELECT 1 FROM saved_articles WHERE user_id = ? AND article_id = ?', uid, internal.id), undefined);
+    if (ext) assert.ok(await h.db.get('SELECT 1 FROM saved_articles WHERE user_id = ? AND article_id = ?', uid, ext.id), 'simpanan berita eksternal tetap');
+    assert.ok(await h.db.get('SELECT 1 FROM articles WHERE id = ?', internal.id), 'artikel tidak dihapus');
   });
 });

@@ -70,7 +70,7 @@ async function complete(flow, { code, state }) {
     throw new GoogleAuthError(status === 400 || status === 401 ? 'exchange' : 'network', err);
   }
   if (!tokens || !tokens.id_token) throw new GoogleAuthError('no_id_token');
-  return verifyIdToken(tokens.id_token, flow.nonce);
+  return await verifyIdToken(tokens.id_token, flow.nonce);
 }
 
 async function verifyIdToken(idToken, expectedNonce) {

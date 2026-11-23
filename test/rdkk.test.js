@@ -47,7 +47,7 @@ describe('Pengambilan data RDKK', () => {
     const r = await rdkk.refresh();
     assert.deepEqual(r, { ok: true, warnings: [] });
     assert.equal(requested.length, 6, 'lembar duplikat tidak diunduh ulang');
-    const l = rdkk.latest();
+    const l = await rdkk.latest();
     assert.equal(l.data.kpi.total, 96684);
     assert.deepEqual(l.data.kelompok, ['KALIBANJAR', 'KALITEBON']);
     const page = await (await h.agentFor(...h.FARMER1)).get('/dashboard');
@@ -59,7 +59,7 @@ describe('Pengambilan data RDKK', () => {
   });
 
   test('angka antarlembar tidak cocok atau kolom berubah → gagal, data lama tetap dipakai', async () => {
-    const before = rdkk.latest();
+    const before = await rdkk.latest();
     mockTableau({ totalkebutuhan: 'KPI Total Kebutuhan\n96,684 kg\n' }); // salah format → total 96,684
     let r = await rdkk.refresh();
     assert.equal(r.ok, false);
@@ -70,7 +70,7 @@ describe('Pengambilan data RDKK', () => {
     mockTableau({ petaniterdaftar: { status: 403 } });
     r = await rdkk.refresh();
     assert.match(r.error, /menolak akses/);
-    const after = rdkk.latest();
+    const after = await rdkk.latest();
     assert.equal(after.fetchedAt, before.fetchedAt, 'snapshot valid terakhir tetap dipakai');
     assert.match(after.lastError.message, /menolak akses/);
     const page = await (await h.agentFor(...h.FARMER1)).get('/dashboard');
@@ -85,7 +85,7 @@ describe('Pengambilan data RDKK', () => {
     mockTableau();
     const res = await admin.post('/admin/integrasi/rdkk').type('form').send({ _csrf: admin.csrf });
     assert.equal(res.status, 302);
-    assert.equal(rdkk.latest().lastError, null);
+    assert.equal((await rdkk.latest()).lastError, null);
     const f1 = await h.agentFor(...h.FARMER1);
     assert.equal((await f1.post('/admin/integrasi/rdkk').type('form').send({ _csrf: f1.csrf })).status, 403, 'petani tidak bisa memicu pengambilan');
   });

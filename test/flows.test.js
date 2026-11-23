@@ -53,7 +53,7 @@ describe('Halaman publik & akses', () => {
 
   test('petani tidak bisa membuka panel admin; admin tidak bisa membuka chat petani', async () => {
     assert.equal((await f1.get('/admin')).status, 403);
-    const s = h.db.get('SELECT id FROM chat_sessions WHERE user_id = (SELECT id FROM users WHERE phone = ?)', h.FARMER1[0]);
+    const s = await h.db.get('SELECT id FROM chat_sessions WHERE user_id = (SELECT id FROM users WHERE phone = ?)', h.FARMER1[0]);
     assert.equal((await admin.get(`/asisten/${s.id}`)).status, 403);
   });
 
@@ -134,12 +134,12 @@ describe('Lahan & isolasi data antarpetani', () => {
   });
 
   test('petani tidak dapat membuka atau mengubah lahan petani lain lewat ID', async () => {
-    const wLand = h.db.get('SELECT id FROM lands WHERE user_id = (SELECT id FROM users WHERE phone = ?)', h.FARMER2[0]);
+    const wLand = await h.db.get('SELECT id FROM lands WHERE user_id = (SELECT id FROM users WHERE phone = ?)', h.FARMER2[0]);
     assert.equal((await f1.get(`/lahan/${wLand.id}`)).status, 404);
     assert.equal((await f1.get(`/lahan/${wLand.id}/ubah`)).status, 404);
     assert.equal((await f1.post(`/lahan/${wLand.id}`).type('form').send({ _csrf: f1.csrf, name: 'Diretas' })).status, 404);
     await f1.post(`/lahan/${wLand.id}/hapus`).type('form').send({ _csrf: f1.csrf });
-    assert.ok(h.db.get('SELECT 1 FROM lands WHERE id = ?', wLand.id), 'lahan petani lain tidak boleh terhapus');
+    assert.ok(await h.db.get('SELECT 1 FROM lands WHERE id = ?', wLand.id), 'lahan petani lain tidak boleh terhapus');
     const list = await f1.get('/lahan');
     assert.doesNotMatch(list.text, /Sawah dekat rumah/);
   });
@@ -190,7 +190,7 @@ describe('Scan → analisis → chatroom', () => {
     assert.match(chat.text, /Simulasi respons AI/);
     assert.match(chat.text, /BELUM dianalisis oleh model AI/);
     assert.match(chat.text, /umur 30 hari/);
-    const scan = h.db.get('SELECT * FROM pest_scans WHERE id = ?', res.body.scanId);
+    const scan = await h.db.get('SELECT * FROM pest_scans WHERE id = ?', res.body.scanId);
     assert.equal(scan.status, 'completed');
     assert.equal(scan.mode, 'demo');
     assert.ok(scan.processing_ms != null);
@@ -198,12 +198,12 @@ describe('Scan → analisis → chatroom', () => {
 
   test('tombol ditekan berulang (kunci idempoten sama) tidak membuat scan ganda', async () => {
     const key = crypto.randomUUID();
-    const before = h.db.get('SELECT COUNT(*) n FROM pest_scans').n;
+    const before = (await h.db.get('SELECT COUNT(*) n FROM pest_scans')).n;
     const a = await scanPost(f1, { key });
     const b = await scanPost(f1, { key });
     assert.equal(a.body.redirect, b.body.redirect);
     assert.equal(b.body.duplicate, true);
-    assert.equal(h.db.get('SELECT COUNT(*) n FROM pest_scans').n, before + 1);
+    assert.equal((await h.db.get('SELECT COUNT(*) n FROM pest_scans')).n, before + 1);
   });
 
   test('berkas bukan gambar ditolak (termasuk yang menyamar sebagai PNG)', async () => {
@@ -217,7 +217,7 @@ describe('Scan → analisis → chatroom', () => {
 
   test('foto pribadi hanya dapat diakses pemiliknya', async () => {
     const res = await scanPost(f1);
-    const scan = h.db.get('SELECT image_path FROM pest_scans WHERE id = ?', res.body.scanId);
+    const scan = await h.db.get('SELECT image_path FROM pest_scans WHERE id = ?', res.body.scanId);
     assert.equal((await f1.get(`/media/${scan.image_path}`)).status, 200);
     assert.equal((await f2.get(`/media/${scan.image_path}`)).status, 404);
     assert.equal((await admin.get(`/media/${scan.image_path}`)).status, 404);
@@ -233,7 +233,7 @@ describe('Scan → analisis → chatroom', () => {
     let chat = await f1.get(res.body.redirect);
     assert.match(chat.text, /Foto belum berhasil dianalisis/);
     assert.doesNotMatch(chat.text, /Dugaan awal/);
-    assert.equal(h.db.get('SELECT status FROM pest_scans WHERE id = ?', res.body.scanId).status, 'failed');
+    assert.equal((await h.db.get('SELECT status FROM pest_scans WHERE id = ?', res.body.scanId)).status, 'failed');
 
     ai._setOverride('vision', { name: 'uji', mode: 'ai', model: 'model-uji', supportsImages: true, analyze: async () => ({ model: 'model-uji', result: identifiedResult() }) });
     const retry = await f1.post(`/scan/${res.body.scanId}/ulang`).set('Accept', 'application/json').type('form').send({ _csrf: f1.csrf });
@@ -289,7 +289,7 @@ describe('Scan → analisis → chatroom', () => {
       ['Apakah perlu diperiksa penyuluh?', /POPT/],
     ]) {
       await f2.post(`/asisten/${sid}/pesan`).set('Accept', 'application/json').set('X-CSRF-Token', f2.csrf).field('_csrf', f2.csrf).field('message', q);
-      const last = h.db.get("SELECT content FROM chat_messages WHERE session_id = ? AND role = 'assistant' ORDER BY id DESC LIMIT 1", sid);
+      const last = await h.db.get("SELECT content FROM chat_messages WHERE session_id = ? AND role = 'assistant' ORDER BY id DESC LIMIT 1", sid);
       assert.match(last.content, expect, q);
       assert.match(last.content, /^\[Simulasi respons AI\]/);
     }
@@ -311,12 +311,12 @@ describe('Scan → analisis → chatroom', () => {
   });
 
   test('dua petani memiliki riwayat scan dan percakapan yang terpisah', async () => {
-    const u1 = h.db.get('SELECT id FROM users WHERE phone = ?', h.FARMER1[0]).id;
-    const u2 = h.db.get('SELECT id FROM users WHERE phone = ?', h.FARMER2[0]).id;
-    const s2 = h.db.all('SELECT id FROM pest_scans WHERE user_id = ?', u2).map((r) => r.id);
+    const u1 = (await h.db.get('SELECT id FROM users WHERE phone = ?', h.FARMER1[0])).id;
+    const u2 = (await h.db.get('SELECT id FROM users WHERE phone = ?', h.FARMER2[0])).id;
+    const s2 = (await h.db.all('SELECT id FROM pest_scans WHERE user_id = ?', u2)).map((r) => r.id);
     const hist1 = await f1.get('/scan/riwayat');
     for (const id of s2) assert.doesNotMatch(hist1.text, new RegExp(`Scan #${id} `));
-    const c1 = h.db.all('SELECT id FROM chat_sessions WHERE user_id = ?', u1);
+    const c1 = await h.db.all('SELECT id FROM chat_sessions WHERE user_id = ?', u1);
     for (const c of c1) assert.equal((await f2.get(`/asisten/${c.id}`)).status, 404);
   });
 });
@@ -369,14 +369,14 @@ describe('Artikel & admin', () => {
   test('artikel internal buatan admin: admin dapat meninjau, tetapi tidak tampil/diakses di daftar publik; draft tidak terlihat', async () => {
     const draft = await admin.post('/admin/artikel').type('form').send({ _csrf: admin.csrf, title: 'Artikel Uji Draft', body_md: 'Isi', action: 'draft' });
     assert.equal(draft.status, 302);
-    const draftRow = h.db.get("SELECT * FROM articles WHERE title = 'Artikel Uji Draft'");
+    const draftRow = await h.db.get("SELECT * FROM articles WHERE title = 'Artikel Uji Draft'");
     assert.equal((await f1.get(`/artikel/${draftRow.slug}`)).status, 404);
 
     const pub = await admin.post('/admin/artikel').type('form').send({
       _csrf: admin.csrf, title: 'Panduan Pengamatan Mingguan', summary: 'Ringkasan', body_md: '## Langkah\n\nAmati lahan.<script>alert(1)</script>', action: 'publish', tags: 'pht',
     });
     assert.equal(pub.status, 302);
-    const row = h.db.get("SELECT * FROM articles WHERE title = 'Panduan Pengamatan Mingguan'");
+    const row = await h.db.get("SELECT * FROM articles WHERE title = 'Panduan Pengamatan Mingguan'");
     assert.equal(row.status, 'published');
     // Admin tetap dapat meninjau isinya (aman dari skrip).
     const preview = await admin.get(`/artikel/${row.slug}`);
@@ -390,14 +390,14 @@ describe('Artikel & admin', () => {
     assert.match(read.text, /href="\/artikel"/);
     assert.equal((await f1.post(`/artikel/${row.id}/simpan`).type('form').send({ _csrf: f1.csrf })).status, 404, 'tidak bisa disimpan baru');
     assert.doesNotMatch((await f1.get('/artikel?q=Pengamatan')).text, /Panduan Pengamatan Mingguan/);
-    assert.ok(h.db.get('SELECT 1 FROM articles WHERE id = ?', row.id), 'data tidak dihapus');
+    assert.ok(await h.db.get('SELECT 1 FROM articles WHERE id = ?', row.id), 'data tidak dihapus');
     await admin.post(`/admin/artikel/${row.id}/status`).type('form').send({ _csrf: admin.csrf, action: 'archive' });
     assert.equal((await f1.get(`/artikel/${row.slug}`)).status, 404);
   });
 
   test('admin menonaktifkan akun: sesi petani langsung berakhir', async () => {
     const agent = await h.agentFor('081299990000', 'sandibaru1');
-    const uid = h.db.get("SELECT id FROM users WHERE phone = '081299990000'").id;
+    const uid = (await h.db.get("SELECT id FROM users WHERE phone = '081299990000'")).id;
     await admin.post(`/admin/pengguna/${uid}/status`).type('form').send({ _csrf: admin.csrf });
     const res = await agent.get('/dashboard');
     assert.equal(res.status, 302);
@@ -405,7 +405,7 @@ describe('Artikel & admin', () => {
   });
 
   test('admin membantu mengisi data lahan petani', async () => {
-    const uid = h.db.get('SELECT id FROM users WHERE phone = ?', h.FARMER2[0]).id;
+    const uid = (await h.db.get('SELECT id FROM users WHERE phone = ?', h.FARMER2[0])).id;
     const res = await admin.post('/admin/lahan').type('form').send({
       _csrf: admin.csrf, user_id: uid, name: 'Lahan diisi admin', lat: '-7.70', lng: '110.60', polygon_json: '[[-7.70,110.60],[-7.70,110.61],[-7.71,110.61]]', data_source: 'real',
     });
@@ -429,9 +429,9 @@ describe('Artikel & admin', () => {
   });
 
   test('referensi hama hanya bisa diverifikasi setelah sumber diisi', async () => {
-    const p = h.db.get('SELECT id FROM pest_references LIMIT 1');
+    const p = await h.db.get('SELECT id FROM pest_references LIMIT 1');
     await admin.post(`/admin/referensi-hama/${p.id}/verifikasi`).type('form').send({ _csrf: admin.csrf, verified_by: 'PPL Uji' });
-    assert.equal(h.db.get('SELECT is_verified FROM pest_references WHERE id = ?', p.id).is_verified, 0);
+    assert.equal((await h.db.get('SELECT is_verified FROM pest_references WHERE id = ?', p.id)).is_verified, 0);
   });
 });
 

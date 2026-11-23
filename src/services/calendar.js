@@ -18,8 +18,8 @@ const CAT_LABEL = Object.fromEntries(CATEGORIES);
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
-function ownedLands(userId) {
-  return db.all('SELECT * FROM lands WHERE user_id = ? ORDER BY created_at, id', userId);
+async function ownedLands(userId) {
+  return await db.all('SELECT * FROM lands WHERE user_id = ? ORDER BY created_at, id', userId);
 }
 
 // Lahan terpilih: id yang diminta (bila milik pengguna) → lahan terakhir dipakai → lahan bertanggal tanam → lahan pertama.
@@ -47,19 +47,19 @@ function isCurrent(r, land) {
 }
 
 // Pengingat lahan untuk musim tanam aktif (+ yang dibuat sebelum tanggal tanam diisi), dan musim sebelumnya terpisah.
-function forLand(userId, land, today = crop.todayISO()) {
-  const rows = db.all('SELECT * FROM land_reminders WHERE user_id = ? AND land_id = ? ORDER BY due_date, id', userId, land.id).map((r) => decorate(r, land, today));
+async function forLand(userId, land, today = crop.todayISO()) {
+  const rows = (await db.all('SELECT * FROM land_reminders WHERE user_id = ? AND land_id = ? ORDER BY due_date, id', userId, land.id)).map((r) => decorate(r, land, today));
   const current = rows.filter((r) => isCurrent(r, land));
   const previous = rows.filter((r) => !isCurrent(r, land));
   return { current, previous };
 }
 
 // Daftar musim tanam yang punya data: musim aktif + musim sebelumnya (berdasarkan tanggal tanam saat kegiatan dibuat).
-function seasons(userId, land) {
-  const past = db.all(
+async function seasons(userId, land) {
+  const past = (await db.all(
     'SELECT DISTINCT season_start FROM land_reminders WHERE user_id = ? AND land_id = ? AND season_start IS NOT NULL AND season_start IS NOT ? ORDER BY season_start DESC',
     userId, land.id, land.planting_date || null,
-  ).map((r) => r.season_start);
+  )).map((r) => r.season_start);
   return [
     { value: '', start: land.planting_date || null, current: true },
     ...past.map((s) => ({ value: s, start: s, current: false })),
@@ -67,22 +67,22 @@ function seasons(userId, land) {
 }
 
 // Kegiatan untuk musim yang dipilih ('' = musim aktif).
-function forSeason(userId, land, season, today = crop.todayISO()) {
-  const { current, previous } = forLand(userId, land, today);
+async function forSeason(userId, land, season, today = crop.todayISO()) {
+  const { current, previous } = await forLand(userId, land, today);
   return season ? previous.filter((r) => r.season_start === season) : current;
 }
 
 // Pratinjau Dashboard: kegiatan musim aktif yang jatuh HARI INI (bukan besok/lainnya).
-function todayPreview(userId, land, today = crop.todayISO(), max = 3) {
-  const items = forLand(userId, land, today).current.filter((r) => r.due_date === today);
+async function todayPreview(userId, land, today = crop.todayISO(), max = 3) {
+  const items = (await forLand(userId, land, today)).current.filter((r) => r.due_date === today);
   // Belum selesai lebih dulu, lalu yang selesai.
   items.sort((a, b) => (a.done_at ? 1 : 0) - (b.done_at ? 1 : 0) || a.id - b.id);
   return { items: items.slice(0, max), more: Math.max(0, items.length - max), total: items.length };
 }
 
 // Pengingat terdekat yang belum selesai (terlewat lebih dulu, lalu yang paling dekat).
-function nextReminder(userId, land, today = crop.todayISO()) {
-  const { current } = forLand(userId, land, today);
+async function nextReminder(userId, land, today = crop.todayISO()) {
+  const { current } = await forLand(userId, land, today);
   const open = current.filter((r) => r.status !== 'selesai');
   const overdue = open.filter((r) => r.status === 'terlewat');
   const upcoming = open.filter((r) => r.status !== 'terlewat');

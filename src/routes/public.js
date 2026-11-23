@@ -4,9 +4,9 @@ const db = require('../db');
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   if (req.user) return res.redirect(req.user.role === 'admin' ? '/admin' : '/dashboard');
-  const latest = db.all(
+  const latest = await db.all(
     `SELECT a.*, c.name AS category_name FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id
       WHERE ${require('../lib/articles').PUBLIC_WHERE} ORDER BY a.published_at IS NULL, a.published_at DESC LIMIT 3`,
   );

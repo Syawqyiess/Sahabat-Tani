@@ -93,7 +93,7 @@ describe('Validasi gambar di backend', () => {
       'https://cdn-tani.test/f/cdn.jpg': jpg(PHOTO),
     });
     const allowHost = (host) => ['media-tani.test', 'cdn-tani.test'].includes(host);
-    const v = (u) => images.validate({ url: u }, { allowHost, policy: 'tautan' });
+    const v = async (u) => await images.validate({ url: u }, { allowHost, policy: 'tautan' });
     assert.equal((await v('https://media-tani.test/foto/ok.jpg')).status, 'ok');
     assert.equal((await v('https://cdn-tani.test/f/cdn.jpg')).status, 'ok', 'CDN terverifikasi diizinkan');
     assert.match((await v('https://media-tani.test/foto/kecil.png')).note, /terlalu kecil/);
@@ -129,18 +129,18 @@ describe('Pengambilan & backfill', () => {
       'https://media-tani.test/berita/pupuk-tanpa-foto': { body: '<title>Pupuk tanpa foto</title><meta property="og:title" content="Pupuk organik untuk petani">' },
       'https://media-tani.test/foto/pompa.jpg': jpg(PHOTO),
     });
-    const r = h.db.run(`INSERT INTO news_sources (name, feed_url, usage_note, kind, config_json, is_active) VALUES ('Media Tani', 'https://media-tani.test/berita', 'uji', 'html', ?, 1)`,
+    const r = await h.db.run(`INSERT INTO news_sources (name, feed_url, usage_note, kind, config_json, is_active) VALUES ('Media Tani', 'https://media-tani.test/berita', 'uji', 'html', ?, 1)`,
       JSON.stringify({ link_pattern: '^https://media-tani\\.test/berita/[a-z-]+$' }));
-    const source = h.db.get('SELECT * FROM news_sources WHERE id = ?', r.lastInsertRowid);
+    const source = await h.db.get('SELECT * FROM news_sources WHERE id = ?', r.lastInsertRowid);
     const rep = await news.fetchSource(source);
     assert.equal(rep.added, 2);
     assert.deepEqual(rep.images, { ok: 1, fallback: 1 });
-    const pompa = h.db.get("SELECT * FROM articles WHERE title = 'Pompa air sawah kering'");
+    const pompa = await h.db.get("SELECT * FROM articles WHERE title = 'Pompa air sawah kering'");
     assert.equal(pompa.image_status, 'ok');
     assert.equal(pompa.image_kind, 'sumber');
     assert.equal(pompa.image_alt, 'Pompa air di tepi sawah');
     assert.equal(requested.filter((u) => u.endsWith('/berita/pompa-air-sawah-kering')).length, 1, 'halaman artikel tidak dibuka dua kali');
-    const tanpa = h.db.get("SELECT * FROM articles WHERE title = 'Pupuk organik untuk petani'");
+    const tanpa = await h.db.get("SELECT * FROM articles WHERE title = 'Pupuk organik untuk petani'");
     assert.equal(tanpa.image_url, null);
     assert.equal(tanpa.image_status, 'tidak-ada');
 
@@ -151,14 +151,14 @@ describe('Pengambilan & backfill', () => {
   });
 
   test('backfill: memperbarui artikel lama, idempoten, tidak menimpa pilihan admin, gagal satu tidak menghentikan', async () => {
-    const src = h.db.get("SELECT * FROM news_sources WHERE name = 'Media Tani'");
-    const ins = (title, url, extra = '') => h.db.run(
+    const src = await h.db.get("SELECT * FROM news_sources WHERE name = 'Media Tani'");
+    const ins = async (title, url, extra = '') => (await h.db.run(
       `INSERT INTO articles (slug, title, status, origin, source_id, source_name, source_url, external_guid${extra ? ', image_url, image_kind, image_status' : ''})
        VALUES (?, ?, 'published', 'external', ?, 'Media Tani', ?, ?${extra ? ', ?, ?, ?' : ''})`,
-      title.toLowerCase().replace(/\W+/g, '-'), title, src.id, url, 'url:' + url, ...(extra ? [extra, 'admin', 'ok'] : [])).lastInsertRowid;
-    const lama = ins('Berita lama bergambar', 'https://media-tani.test/berita/lama');
-    const putus = ins('Berita lama putus', 'https://media-tani.test/berita/hilang');
-    const admin = ins('Berita dengan cover admin', 'https://media-tani.test/berita/admin', 'https://cdn-tani.test/pilihan-admin.jpg');
+      title.toLowerCase().replace(/\W+/g, '-'), title, src.id, url, 'url:' + url, ...(extra ? [extra, 'admin', 'ok'] : []))).lastInsertRowid;
+    const lama = await ins('Berita lama bergambar', 'https://media-tani.test/berita/lama');
+    const putus = await ins('Berita lama putus', 'https://media-tani.test/berita/hilang');
+    const admin = await ins('Berita dengan cover admin', 'https://media-tani.test/berita/admin', 'https://cdn-tani.test/pilihan-admin.jpg');
     mockSites({
       'https://media-tani.test/berita/lama': { body: '<meta property="og:image" content="/foto/lama.jpg">' },
       'https://media-tani.test/foto/lama.jpg': jpg(PHOTO),
@@ -166,18 +166,18 @@ describe('Pengambilan & backfill', () => {
     const r1 = await images.processPending({ sourceId: src.id });
     assert.equal(r1.updated, 1);
     assert.ok(r1.checked >= 2);
-    assert.equal(h.db.get('SELECT image_status FROM articles WHERE id = ?', lama).image_status, 'ok');
-    assert.equal(h.db.get('SELECT image_status FROM articles WHERE id = ?', putus).image_status, 'gagal', '404 halaman = gagal sementara, dicoba lagi nanti');
-    assert.equal(h.db.get('SELECT image_url FROM articles WHERE id = ?', admin).image_url, 'https://cdn-tani.test/pilihan-admin.jpg');
+    assert.equal((await h.db.get('SELECT image_status FROM articles WHERE id = ?', lama)).image_status, 'ok');
+    assert.equal((await h.db.get('SELECT image_status FROM articles WHERE id = ?', putus)).image_status, 'gagal', '404 halaman = gagal sementara, dicoba lagi nanti');
+    assert.equal((await h.db.get('SELECT image_url FROM articles WHERE id = ?', admin)).image_url, 'https://cdn-tani.test/pilihan-admin.jpg');
     mockSites({});
     const r2 = await images.processPending({ sourceId: src.id });
     assert.equal(r2.checked, 0, 'aman diulang: tidak ada yang diproses ulang');
-    assert.equal(h.db.get("SELECT COUNT(*) n FROM articles WHERE title = 'Berita lama bergambar'").n, 1, 'tidak menggandakan artikel');
+    assert.equal((await h.db.get("SELECT COUNT(*) n FROM articles WHERE title = 'Berita lama bergambar'")).n, 1, 'tidak menggandakan artikel');
   });
 
   test('gambar tampil sama di daftar, detail, dan Artikel Tersimpan; gambar umum situs ditolak', async () => {
     const f1 = await h.agentFor(...h.FARMER1);
-    const a = h.db.get("SELECT * FROM articles WHERE title = 'Berita lama bergambar'");
+    const a = await h.db.get("SELECT * FROM articles WHERE title = 'Berita lama bergambar'");
     await f1.post(`/artikel/${a.id}/simpan`).type('form').send({ _csrf: f1.csrf });
     const saved = await f1.get('/artikel-tersimpan');
     assert.match(saved.text, /https:\/\/media-tani\.test\/foto\/lama\.jpg/);
@@ -185,7 +185,7 @@ describe('Pengambilan & backfill', () => {
     assert.match(detail.text, /https:\/\/media-tani\.test\/foto\/lama\.jpg/);
     assert.match(detail.text, /fetchpriority="high"/, 'gambar utama detail tidak di-lazy-load');
     // Artikel lain dengan og:image yang sama → gambar umum situs, bukan foto berita itu.
-    const src = h.db.get("SELECT * FROM news_sources WHERE name = 'Media Tani'");
+    const src = await h.db.get("SELECT * FROM news_sources WHERE name = 'Media Tani'");
     mockSites({ 'https://media-tani.test/berita/lain': { body: '<meta property="og:image" content="/foto/lama.jpg">' }, 'https://media-tani.test/foto/lama.jpg': jpg(PHOTO) });
     const r = await images.resolve({ id: 99999, title: 'Lain', source_url: 'https://media-tani.test/berita/lain' }, src);
     assert.equal(r.status, 'ditolak');
@@ -196,11 +196,11 @@ describe('Pengambilan & backfill', () => {
 describe('Foto lahan', () => {
   test('foto asli unggahan petani diutamakan di atas ilustrasi demo dan tidak ditimpa', async () => {
     const f1 = await h.agentFor(...h.FARMER1);
-    const blokA = h.db.get("SELECT * FROM lands WHERE name = 'Sawah Blok A (Demo)'");
+    const blokA = await h.db.get("SELECT * FROM lands WHERE name = 'Sawah Blok A (Demo)'");
     assert.equal(blokA.illustration_path, '/static/img/lahan-demo/blok-a.webp');
     await f1.post(`/lahan/${blokA.id}`).field('_csrf', f1.csrf).field('name', blokA.name).field('commodity', 'Padi')
       .attach('photo', h.demoPng(1200, 700), { filename: 'asli.png', contentType: 'image/png' });
-    const after = h.db.get('SELECT * FROM lands WHERE id = ?', blokA.id);
+    const after = await h.db.get('SELECT * FROM lands WHERE id = ?', blokA.id);
     assert.ok(after.photo_path);
     assert.equal(after.illustration_path, '/static/img/lahan-demo/blok-a.webp', 'ilustrasi tetap tersimpan, hanya tidak ditampilkan');
     const page = await f1.get('/lahan');

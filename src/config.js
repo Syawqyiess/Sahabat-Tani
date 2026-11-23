@@ -1,6 +1,9 @@
 'use strict';
 const path = require('node:path');
 require('dotenv').config({ quiet: true });
+// Utamakan IPv4. Pada sebagian jaringan (NAT64/IPv6 seluler & rumah) koneksi IPv6 ke Supabase diputus
+// (ECONNRESET), sedangkan IPv4 lancar; pooler database Supabase pun hanya IPv4.
+require('node:dns').setDefaultResultOrder('ipv4first');
 
 const root = path.resolve(__dirname, '..');
 const env = process.env;
@@ -29,6 +32,22 @@ const config = {
   appUrl: env.APP_URL || `http://localhost:${env.PORT || 3000}`,
   sessionSecret: env.SESSION_SECRET || 'dev-only-secret-ganti-di-produksi',
   dbPath: env.DB_PATH || path.join(root, 'storage', 'sahabat-tani.db'),
+  // Database: 'postgres' (Supabase) atau 'sqlite' (bawaan; dipakai uji otomatis & mode offline).
+  db: {
+    driver: (env.DB_DRIVER || 'sqlite').toLowerCase() === 'postgres' ? 'postgres' : 'sqlite',
+    url: env.SUPABASE_DB_URL || env.DATABASE_URL || '',
+    // Cadangan (pooler Supabase, IPv4) bila koneksi utama tidak bisa dibuka.
+    fallbackUrl: env.SUPABASE_DB_POOLER_URL || '',
+    schema: env.PG_SCHEMA || 'public',
+    ssl: env.SUPABASE_DB_CA_FILE ? { ca: require('node:fs').readFileSync(env.SUPABASE_DB_CA_FILE, 'utf8'), rejectUnauthorized: true } : null,
+  },
+  // Penyimpanan foto: 'supabase' (Supabase Storage, bucket privat) atau 'local' (folder storage/uploads).
+  storage: {
+    driver: (env.STORAGE_DRIVER || 'local').toLowerCase() === 'supabase' ? 'supabase' : 'local',
+    supabaseUrl: env.SUPABASE_URL || '',
+    secretKey: env.SUPABASE_SECRET_KEY || '',
+    bucket: env.SUPABASE_BUCKET || 'uploads',
+  },
   uploadDir: env.UPLOAD_DIR || path.join(root, 'storage', 'uploads'),
   maxUploadBytes: Number(env.MAX_UPLOAD_MB || 8) * 1024 * 1024,
   // Masuk dengan Google (OAuth 2.0 / OpenID Connect, alur kode + PKCE). Aktif hanya bila client ID & secret diisi.

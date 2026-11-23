@@ -24,9 +24,9 @@ function calUrl({ lahan, musim, bulan, tanggal, ubah } = {}, hash = '') {
   return BASE + (s ? '?' + s : '') + hash;
 }
 
-function render(req, res, { status = 200, errors = {}, values = null, editing = null, landId = null, date = null } = {}) {
+async function render(req, res, { status = 200, errors = {}, values = null, editing = null, landId = null, date = null } = {}) {
   const uid = req.user.id;
-  const lands = cal.ownedLands(uid);
+  const lands = await cal.ownedLands(uid);
   const land = cal.pickLand(lands, landId, req.query.lahan, req.session.calLand);
   if (land) req.session.calLand = land.id; // konteks lahan dipakai bersama dengan kartu Dashboard
   const today = crop.todayISO();
@@ -39,13 +39,13 @@ function render(req, res, { status = 200, errors = {}, values = null, editing = 
   let musim = '';
   let items = [];
   if (land) {
-    seasons = cal.seasons(uid, land);
+    seasons = await cal.seasons(uid, land);
     musim = seasons.some((s) => s.value && s.value === req.query.musim) ? req.query.musim : '';
-    items = cal.forSeason(uid, land, musim, today);
+    items = await cal.forSeason(uid, land, musim, today);
   }
   const byDate = items.reduce((m, r) => { (m[r.due_date] = m[r.due_date] || []).push(r); return m; }, {});
   const dayItems = byDate[selected] || [];
-  const editRow = editing ? (values || db.get('SELECT * FROM land_reminders WHERE id = ? AND user_id = ?', editing, uid)) : null;
+  const editRow = editing ? (values || await db.get('SELECT * FROM land_reminders WHERE id = ? AND user_id = ?', editing, uid)) : null;
 
   res.status(status).render('farmer/calendar', {
     title: 'Kalender Tanam',
@@ -60,9 +60,9 @@ function render(req, res, { status = 200, errors = {}, values = null, editing = 
   });
 }
 
-router.get(BASE, farmerOnly, (req, res) => {
+router.get(BASE, farmerOnly, async (req, res) => {
   const editing = Number(req.query.ubah) || null;
-  render(req, res, { editing });
+  await render(req, res, { editing });
 });
 
 // Rute lama → halaman Kalender Tanam (konteks lahan dipertahankan).
@@ -70,11 +70,11 @@ router.get('/kalender', farmerOnly, (req, res) => {
   res.redirect(301, calUrl({ lahan: Number(req.query.lahan) || null }));
 });
 
-function ownedLand(req, id) {
-  return db.get('SELECT * FROM lands WHERE id = ? AND user_id = ?', Number(id), req.user.id);
+async function ownedLand(req, id) {
+  return await db.get('SELECT * FROM lands WHERE id = ? AND user_id = ?', Number(id), req.user.id);
 }
-function ownedReminder(req) {
-  return db.get('SELECT * FROM land_reminders WHERE id = ? AND user_id = ?', Number(req.params.id), req.user.id);
+async function ownedReminder(req) {
+  return await db.get('SELECT * FROM land_reminders WHERE id = ? AND user_id = ?', Number(req.params.id), req.user.id);
 }
 function notFound(res, what) {
   return res.status(404).render('errors/error', { title: `${what} tidak ditemukan`, status: 404, message: `${what} tidak ditemukan atau bukan milik Anda.` });
@@ -91,15 +91,15 @@ function backTo(req, landId, date) {
   return calUrl({ lahan: landId, musim, tanggal: date }, '#detail-hari');
 }
 
-router.post('/kalender', farmerOnly, (req, res) => {
-  const land = ownedLand(req, req.body.land_id);
+router.post('/kalender', farmerOnly, async (req, res) => {
+  const land = await ownedLand(req, req.body.land_id);
   if (!land) return notFound(res, 'Lahan');
   const errors = {};
   const d = validate(req.body, errors);
   if (Object.keys(errors).length) {
-    return render(req, res, { status: 422, errors, values: req.body, landId: land.id, date: cal.isISODate(req.body.due_date) ? req.body.due_date : null });
+    return await render(req, res, { status: 422, errors, values: req.body, landId: land.id, date: cal.isISODate(req.body.due_date) ? req.body.due_date : null });
   }
-  db.run(
+  await db.run(
     'INSERT INTO land_reminders (user_id, land_id, season_start, due_date, category, title, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
     req.user.id, land.id, land.planting_date || null, d.due_date, d.category, d.title, d.note,
   );
@@ -107,31 +107,31 @@ router.post('/kalender', farmerOnly, (req, res) => {
   res.redirect(backTo(req, land.id, d.due_date));
 });
 
-router.post('/kalender/:id', farmerOnly, (req, res) => {
-  const r = ownedReminder(req);
+router.post('/kalender/:id', farmerOnly, async (req, res) => {
+  const r = await ownedReminder(req);
   if (!r) return notFound(res, 'Kegiatan');
   const errors = {};
   const d = validate(req.body, errors);
   if (Object.keys(errors).length) {
-    return render(req, res, { status: 422, errors, values: { ...req.body, id: r.id }, editing: r.id, landId: r.land_id, date: r.due_date });
+    return await render(req, res, { status: 422, errors, values: { ...req.body, id: r.id }, editing: r.id, landId: r.land_id, date: r.due_date });
   }
-  db.run("UPDATE land_reminders SET title = ?, due_date = ?, category = ?, note = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?",
+  await db.run("UPDATE land_reminders SET title = ?, due_date = ?, category = ?, note = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?",
     d.title, d.due_date, d.category, d.note, r.id, req.user.id);
   req.session.flash = { type: 'success', text: 'Kegiatan diperbarui.' };
   res.redirect(backTo(req, r.land_id, d.due_date));
 });
 
-router.post('/kalender/:id/selesai', farmerOnly, (req, res) => {
-  const r = ownedReminder(req);
+router.post('/kalender/:id/selesai', farmerOnly, async (req, res) => {
+  const r = await ownedReminder(req);
   if (!r) return notFound(res, 'Kegiatan');
-  db.run("UPDATE land_reminders SET done_at = CASE WHEN done_at IS NULL THEN datetime('now') ELSE NULL END, updated_at = datetime('now') WHERE id = ? AND user_id = ?", r.id, req.user.id);
+  await db.run("UPDATE land_reminders SET done_at = CASE WHEN done_at IS NULL THEN datetime('now') ELSE NULL END, updated_at = datetime('now') WHERE id = ? AND user_id = ?", r.id, req.user.id);
   res.redirect(backTo(req, r.land_id, r.due_date));
 });
 
-router.post('/kalender/:id/hapus', farmerOnly, (req, res) => {
-  const r = ownedReminder(req);
+router.post('/kalender/:id/hapus', farmerOnly, async (req, res) => {
+  const r = await ownedReminder(req);
   if (!r) return notFound(res, 'Kegiatan');
-  db.run('DELETE FROM land_reminders WHERE id = ? AND user_id = ?', r.id, req.user.id);
+  await db.run('DELETE FROM land_reminders WHERE id = ? AND user_id = ?', r.id, req.user.id);
   req.session.flash = { type: 'success', text: 'Kegiatan dihapus.' };
   res.redirect(backTo(req, r.land_id, r.due_date));
 });

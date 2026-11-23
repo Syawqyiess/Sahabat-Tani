@@ -30,24 +30,24 @@ function parseLand(body, errors) {
 }
 
 // Semua query lahan selalu dibatasi user_id pemilik.
-function ownedLand(req) {
-  return db.get('SELECT * FROM lands WHERE id = ? AND user_id = ?', Number(req.params.id), req.user.id);
+async function ownedLand(req) {
+  return await db.get('SELECT * FROM lands WHERE id = ? AND user_id = ?', Number(req.params.id), req.user.id);
 }
 
 function withShape(l) {
   return { ...l, polygon: safeJson(l.polygon_json) };
 }
 
-router.get('/lahan', farmerOnly, (req, res) => {
-  const lands = db.all(
+router.get('/lahan', farmerOnly, async (req, res) => {
+  const lands = (await db.all(
     `SELECT l.*, (SELECT COUNT(*) FROM pest_scans s WHERE s.land_id = l.id) AS scan_count
        FROM lands l WHERE l.user_id = ? ORDER BY l.created_at`, req.user.id,
-  ).map(withShape);
+  )).map(withShape);
   res.render('lands/index', { title: 'Lahan Saya', lands });
 });
 
-router.get('/lahan/peta', farmerOnly, (req, res) => {
-  const lands = db.all('SELECT * FROM lands WHERE user_id = ? ORDER BY created_at', req.user.id).map(withShape);
+router.get('/lahan/peta', farmerOnly, async (req, res) => {
+  const lands = (await db.all('SELECT * FROM lands WHERE user_id = ? ORDER BY created_at', req.user.id)).map(withShape);
   res.render('lands/map', { title: 'Peta Lahan', lands, maps: config.maps, selected: Number(req.query.pilih) || null });
 });
 
@@ -75,7 +75,7 @@ router.post('/lahan', farmerOnly, storage.single('photo'), verifyCsrf, async (re
   if (Object.keys(errors).length) {
     return res.status(422).render('lands/form', { title: 'Tambah Lahan', land: req.body, errors, statuses: SEASON_STATUSES, action: '/lahan' });
   }
-  const r = db.run(
+  const r = await db.run(
     `INSERT INTO lands (user_id, name, address_desc, area_ha, commodity, variety, planting_date, season_status, lat, lng, polygon_json, photo_path, data_source)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'real')`,
     req.user.id, d.name, d.address_desc, d.area_ha, d.commodity, d.variety, d.planting_date, d.season_status, d.lat, d.lng, d.polygon_json, photo,
@@ -84,22 +84,22 @@ router.post('/lahan', farmerOnly, storage.single('photo'), verifyCsrf, async (re
   res.redirect(`/lahan/${r.lastInsertRowid}`);
 });
 
-router.get('/lahan/:id', farmerOnly, (req, res) => {
-  const land = ownedLand(req);
+router.get('/lahan/:id', farmerOnly, async (req, res) => {
+  const land = await ownedLand(req);
   if (!land) return res.status(404).render('errors/error', { title: 'Lahan tidak ditemukan', status: 404, message: 'Lahan tidak ditemukan atau bukan milik Anda.' });
-  const scans = db.all('SELECT id, status, mode, result_json, created_at FROM pest_scans WHERE land_id = ? AND user_id = ? ORDER BY id DESC LIMIT 10', land.id, req.user.id)
+  const scans = (await db.all('SELECT id, status, mode, result_json, created_at FROM pest_scans WHERE land_id = ? AND user_id = ? ORDER BY id DESC LIMIT 10', land.id, req.user.id))
     .map((s) => ({ ...s, result: safeJson(s.result_json) }));
   res.render('lands/show', { title: land.name, land: withShape(land), scans, maps: config.maps });
 });
 
-router.get('/lahan/:id/ubah', farmerOnly, (req, res) => {
-  const land = ownedLand(req);
+router.get('/lahan/:id/ubah', farmerOnly, async (req, res) => {
+  const land = await ownedLand(req);
   if (!land) return res.status(404).render('errors/error', { title: 'Lahan tidak ditemukan', status: 404, message: 'Lahan tidak ditemukan atau bukan milik Anda.' });
   res.render('lands/form', { title: 'Ubah Lahan', land, errors: {}, statuses: SEASON_STATUSES, action: `/lahan/${land.id}` });
 });
 
 router.post('/lahan/:id', farmerOnly, storage.single('photo'), verifyCsrf, async (req, res) => {
-  const land = ownedLand(req);
+  const land = await ownedLand(req);
   if (!land) return res.status(404).render('errors/error', { title: 'Lahan tidak ditemukan', status: 404, message: 'Lahan tidak ditemukan atau bukan milik Anda.' });
   const errors = {};
   const d = parseLand(req.body, errors);
@@ -110,20 +110,20 @@ router.post('/lahan/:id', farmerOnly, storage.single('photo'), verifyCsrf, async
   // Lahan demo menjadi data asli hanya bila petani menyatakannya secara eksplisit.
   const source = req.body.mark_real === '1' ? 'real' : land.data_source;
   const photo = newPhoto || (req.body.remove_photo === '1' ? null : land.photo_path);
-  db.run(
+  await db.run(
     `UPDATE lands SET name = ?, address_desc = ?, area_ha = ?, commodity = ?, variety = ?, planting_date = ?, season_status = ?,
             lat = ?, lng = ?, polygon_json = ?, photo_path = ?, data_source = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?`,
     d.name, d.address_desc, d.area_ha, d.commodity, d.variety, d.planting_date, d.season_status, d.lat, d.lng, d.polygon_json, photo, source, land.id, req.user.id,
   );
-  if (land.photo_path && land.photo_path !== photo) storage.removeFile(land.photo_path);
+  if (land.photo_path && land.photo_path !== photo) await storage.removeFile(land.photo_path);
   req.session.flash = { type: 'success', text: 'Data lahan disimpan.' };
   res.redirect(`/lahan/${land.id}`);
 });
 
-router.post('/lahan/:id/hapus', farmerOnly, (req, res) => {
-  const old = ownedLand(req);
-  const r = db.run('DELETE FROM lands WHERE id = ? AND user_id = ?', Number(req.params.id), req.user.id);
-  if (r.changes && old.photo_path) storage.removeFile(old.photo_path);
+router.post('/lahan/:id/hapus', farmerOnly, async (req, res) => {
+  const old = await ownedLand(req);
+  const r = await db.run('DELETE FROM lands WHERE id = ? AND user_id = ?', Number(req.params.id), req.user.id);
+  if (r.changes && old.photo_path) await storage.removeFile(old.photo_path);
   req.session.flash = r.changes ? { type: 'success', text: 'Lahan dihapus. Riwayat scan tetap tersimpan.' } : { type: 'error', text: 'Lahan tidak ditemukan.' };
   res.redirect('/lahan');
 });

@@ -34,7 +34,7 @@ async function main() {
   const times = [];
   let fails = 0;
   for (const c of CASES) {
-    const refs = findReferences(c.scan ? SCAN.result.suspected_pest_name : '', c.q);
+    const refs = await findReferences(c.scan ? SCAN.result.suspected_pest_name : '', c.q);
     const t = Date.now();
     let text;
     try {

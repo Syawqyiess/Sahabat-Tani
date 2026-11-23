@@ -29,9 +29,9 @@ const STARTER_QUESTIONS = [
   'Kapan waktu yang tepat memupuk padi umur 30 hari?',
 ];
 
-function renderNewChat(req, res, { status = 200, error = null, message = '' } = {}) {
-  const recent = db.all('SELECT id, title, scan_id, updated_at FROM chat_sessions WHERE user_id = ? AND archived_at IS NULL ORDER BY updated_at DESC, id DESC LIMIT 5', req.user.id);
-  const total = db.get('SELECT COUNT(*) AS n FROM chat_sessions WHERE user_id = ? AND archived_at IS NULL', req.user.id).n;
+async function renderNewChat(req, res, { status = 200, error = null, message = '' } = {}) {
+  const recent = await db.all('SELECT id, title, scan_id, updated_at FROM chat_sessions WHERE user_id = ? AND archived_at IS NULL ORDER BY updated_at DESC, id DESC LIMIT 5', req.user.id);
+  const total = (await db.get('SELECT COUNT(*) AS n FROM chat_sessions WHERE user_id = ? AND archived_at IS NULL', req.user.id)).n;
   res.status(status).render('chat/new', {
     title: 'Percakapan Baru — Asisten AI', layout: 'chat', recent, total, starters: STARTER_QUESTIONS, error, message,
     idempotencyKey: Date.now().toString(36) + Math.random().toString(36).slice(2),
@@ -40,10 +40,10 @@ function renderNewChat(req, res, { status = 200, error = null, message = '' } = 
 
 // Menu "Asisten AI" selalu membuka Percakapan Baru (draf). Belum ada sesi yang dibuat di database
 // sampai pesan pertama dikirim — membuka menu berulang kali tidak menambah sesi kosong.
-router.get('/asisten', farmerOnly, (req, res) => renderNewChat(req, res));
+router.get('/asisten', farmerOnly, async (req, res) => await renderNewChat(req, res));
 
-router.get('/asisten/riwayat', farmerOnly, (req, res) => {
-  const sessions = db.all(
+router.get('/asisten/riwayat', farmerOnly, async (req, res) => {
+  const sessions = await db.all(
     `SELECT s.*, p.status AS scan_status,
             (SELECT content FROM chat_messages m WHERE m.session_id = s.id AND m.role != 'system' ORDER BY m.id DESC LIMIT 1) AS last_message,
             (SELECT COUNT(*) FROM chat_messages m WHERE m.session_id = s.id) AS message_count
@@ -56,24 +56,24 @@ router.get('/asisten/riwayat', farmerOnly, (req, res) => {
 // Pesan pertama dari Percakapan Baru: sesi baru dibuat di sini, lalu pesan dikirim ke asisten.
 router.post('/asisten/mulai', farmerOnly, limits.chat, storage.single('photo'), verifyCsrf, async (req, res) => {
   const text = String(req.body.message || '').trim();
-  const fail = (message) => renderNewChat(req, res, { status: 422, error: message, message: text });
+  const fail = async (message) => await renderNewChat(req, res, { status: 422, error: message, message: text });
   // Kiriman ganda (tombol ditekan dua kali / muat ulang) membuka sesi yang sama, bukan sesi baru.
   const key = String(req.body.idempotency_key || '');
   const recent = req.session.newChat;
-  if (key && recent && recent.key === key && chat.getOwnedSession(req.user.id, recent.id)) return res.redirect(`/asisten/${recent.id}#akhir`);
-  if (req.uploadError) return fail(req.uploadError);
-  if (!text && !req.file) return fail('Tulis pertanyaan atau lampirkan foto terlebih dahulu.');
-  if (text.length > 2000) return fail('Pesan terlalu panjang (maksimal 2000 karakter).');
-  if (req.file && !storage.sniffMime(req.file.buffer)) return fail('Berkas bukan gambar yang valid. Gunakan foto JPG, PNG, atau WEBP.');
-  const r = db.run('INSERT INTO chat_sessions (user_id, title) VALUES (?, ?)', req.user.id, text ? text.slice(0, 60) : 'Pertanyaan dengan foto');
-  const session = chat.getOwnedSession(req.user.id, r.lastInsertRowid);
+  if (key && recent && recent.key === key && await chat.getOwnedSession(req.user.id, recent.id)) return res.redirect(`/asisten/${recent.id}#akhir`);
+  if (req.uploadError) return await fail(req.uploadError);
+  if (!text && !req.file) return await fail('Tulis pertanyaan atau lampirkan foto terlebih dahulu.');
+  if (text.length > 2000) return await fail('Pesan terlalu panjang (maksimal 2000 karakter).');
+  if (req.file && !storage.sniffMime(req.file.buffer)) return await fail('Berkas bukan gambar yang valid. Gunakan foto JPG, PNG, atau WEBP.');
+  const r = await db.run('INSERT INTO chat_sessions (user_id, title) VALUES (?, ?)', req.user.id, text ? text.slice(0, 60) : 'Pertanyaan dengan foto');
+  const session = await chat.getOwnedSession(req.user.id, r.lastInsertRowid);
   req.session.newChat = { key, id: session.id };
   try {
     await chat.sendMessage(req.user, session, { text, file: req.file });
   } catch (err) {
     if (!(err instanceof storage.UploadError)) throw err;
-    db.run('DELETE FROM chat_sessions WHERE id = ? AND user_id = ?', session.id, req.user.id);
-    return fail(err.message);
+    await db.run('DELETE FROM chat_sessions WHERE id = ? AND user_id = ?', session.id, req.user.id);
+    return await fail(err.message);
   }
   res.redirect(`/asisten/${session.id}#akhir`);
 });
@@ -81,13 +81,13 @@ router.post('/asisten/mulai', farmerOnly, limits.chat, storage.single('photo'), 
 // Tautan lama "Percakapan Baru" (form POST) diarahkan ke draf baru tanpa membuat sesi kosong.
 router.post('/asisten/baru', farmerOnly, (req, res) => res.redirect('/asisten'));
 
-router.get('/asisten/:id', farmerOnly, (req, res) => {
-  const session = chat.getOwnedSession(req.user.id, req.params.id);
+router.get('/asisten/:id', farmerOnly, async (req, res) => {
+  const session = await chat.getOwnedSession(req.user.id, req.params.id);
   if (!session) return notFound(res);
-  const messages = chat.messagesOf(session.id).map((m) => ({ ...m, sources: safeJson(m.sources_json, []) }));
-  const scan = chat.scanContext(req.user.id, session);
+  const messages = (await chat.messagesOf(session.id)).map((m) => ({ ...m, sources: safeJson(m.sources_json, []) }));
+  const scan = await chat.scanContext(req.user.id, session);
   const last = messages[messages.length - 1];
-  const sessions = db.all('SELECT id, title, scan_id, updated_at FROM chat_sessions WHERE user_id = ? AND archived_at IS NULL ORDER BY updated_at DESC, id DESC LIMIT 30', req.user.id);
+  const sessions = await db.all('SELECT id, title, scan_id, updated_at FROM chat_sessions WHERE user_id = ? AND archived_at IS NULL ORDER BY updated_at DESC, id DESC LIMIT 30', req.user.id);
   res.render('chat/room', {
     title: session.title,
     layout: 'chat',
@@ -103,7 +103,7 @@ router.get('/asisten/:id', farmerOnly, (req, res) => {
 });
 
 router.post('/asisten/:id/pesan', farmerOnly, limits.chat, storage.single('photo'), verifyCsrf, async (req, res) => {
-  const session = chat.getOwnedSession(req.user.id, req.params.id);
+  const session = await chat.getOwnedSession(req.user.id, req.params.id);
   if (!session) return wantsJson(req) ? res.status(404).json({ error: 'Percakapan tidak ditemukan.' }) : notFound(res);
   const back = `/asisten/${session.id}#akhir`;
   const failWith = (status, message) => {
@@ -116,7 +116,7 @@ router.post('/asisten/:id/pesan', farmerOnly, limits.chat, storage.single('photo
   if (!text && !req.file) return failWith(422, 'Tulis pesan atau lampirkan foto terlebih dahulu.');
   if (text.length > 2000) return failWith(422, 'Pesan terlalu panjang (maksimal 2000 karakter).');
   if (session.title === 'Percakapan baru' && text) {
-    db.run('UPDATE chat_sessions SET title = ? WHERE id = ?', text.slice(0, 60), session.id);
+    await db.run('UPDATE chat_sessions SET title = ? WHERE id = ?', text.slice(0, 60), session.id);
   }
   let out;
   try {
@@ -130,9 +130,9 @@ router.post('/asisten/:id/pesan', farmerOnly, limits.chat, storage.single('photo
 });
 
 router.post('/asisten/:id/ulang', farmerOnly, limits.chat, async (req, res) => {
-  const session = chat.getOwnedSession(req.user.id, req.params.id);
+  const session = await chat.getOwnedSession(req.user.id, req.params.id);
   if (!session) return notFound(res);
-  const scan = session.scan_id && scans.getOwnedScan(req.user.id, session.scan_id);
+  const scan = session.scan_id && await scans.getOwnedScan(req.user.id, session.scan_id);
   if (scan && scan.status === 'failed') await scans.retryScan(req.user, scan.id);
   else await chat.retryReply(req.user, session);
   res.redirect(`/asisten/${session.id}#akhir`);

@@ -137,24 +137,24 @@ async function refresh() {
       raw[key] = await fetchSheet(key);
     }
     const { data, warnings } = normalize(raw);
-    db.run("INSERT INTO rdkk_snapshots (status, data_json, warnings) VALUES ('ok', ?, ?)", JSON.stringify(data), JSON.stringify(warnings));
-    prune();
+    await db.run("INSERT INTO rdkk_snapshots (status, data_json, warnings) VALUES ('ok', ?, ?)", JSON.stringify(data), JSON.stringify(warnings));
+    await prune();
     return { ok: true, warnings };
   } catch (err) {
-    db.run("INSERT INTO rdkk_snapshots (status, error) VALUES ('gagal', ?)", String(err.message).slice(0, 500));
-    prune();
+    await db.run("INSERT INTO rdkk_snapshots (status, error) VALUES ('gagal', ?)", String(err.message).slice(0, 500));
+    await prune();
     return { ok: false, error: err.message };
   }
 }
 
 // Simpan 20 catatan terakhir saja.
-function prune() {
-  db.run('DELETE FROM rdkk_snapshots WHERE id NOT IN (SELECT id FROM rdkk_snapshots ORDER BY id DESC LIMIT 20)');
+async function prune() {
+  await db.run('DELETE FROM rdkk_snapshots WHERE id NOT IN (SELECT id FROM rdkk_snapshots ORDER BY id DESC LIMIT 20)');
 }
 
-function latest() {
-  const good = db.get("SELECT * FROM rdkk_snapshots WHERE status = 'ok' ORDER BY id DESC LIMIT 1");
-  const lastTry = db.get('SELECT * FROM rdkk_snapshots ORDER BY id DESC LIMIT 1');
+async function latest() {
+  const good = await db.get("SELECT * FROM rdkk_snapshots WHERE status = 'ok' ORDER BY id DESC LIMIT 1");
+  const lastTry = await db.get('SELECT * FROM rdkk_snapshots ORDER BY id DESC LIMIT 1');
   return {
     data: good ? JSON.parse(good.data_json) : null,
     fetchedAt: good ? good.fetched_at : null,
@@ -163,8 +163,8 @@ function latest() {
   };
 }
 
-function isStale() {
-  const r = db.get("SELECT fetched_at FROM rdkk_snapshots WHERE status = 'ok' ORDER BY id DESC LIMIT 1");
+async function isStale() {
+  const r = await db.get("SELECT fetched_at FROM rdkk_snapshots WHERE status = 'ok' ORDER BY id DESC LIMIT 1");
   if (!r) return true;
   return Date.now() - new Date(r.fetched_at.replace(' ', 'T') + 'Z').getTime() > config.rdkk.refreshHours * 3600 * 1000;
 }

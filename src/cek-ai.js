@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const config = require('./config');
 const ai = require('./services/ai');
+const storage = require('./services/storage');
 const { demoPng } = require('./db/seed');
 
 async function main() {
@@ -31,9 +32,7 @@ async function main() {
 
   // Gambar uji: kotak hijau buatan (bukan foto padi) — model seharusnya menyebut foto tidak relevan/tidak jelas.
   const rel = path.posix.join('cek-ai', 'scan-00000000-0000-4000-8000-000000000000.png');
-  const abs = path.join(config.uploadDir, rel);
-  fs.mkdirSync(path.dirname(abs), { recursive: true });
-  fs.writeFileSync(abs, demoPng(256, 256));
+  await storage.putFile(rel, demoPng(256, 256), 'image/png');
 
   let ok = true;
   try {
@@ -48,7 +47,7 @@ async function main() {
     console.log(`   GAGAL: ${err.message}`);
     if (err.cause) console.log(`   Detail: ${err.cause.status || ''} ${err.cause.message || err.cause}`);
   } finally {
-    fs.rmSync(path.dirname(abs), { recursive: true, force: true });
+    await storage.removeFile(rel);
   }
 
   try {

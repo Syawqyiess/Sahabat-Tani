@@ -42,9 +42,9 @@ async function load() {
 }
 
 // Prapemrosesan sama dengan evaluasi saat latih: sisi pendek 256 → potong tengah 224 → normalisasi ImageNet.
-async function toTensor(absPath, input, ort) {
+async function toTensor(source, input, ort) {
   const sharp = require('sharp');
-  const img = sharp(absPath).rotate(); // ikuti orientasi EXIF dari kamera ponsel
+  const img = sharp(source).rotate(); // ikuti orientasi EXIF dari kamera ponsel (source: buffer atau path)
   const meta = await img.metadata();
   const w = meta.autoOrient ? meta.autoOrient.width : meta.width;
   const h = meta.autoOrient ? meta.autoOrient.height : meta.height;
@@ -98,7 +98,9 @@ const vision = {
     const { session, labels, card, ort } = await load();
     let prep;
     try {
-      prep = await toTensor(storage.absPath(imagePath), labels.input, ort);
+      const buf = await storage.readFile(imagePath);
+      if (!buf) throw new Error("foto tidak ditemukan");
+      prep = await toTensor(buf, labels.input, ort);
     } catch {
       throw new AIServiceError('Foto tidak dapat dibaca oleh model. Coba foto lain.', { retryable: false });
     }
@@ -114,7 +116,7 @@ const vision = {
     const issues = [];
     if (Math.min(prep.width, prep.height) < 300) issues.push('resolusi foto rendah');
     const riceRanked = ranked.filter((r) => r.cls.is_rice_pest);
-    const ref = identified ? findReferences(best.cls.name_id, best.cls.scientific)[0] : null;
+    const ref = identified ? (await findReferences(best.cls.name_id, best.cls.scientific))[0] : null;
 
     const name = best.cls.name_id;
     // Cara bicara mengikuti tingkat keyakinan yang terukur: tegas bila tinggi, tidak menebak bila rendah.

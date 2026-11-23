@@ -25,28 +25,28 @@ function notFound(res, what = 'Data') {
 }
 
 // ---------- Dashboard: statistik agregat, tanpa membuka isi percakapan ----------
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const stats = {
-    farmers: db.get("SELECT COUNT(*) n, SUM(is_active) active FROM users WHERE role = 'farmer'"),
-    lands: db.get("SELECT COUNT(*) n, SUM(data_source = 'demo') demo, SUM(lat IS NOT NULL) geo FROM lands"),
-    scans: db.all('SELECT status, COUNT(*) n FROM pest_scans GROUP BY status'),
-    scans7: db.get("SELECT COUNT(*) n FROM pest_scans WHERE created_at >= datetime('now', '-7 days')").n,
-    sessions: db.get('SELECT COUNT(*) n FROM chat_sessions').n,
-    messages: db.get("SELECT COUNT(*) n FROM chat_messages WHERE role = 'user'").n,
-    articles: db.all('SELECT status, COUNT(*) n FROM articles GROUP BY status'),
-    incomplete: db.get(
+    farmers: await db.get("SELECT COUNT(*) n, SUM(is_active) active FROM users WHERE role = 'farmer'"),
+    lands: await db.get("SELECT COUNT(*) n, SUM(CASE WHEN data_source = 'demo' THEN 1 ELSE 0 END) demo, SUM(CASE WHEN lat IS NOT NULL THEN 1 ELSE 0 END) geo FROM lands"),
+    scans: await db.all('SELECT status, COUNT(*) n FROM pest_scans GROUP BY status'),
+    scans7: (await db.get("SELECT COUNT(*) n FROM pest_scans WHERE created_at >= datetime('now', '-7 days')")).n,
+    sessions: (await db.get('SELECT COUNT(*) n FROM chat_sessions')).n,
+    messages: (await db.get("SELECT COUNT(*) n FROM chat_messages WHERE role = 'user'")).n,
+    articles: await db.all('SELECT status, COUNT(*) n FROM articles GROUP BY status'),
+    incomplete: (await db.get(
       `SELECT COUNT(*) n FROM users u LEFT JOIN farmer_profiles p ON p.user_id = u.id
         WHERE u.role = 'farmer' AND (p.full_name IS NULL OR p.village IS NULL OR p.regency IS NULL OR p.province IS NULL)`,
-    ).n,
+    )).n,
   };
   res.render('admin/dashboard', { title: 'Dashboard Admin', stats });
 });
 
 // ---------- Pengguna ----------
-router.get('/pengguna', (req, res) => {
+router.get('/pengguna', async (req, res) => {
   const q = String(req.query.q || '').trim();
   const like = `%${q}%`;
-  const users = db.all(
+  const users = await db.all(
     `SELECT u.*, p.full_name, p.regency, (SELECT COUNT(*) FROM lands l WHERE l.user_id = u.id) AS land_count,
             (SELECT COUNT(*) FROM pest_scans s WHERE s.user_id = u.id) AS scan_count
        FROM users u LEFT JOIN farmer_profiles p ON p.user_id = u.id
@@ -60,82 +60,85 @@ router.get('/pengguna/baru', (req, res) => res.render('admin/user-new', { title:
 router.post('/pengguna', async (req, res) => {
   const errors = {};
   const name = v.str(req.body.full_name, { max: 100, required: true, label: 'Nama' }, errors, 'full_name');
-  const contact = parseContact(req.body, 0, errors);
+  const contact = await parseContact(req.body, 0, errors);
   if (Object.keys(errors).length) return res.status(422).render('admin/user-new', { title: 'Tambah Akun Petani', values: req.body, errors, created: null });
   // Kata sandi sementara acak; petani diminta menggantinya lewat "Lupa kata sandi" atau admin menyampaikannya langsung.
   const tempPassword = randomToken(9);
   const hash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
-  const id = db.tx(() => {
-    const r = db.run("INSERT INTO users (phone, email, password_hash, role) VALUES (?, ?, ?, 'farmer')", contact.phone, contact.email, hash);
-    db.run('INSERT INTO farmer_profiles (user_id, full_name) VALUES (?, ?)', r.lastInsertRowid, name);
+  const id = await db.tx(async () => {
+    const r = await db.run("INSERT INTO users (phone, email, password_hash, role) VALUES (?, ?, ?, 'farmer')", contact.phone, contact.email, hash);
+    await db.run('INSERT INTO farmer_profiles (user_id, full_name) VALUES (?, ?)', r.lastInsertRowid, name);
     return Number(r.lastInsertRowid);
   });
   res.render('admin/user-new', { title: 'Tambah Akun Petani', values: {}, errors: {}, created: { id, name, tempPassword } });
 });
 
-router.get('/pengguna/:id', (req, res) => {
-  const profile = farmers.getProfile(Number(req.params.id));
+router.get('/pengguna/:id', async (req, res) => {
+  const profile = await farmers.getProfile(Number(req.params.id));
   if (!profile) return notFound(res, 'Pengguna');
-  const lands = db.all('SELECT * FROM lands WHERE user_id = ? ORDER BY created_at', profile.user_id);
+  const lands = await db.all('SELECT * FROM lands WHERE user_id = ? ORDER BY created_at', profile.user_id);
   res.render('admin/user-edit', { title: 'Data Petani', values: profile, profile, errors: {}, lands, completeness: farmers.completeness(profile) });
 });
 
-router.post('/pengguna/:id', (req, res) => {
-  const profile = farmers.getProfile(Number(req.params.id));
+router.post('/pengguna/:id', async (req, res) => {
+  const profile = await farmers.getProfile(Number(req.params.id));
   if (!profile) return notFound(res, 'Pengguna');
   const errors = {};
   const data = parseProfile(req.body, errors);
-  const contact = parseContact(req.body, profile.user_id, errors);
+  const contact = await parseContact(req.body, profile.user_id, errors);
   if (Object.keys(errors).length) {
-    const lands = db.all('SELECT * FROM lands WHERE user_id = ?', profile.user_id);
+    const lands = await db.all('SELECT * FROM lands WHERE user_id = ?', profile.user_id);
     return res.status(422).render('admin/user-edit', { title: 'Data Petani', values: { ...profile, ...req.body }, profile, errors, lands, completeness: farmers.completeness(profile) });
   }
-  db.tx(() => {
-    farmers.updateProfile(profile.user_id, data);
-    db.run('UPDATE users SET phone = ?, email = ? WHERE id = ?', contact.phone, contact.email, profile.user_id);
+  await db.tx(async () => {
+    await farmers.updateProfile(profile.user_id, data);
+    await db.run('UPDATE users SET phone = ?, email = ? WHERE id = ?', contact.phone, contact.email, profile.user_id);
   });
   flash(req, 'success', 'Data petani disimpan.');
   res.redirect(`/admin/pengguna/${profile.user_id}`);
 });
 
-router.post('/pengguna/:id/status', (req, res) => {
+router.post('/pengguna/:id/status', async (req, res) => {
   const id = Number(req.params.id);
   if (id === req.user.id) { flash(req, 'error', 'Anda tidak dapat menonaktifkan akun sendiri.'); return res.redirect('/admin/pengguna'); }
-  const u = db.get('SELECT id, is_active FROM users WHERE id = ?', id);
+  const u = await db.get('SELECT id, is_active FROM users WHERE id = ?', id);
   if (!u) return notFound(res, 'Pengguna');
-  db.run('UPDATE users SET is_active = ? WHERE id = ?', u.is_active ? 0 : 1, id);
-  if (u.is_active) db.run("DELETE FROM sessions WHERE json_extract(sess, '$.userId') = ?", id);
+  await db.run('UPDATE users SET is_active = ? WHERE id = ?', u.is_active ? 0 : 1, id);
+  if (u.is_active) {
+    await db.run("DELETE FROM sessions WHERE json_extract(sess, '$.userId') = ?", id);
+    require('../db/session-store').forgetUser(id);
+  }
   flash(req, 'success', u.is_active ? 'Akun dinonaktifkan.' : 'Akun diaktifkan kembali.');
   res.redirect('/admin/pengguna');
 });
 
 // ---------- Lahan ----------
-router.get('/lahan', (req, res) => {
-  const lands = db.all(
+router.get('/lahan', async (req, res) => {
+  const lands = await db.all(
     `SELECT l.*, p.full_name AS owner_name, u.phone AS owner_phone FROM lands l JOIN users u ON u.id = l.user_id
        LEFT JOIN farmer_profiles p ON p.user_id = l.user_id ORDER BY l.user_id, l.id`,
   );
   res.render('admin/lands', { title: 'Manajemen Data Lahan', lands });
 });
 
-function farmerOptions() {
-  return db.all("SELECT u.id, COALESCE(p.full_name, u.phone, u.email) AS name FROM users u LEFT JOIN farmer_profiles p ON p.user_id = u.id WHERE u.role = 'farmer' ORDER BY name");
+async function farmerOptions() {
+  return await db.all("SELECT u.id, COALESCE(p.full_name, u.phone, u.email) AS name FROM users u LEFT JOIN farmer_profiles p ON p.user_id = u.id WHERE u.role = 'farmer' ORDER BY name");
 }
 
-router.get('/lahan/baru', (req, res) => {
-  res.render('admin/land-form', { title: 'Tambah Lahan Petani', land: { user_id: Number(req.query.user) || '' }, errors: {}, statuses: SEASON_STATUSES, owners: farmerOptions(), action: '/admin/lahan' });
+router.get('/lahan/baru', async (req, res) => {
+  res.render('admin/land-form', { title: 'Tambah Lahan Petani', land: { user_id: Number(req.query.user) || '' }, errors: {}, statuses: SEASON_STATUSES, owners: await farmerOptions(), action: '/admin/lahan' });
 });
 
-router.post('/lahan', (req, res) => {
+router.post('/lahan', async (req, res) => {
   const errors = {};
   const d = parseLand(req.body, errors);
-  const owner = db.get("SELECT id FROM users WHERE id = ? AND role = 'farmer'", Number(req.body.user_id));
+  const owner = await db.get("SELECT id FROM users WHERE id = ? AND role = 'farmer'", Number(req.body.user_id));
   if (!owner) errors.user_id = 'Pilih pemilik lahan.';
   const source = req.body.data_source === 'demo' ? 'demo' : 'real';
   if (Object.keys(errors).length) {
-    return res.status(422).render('admin/land-form', { title: 'Tambah Lahan Petani', land: req.body, errors, statuses: SEASON_STATUSES, owners: farmerOptions(), action: '/admin/lahan' });
+    return res.status(422).render('admin/land-form', { title: 'Tambah Lahan Petani', land: req.body, errors, statuses: SEASON_STATUSES, owners: await farmerOptions(), action: '/admin/lahan' });
   }
-  db.run(
+  await db.run(
     `INSERT INTO lands (user_id, name, address_desc, area_ha, commodity, variety, planting_date, season_status, lat, lng, polygon_json, data_source)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     owner.id, d.name, d.address_desc, d.area_ha, d.commodity, d.variety, d.planting_date, d.season_status, d.lat, d.lng, d.polygon_json, source,
@@ -144,23 +147,23 @@ router.post('/lahan', (req, res) => {
   res.redirect('/admin/lahan');
 });
 
-router.get('/lahan/:id/ubah', (req, res) => {
-  const land = db.get('SELECT * FROM lands WHERE id = ?', Number(req.params.id));
+router.get('/lahan/:id/ubah', async (req, res) => {
+  const land = await db.get('SELECT * FROM lands WHERE id = ?', Number(req.params.id));
   if (!land) return notFound(res, 'Lahan');
-  res.render('admin/land-form', { title: 'Ubah Lahan', land, errors: {}, statuses: SEASON_STATUSES, owners: farmerOptions(), action: `/admin/lahan/${land.id}` });
+  res.render('admin/land-form', { title: 'Ubah Lahan', land, errors: {}, statuses: SEASON_STATUSES, owners: await farmerOptions(), action: `/admin/lahan/${land.id}` });
 });
 
-router.post('/lahan/:id', (req, res) => {
-  const land = db.get('SELECT * FROM lands WHERE id = ?', Number(req.params.id));
+router.post('/lahan/:id', async (req, res) => {
+  const land = await db.get('SELECT * FROM lands WHERE id = ?', Number(req.params.id));
   if (!land) return notFound(res, 'Lahan');
   const errors = {};
   const d = parseLand(req.body, errors);
-  const owner = db.get("SELECT id FROM users WHERE id = ? AND role = 'farmer'", Number(req.body.user_id));
+  const owner = await db.get("SELECT id FROM users WHERE id = ? AND role = 'farmer'", Number(req.body.user_id));
   if (!owner) errors.user_id = 'Pilih pemilik lahan.';
   if (Object.keys(errors).length) {
-    return res.status(422).render('admin/land-form', { title: 'Ubah Lahan', land: { ...req.body, id: land.id }, errors, statuses: SEASON_STATUSES, owners: farmerOptions(), action: `/admin/lahan/${land.id}` });
+    return res.status(422).render('admin/land-form', { title: 'Ubah Lahan', land: { ...req.body, id: land.id }, errors, statuses: SEASON_STATUSES, owners: await farmerOptions(), action: `/admin/lahan/${land.id}` });
   }
-  db.run(
+  await db.run(
     `UPDATE lands SET user_id = ?, name = ?, address_desc = ?, area_ha = ?, commodity = ?, variety = ?, planting_date = ?, season_status = ?,
             lat = ?, lng = ?, polygon_json = ?, data_source = ?, updated_at = datetime('now') WHERE id = ?`,
     owner.id, d.name, d.address_desc, d.area_ha, d.commodity, d.variety, d.planting_date, d.season_status, d.lat, d.lng, d.polygon_json,
@@ -170,16 +173,16 @@ router.post('/lahan/:id', (req, res) => {
   res.redirect('/admin/lahan');
 });
 
-router.post('/lahan/:id/hapus', (req, res) => {
-  db.run('DELETE FROM lands WHERE id = ?', Number(req.params.id));
+router.post('/lahan/:id/hapus', async (req, res) => {
+  await db.run('DELETE FROM lands WHERE id = ?', Number(req.params.id));
   flash(req, 'success', 'Lahan dihapus.');
   res.redirect('/admin/lahan');
 });
 
 // ---------- Artikel ----------
-router.get('/artikel', (req, res) => {
+router.get('/artikel', async (req, res) => {
   const status = ['draft', 'published', 'archived'].includes(req.query.status) ? req.query.status : '';
-  const articles = db.all(
+  const articles = await db.all(
     `SELECT a.id, a.slug, a.title, a.status, a.origin, a.is_demo, a.published_at, a.updated_at, a.source_name, c.name AS category_name
        FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id
       WHERE (? = '' OR a.status = ?) ORDER BY a.updated_at DESC LIMIT 200`, status, status,
@@ -187,10 +190,10 @@ router.get('/artikel', (req, res) => {
   res.render('admin/articles', { title: 'Manajemen Artikel', articles, status });
 });
 
-function articleForm(res, article, errors, status = 200) {
+async function articleForm(res, article, errors, status = 200) {
   res.status(status).render('admin/article-form', {
     title: article.id ? 'Ubah Artikel' : 'Tulis Artikel', article, errors,
-    categories: db.all('SELECT * FROM article_categories ORDER BY name'),
+    categories: await db.all('SELECT * FROM article_categories ORDER BY name'),
   });
 }
 
@@ -241,42 +244,42 @@ function nextStatus(action, current) {
   return current || 'draft';
 }
 
-router.get('/artikel/baru', (req, res) => articleForm(res, { author_name: 'Tim Sahabat Tani' }, {}));
+router.get('/artikel/baru', async (req, res) => await articleForm(res, { author_name: 'Tim Sahabat Tani' }, {}));
 
-router.post('/artikel', (req, res) => {
+router.post('/artikel', async (req, res) => {
   const errors = {};
   const d = parseArticle(req.body, errors);
-  if (Object.keys(errors).length) return articleForm(res, req.body, errors, 422);
+  if (Object.keys(errors).length) return await articleForm(res, req.body, errors, 422);
   const status = nextStatus(req.body.action, 'draft');
   let slug = slugify(d.title);
-  if (db.get('SELECT 1 FROM articles WHERE slug = ?', slug)) slug += '-' + Date.now().toString(36);
-  const r = db.run(
+  if (await db.get('SELECT 1 FROM articles WHERE slug = ?', slug)) slug += '-' + Date.now().toString(36);
+  const r = await db.run(
     `INSERT INTO articles (slug, title, summary, body_md, body_html, image_url, image_alt, author_name, author_id, category_id, tags,
                            status, source_name, source_url, published_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     slug, d.title, d.summary, d.body_md, renderMarkdown(d.body_md), d.image_url, d.image_alt, d.author_name, req.user.id, d.category_id, d.tags,
     status, d.source_name, d.source_url, status === 'published' ? new Date().toISOString() : null,
   );
-  db.run(`UPDATE articles SET ${IMAGE_COLS}, is_pinned = ?, pin_order = ? WHERE id = ?`, ...imageVals(imageMeta(d, req.body)), d.is_pinned, d.pin_order, r.lastInsertRowid);
+  await db.run(`UPDATE articles SET ${IMAGE_COLS}, is_pinned = ?, pin_order = ? WHERE id = ?`, ...imageVals(imageMeta(d, req.body)), d.is_pinned, d.pin_order, r.lastInsertRowid);
   flash(req, 'success', status === 'published' ? 'Artikel diterbitkan.' : 'Draft disimpan.');
   res.redirect(`/admin/artikel/${r.lastInsertRowid}/ubah`);
 });
 
-router.get('/artikel/:id/ubah', (req, res) => {
-  const a = db.get('SELECT * FROM articles WHERE id = ?', Number(req.params.id));
+router.get('/artikel/:id/ubah', async (req, res) => {
+  const a = await db.get('SELECT * FROM articles WHERE id = ?', Number(req.params.id));
   if (!a) return notFound(res, 'Artikel');
-  articleForm(res, a, {});
+  await articleForm(res, a, {});
 });
 
-router.post('/artikel/:id', (req, res) => {
-  const a = db.get('SELECT * FROM articles WHERE id = ?', Number(req.params.id));
+router.post('/artikel/:id', async (req, res) => {
+  const a = await db.get('SELECT * FROM articles WHERE id = ?', Number(req.params.id));
   if (!a) return notFound(res, 'Artikel');
   const errors = {};
   const d = parseArticle(req.body, errors);
-  if (Object.keys(errors).length) return articleForm(res, { ...req.body, id: a.id, status: a.status, origin: a.origin, slug: a.slug }, errors, 422);
+  if (Object.keys(errors).length) return await articleForm(res, { ...req.body, id: a.id, status: a.status, origin: a.origin, slug: a.slug }, errors, 422);
   const status = nextStatus(req.body.action, a.status);
   const publishedAt = status === 'published' && !a.published_at ? new Date().toISOString() : a.published_at;
-  db.run(
+  await db.run(
     `UPDATE articles SET title = ?, summary = ?, body_md = ?, body_html = ?, image_url = ?, image_alt = ?, author_name = ?, category_id = ?,
             tags = ?, status = ?, source_name = ?, source_url = ?, published_at = ?, ${IMAGE_COLS}, is_pinned = ?, pin_order = ?, updated_at = datetime('now') WHERE id = ?`,
     d.title, d.summary, d.body_md, renderMarkdown(d.body_md), d.image_url, d.image_alt, d.author_name, d.category_id, d.tags,
@@ -286,55 +289,55 @@ router.post('/artikel/:id', (req, res) => {
   res.redirect(`/admin/artikel/${a.id}/ubah`);
 });
 
-router.post('/artikel/:id/status', (req, res) => {
-  const a = db.get('SELECT * FROM articles WHERE id = ?', Number(req.params.id));
+router.post('/artikel/:id/status', async (req, res) => {
+  const a = await db.get('SELECT * FROM articles WHERE id = ?', Number(req.params.id));
   if (!a) return notFound(res, 'Artikel');
   const status = nextStatus(req.body.action, a.status);
   if (status === 'published' && a.origin === 'internal' && !a.body_md) {
     flash(req, 'error', 'Isi artikel masih kosong. Lengkapi sebelum diterbitkan.');
     return res.redirect('/admin/artikel');
   }
-  db.run("UPDATE articles SET status = ?, published_at = COALESCE(published_at, CASE WHEN ? = 'published' THEN ? END), updated_at = datetime('now') WHERE id = ?",
+  await db.run("UPDATE articles SET status = ?, published_at = COALESCE(published_at, CASE WHEN ? = 'published' THEN ? END), updated_at = datetime('now') WHERE id = ?",
     status, status, new Date().toISOString(), a.id);
   flash(req, 'success', 'Status artikel diperbarui.');
   res.redirect('/admin/artikel');
 });
 
 // ---------- Kategori ----------
-router.get('/kategori', (req, res) => {
-  const categories = db.all('SELECT c.*, (SELECT COUNT(*) FROM articles a WHERE a.category_id = c.id) AS n FROM article_categories c ORDER BY c.id');
+router.get('/kategori', async (req, res) => {
+  const categories = await db.all('SELECT c.*, (SELECT COUNT(*) FROM articles a WHERE a.category_id = c.id) AS n FROM article_categories c ORDER BY c.id');
   res.render('admin/categories', { title: 'Kategori Artikel', categories, errors: {} });
 });
 
-router.post('/kategori', (req, res) => {
+router.post('/kategori', async (req, res) => {
   const name = String(req.body.name || '').trim().slice(0, 60);
   if (!name) { flash(req, 'error', 'Nama kategori wajib diisi.'); return res.redirect('/admin/kategori'); }
   try {
-    db.run('INSERT INTO article_categories (name, slug) VALUES (?, ?)', name, slugify(name));
+    await db.run('INSERT INTO article_categories (name, slug) VALUES (?, ?)', name, slugify(name));
     flash(req, 'success', 'Kategori ditambahkan.');
   } catch { flash(req, 'error', 'Kategori dengan nama itu sudah ada.'); }
   res.redirect('/admin/kategori');
 });
 
-router.post('/kategori/:id', (req, res) => {
+router.post('/kategori/:id', async (req, res) => {
   const name = String(req.body.name || '').trim().slice(0, 60);
   if (!name) { flash(req, 'error', 'Nama kategori wajib diisi.'); return res.redirect('/admin/kategori'); }
   try {
-    db.run('UPDATE article_categories SET name = ?, slug = ? WHERE id = ?', name, slugify(name), Number(req.params.id));
+    await db.run('UPDATE article_categories SET name = ?, slug = ? WHERE id = ?', name, slugify(name), Number(req.params.id));
     flash(req, 'success', 'Kategori diperbarui.');
   } catch { flash(req, 'error', 'Kategori dengan nama itu sudah ada.'); }
   res.redirect('/admin/kategori');
 });
 
-router.post('/kategori/:id/hapus', (req, res) => {
-  db.run('DELETE FROM article_categories WHERE id = ?', Number(req.params.id));
+router.post('/kategori/:id/hapus', async (req, res) => {
+  await db.run('DELETE FROM article_categories WHERE id = ?', Number(req.params.id));
   flash(req, 'success', 'Kategori dihapus. Artikel di dalamnya menjadi tanpa kategori.');
   res.redirect('/admin/kategori');
 });
 
 // ---------- Sumber berita (RSS resmi & halaman HTML yang diizinkan) ----------
-function sourceList() {
-  return db.all(`SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS n,
+async function sourceList() {
+  return await db.all(`SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS n,
                         (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id AND a.image_status = 'ok') AS n_img,
                         (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id AND a.image_status IS NULL) AS n_img_pending,
                         (SELECT MAX(published_at) FROM articles a WHERE a.source_id = s.id) AS newest
@@ -375,18 +378,18 @@ function parseSource(body, errors) {
   return d;
 }
 
-function renderSources(res, { errors = {}, values = {}, status = 200, editing = null } = {}) {
-  res.status(status).render('admin/sources', { title: 'Sumber Berita', sources: sourceList(), errors, values, editing });
+async function renderSources(res, { errors = {}, values = {}, status = 200, editing = null } = {}) {
+  res.status(status).render('admin/sources', { title: 'Sumber Berita', sources: await sourceList(), errors, values, editing });
 }
 
-router.get('/sumber-berita', (req, res) => renderSources(res));
+router.get('/sumber-berita', async (req, res) => await renderSources(res));
 
-router.post('/sumber-berita', (req, res) => {
+router.post('/sumber-berita', async (req, res) => {
   const errors = {};
   const d = parseSource(req.body, errors);
-  if (Object.keys(errors).length) return renderSources(res, { errors, values: req.body, status: 422 });
+  if (Object.keys(errors).length) return await renderSources(res, { errors, values: req.body, status: 422 });
   try {
-    db.run(
+    await db.run(
       `INSERT INTO news_sources (name, feed_url, homepage_url, usage_note, kind, config_json, filter_keywords, max_items, image_policy, image_hosts)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, d.name, d.feed_url, d.homepage_url, d.usage_note, d.kind, d.config_json, d.filter_keywords, d.max_items, d.image_policy, d.image_hosts || null,
     );
@@ -410,20 +413,20 @@ router.post('/sumber-berita/gambar', async (req, res) => {
   res.redirect('/admin/sumber-berita');
 });
 
-router.get('/sumber-berita/:id/ubah', (req, res) => {
-  const s = db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
+router.get('/sumber-berita/:id/ubah', async (req, res) => {
+  const s = await db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
   if (!s) return notFound(res, 'Sumber');
-  renderSources(res, { values: { ...s, config_json: s.config_json ? JSON.stringify(JSON.parse(s.config_json), null, 2) : '' }, editing: s.id });
+  await renderSources(res, { values: { ...s, config_json: s.config_json ? JSON.stringify(JSON.parse(s.config_json), null, 2) : '' }, editing: s.id });
 });
 
-router.post('/sumber-berita/:id', (req, res) => {
-  const s = db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
+router.post('/sumber-berita/:id', async (req, res) => {
+  const s = await db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
   if (!s) return notFound(res, 'Sumber');
   const errors = {};
   const d = parseSource(req.body, errors);
-  if (Object.keys(errors).length) return renderSources(res, { errors, values: req.body, status: 422, editing: s.id });
+  if (Object.keys(errors).length) return await renderSources(res, { errors, values: req.body, status: 422, editing: s.id });
   try {
-    db.run(
+    await db.run(
       `UPDATE news_sources SET name = ?, feed_url = ?, homepage_url = ?, usage_note = ?, kind = ?, config_json = ?, filter_keywords = ?, max_items = ?,
               image_policy = ?, image_hosts = ? WHERE id = ?`, d.name, d.feed_url, d.homepage_url, d.usage_note, d.kind, d.config_json, d.filter_keywords, d.max_items,
       d.image_policy, d.image_hosts || null, s.id,
@@ -435,15 +438,15 @@ router.post('/sumber-berita/:id', (req, res) => {
 
 // Uji sumber: menjalankan seluruh langkah pengambilan tanpa menyimpan, untuk pratinjau.
 router.post('/sumber-berita/:id/uji', async (req, res) => {
-  const s = db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
+  const s = await db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
   if (!s) return notFound(res, 'Sumber');
   const report = await news.fetchSource(s, { dryRun: true });
-  const cats = Object.fromEntries(db.all('SELECT slug, name FROM article_categories').map((c) => [c.slug, c.name]));
+  const cats = Object.fromEntries((await db.all('SELECT slug, name FROM article_categories')).map((c) => [c.slug, c.name]));
   res.render('admin/source-test', { title: `Uji sumber: ${s.name}`, source: s, report, cats });
 });
 
 router.post('/sumber-berita/:id/ambil', async (req, res) => {
-  const s = db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
+  const s = await db.get('SELECT * FROM news_sources WHERE id = ?', Number(req.params.id));
   if (!s) return notFound(res, 'Sumber');
   const out = await news.fetchSource(s);
   flash(req, out.error ? 'error' : 'success', out.error
@@ -453,20 +456,20 @@ router.post('/sumber-berita/:id/ambil', async (req, res) => {
 });
 
 
-router.post('/sumber-berita/:id/status', (req, res) => {
-  db.run('UPDATE news_sources SET is_active = 1 - is_active WHERE id = ?', Number(req.params.id));
+router.post('/sumber-berita/:id/status', async (req, res) => {
+  await db.run('UPDATE news_sources SET is_active = 1 - is_active WHERE id = ?', Number(req.params.id));
   res.redirect('/admin/sumber-berita');
 });
 
-router.post('/sumber-berita/:id/hapus', (req, res) => {
-  db.run('DELETE FROM news_sources WHERE id = ?', Number(req.params.id));
+router.post('/sumber-berita/:id/hapus', async (req, res) => {
+  await db.run('DELETE FROM news_sources WHERE id = ?', Number(req.params.id));
   flash(req, 'success', 'Sumber dihapus. Berita yang sudah diambil tetap ada dan bisa diarsipkan.');
   res.redirect('/admin/sumber-berita');
 });
 
 // ---------- Referensi hama ----------
-router.get('/referensi-hama', (req, res) => {
-  res.render('admin/pests', { title: 'Referensi Hama', pests: db.all('SELECT * FROM pest_references ORDER BY name') });
+router.get('/referensi-hama', async (req, res) => {
+  res.render('admin/pests', { title: 'Referensi Hama', pests: await db.all('SELECT * FROM pest_references ORDER BY name') });
 });
 
 function parsePest(body, errors) {
@@ -488,13 +491,13 @@ function parsePest(body, errors) {
 
 router.get('/referensi-hama/baru', (req, res) => res.render('admin/pest-form', { title: 'Tambah Referensi Hama', pest: {}, errors: {} }));
 
-router.post('/referensi-hama', (req, res) => {
+router.post('/referensi-hama', async (req, res) => {
   const errors = {};
   const d = parsePest(req.body, errors);
   if (Object.keys(errors).length) return res.status(422).render('admin/pest-form', { title: 'Tambah Referensi Hama', pest: req.body, errors });
   let slug = slugify(d.name);
-  if (db.get('SELECT 1 FROM pest_references WHERE slug = ?', slug)) slug += '-' + Date.now().toString(36);
-  db.run(
+  if (await db.get('SELECT 1 FROM pest_references WHERE slug = ?', slug)) slug += '-' + Date.now().toString(36);
+  await db.run(
     `INSERT INTO pest_references (slug, name, scientific_name, aliases, symptoms, visual_signs, ipm_control, prevention, when_to_consult, source_name, source_url)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     slug, d.name, d.scientific_name, d.aliases, d.symptoms, d.visual_signs, d.ipm_control, d.prevention, d.when_to_consult, d.source_name, d.source_url,
@@ -503,20 +506,20 @@ router.post('/referensi-hama', (req, res) => {
   res.redirect('/admin/referensi-hama');
 });
 
-router.get('/referensi-hama/:id/ubah', (req, res) => {
-  const pest = db.get('SELECT * FROM pest_references WHERE id = ?', Number(req.params.id));
+router.get('/referensi-hama/:id/ubah', async (req, res) => {
+  const pest = await db.get('SELECT * FROM pest_references WHERE id = ?', Number(req.params.id));
   if (!pest) return notFound(res, 'Referensi');
   res.render('admin/pest-form', { title: 'Ubah Referensi Hama', pest, errors: {} });
 });
 
-router.post('/referensi-hama/:id', (req, res) => {
-  const pest = db.get('SELECT * FROM pest_references WHERE id = ?', Number(req.params.id));
+router.post('/referensi-hama/:id', async (req, res) => {
+  const pest = await db.get('SELECT * FROM pest_references WHERE id = ?', Number(req.params.id));
   if (!pest) return notFound(res, 'Referensi');
   const errors = {};
   const d = parsePest(req.body, errors);
   if (Object.keys(errors).length) return res.status(422).render('admin/pest-form', { title: 'Ubah Referensi Hama', pest: { ...req.body, id: pest.id }, errors });
   // Perubahan isi membatalkan status verifikasi; perlu diverifikasi ulang.
-  db.run(
+  await db.run(
     `UPDATE pest_references SET name = ?, scientific_name = ?, aliases = ?, symptoms = ?, visual_signs = ?, ipm_control = ?, prevention = ?,
             when_to_consult = ?, source_name = ?, source_url = ?, is_verified = 0, verified_by = NULL, verified_at = NULL, updated_at = datetime('now')
       WHERE id = ?`,
@@ -526,17 +529,17 @@ router.post('/referensi-hama/:id', (req, res) => {
   res.redirect('/admin/referensi-hama');
 });
 
-router.post('/referensi-hama/:id/verifikasi', (req, res) => {
-  const pest = db.get('SELECT * FROM pest_references WHERE id = ?', Number(req.params.id));
+router.post('/referensi-hama/:id/verifikasi', async (req, res) => {
+  const pest = await db.get('SELECT * FROM pest_references WHERE id = ?', Number(req.params.id));
   if (!pest) return notFound(res, 'Referensi');
   const verifier = String(req.body.verified_by || '').trim().slice(0, 120);
   if (!pest.is_verified) {
     if (!verifier) { flash(req, 'error', 'Isi nama/instansi pemverifikasi (mis. penyuluh atau POPT).'); return res.redirect('/admin/referensi-hama'); }
     if (!pest.source_name) { flash(req, 'error', 'Isi sumber rujukan terlebih dahulu sebelum memverifikasi.'); return res.redirect('/admin/referensi-hama'); }
-    db.run("UPDATE pest_references SET is_verified = 1, verified_by = ?, verified_at = datetime('now'), is_demo = 0 WHERE id = ?", verifier, pest.id);
+    await db.run("UPDATE pest_references SET is_verified = 1, verified_by = ?, verified_at = datetime('now'), is_demo = 0 WHERE id = ?", verifier, pest.id);
     flash(req, 'success', 'Referensi ditandai terverifikasi.');
   } else {
-    db.run('UPDATE pest_references SET is_verified = 0, verified_by = NULL, verified_at = NULL WHERE id = ?', pest.id);
+    await db.run('UPDATE pest_references SET is_verified = 0, verified_by = NULL, verified_at = NULL WHERE id = ?', pest.id);
     flash(req, 'success', 'Status verifikasi dicabut.');
   }
   res.redirect('/admin/referensi-hama');
@@ -551,8 +554,8 @@ router.post('/integrasi/rdkk', async (req, res) => {
 
 router.get('/integrasi', async (req, res) => {
   const ollama = await require('../services/ai/ollama').status();
-  const lastAir = db.get("SELECT * FROM integration_events WHERE service = 'open-meteo' ORDER BY id DESC LIMIT 1");
-  const lastScanAi = db.get("SELECT provider, model, status, error_message, completed_at FROM pest_scans WHERE mode = 'ai' ORDER BY id DESC LIMIT 1");
+  const lastAir = await db.get("SELECT * FROM integration_events WHERE service = 'open-meteo' ORDER BY id DESC LIMIT 1");
+  const lastScanAi = await db.get("SELECT provider, model, status, error_message, completed_at FROM pest_scans WHERE mode = 'ai' ORDER BY id DESC LIMIT 1");
   const vision = ai.vision();
   const chat = ai.chat();
   const aiKeys = `ANTHROPIC_API_KEY: ${maskSecret(config.ai.anthropicKey)} · GEMINI_API_KEY: ${maskSecret(config.ai.geminiKey)}`;
@@ -603,8 +606,8 @@ router.get('/integrasi', async (req, res) => {
         detail: 'Leaflet disajikan dari server sendiri. Ubin peta jalan dari OpenStreetMap dan citra satelit dari Esri World Imagery — wajib atribusi (sudah tampil di pojok peta) dan wajar dipakai untuk demo; untuk lalu lintas tinggi pakai penyedia ubin berbayar atau server ubin sendiri.',
         secret: 'Tidak memerlukan kunci',
       },
-      (() => {
-        const r = rdkk.latest();
+      await (async () => {
+        const r = await rdkk.latest();
         return {
           name: 'Data RDKK untuk Dashboard (Tableau Public)',
           status: !r.data ? (r.lastError ? 'galat' : 'belum') : (r.lastError || r.warnings.length ? 'perhatian' : 'aktif'),
@@ -629,7 +632,7 @@ router.get('/integrasi', async (req, res) => {
         last: lastAir ? `Permintaan terakhir: ${lastAir.ok ? 'berhasil' : 'gagal'} — ${lastAir.message} (${lastAir.created_at} UTC)` : null,
       },
       {
-        name: 'Berita RSS', status: db.get('SELECT COUNT(*) n FROM news_sources WHERE is_active = 1').n ? 'aktif' : 'belum',
+        name: 'Berita RSS', status: (await db.get('SELECT COUNT(*) n FROM news_sources WHERE is_active = 1')).n ? 'aktif' : 'belum',
         detail: 'Sumber dikelola di menu Sumber Berita.',
         secret: 'Tidak memerlukan kunci',
       },
