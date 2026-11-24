@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["syd1"],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 300,
+      "memory": 1024,
+      "includeFiles": "{views/**,public/**,node_modules/leaflet/dist/**,src/db/migrations-pg/**}",
+      "excludeFiles": "{node_modules/onnxruntime-node/**,node_modules/onnxruntime-common/**,models/**,ml/**,storage/**,assets/**,test/**,docs/**}"
+    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api" }
+  ],
+  "crons": [
+    { "path": "/cron/harian", "schedule": "0 22 * * *" }
+  ]
+}

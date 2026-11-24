@@ -69,7 +69,7 @@
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="back" value="/profil">
         <label class="btn btn-block <%= needsPhoto ? '' : 'btn-ghost' %>" for="pf-photo"><%- icon('upload', 20) %> <%= needsPhoto ? 'Unggah Foto Profil' : 'Ubah Foto Profil' %></label>
-        <input class="visually-hidden" id="pf-photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-pf-input>
+        <input class="visually-hidden" id="pf-photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-pf-input data-resize>
         <div class="pf-preview" data-pf-preview hidden>
           <img alt="Pratinjau foto profil" width="72" height="72">
           <div><p class="small" data-pf-name style="margin:0"></p>

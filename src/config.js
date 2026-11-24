@@ -38,6 +38,8 @@ const config = {
     url: env.SUPABASE_DB_URL || env.DATABASE_URL || '',
     // Cadangan (pooler Supabase, IPv4) bila koneksi utama tidak bisa dibuka.
     fallbackUrl: env.SUPABASE_DB_POOLER_URL || '',
+    // Jumlah koneksi per proses. Hosting serverless (Vercel): kecil (mis. 2) agar tidak menghabiskan batas koneksi Supabase.
+    poolMax: Number(env.PG_POOL_MAX || 10),
     schema: env.PG_SCHEMA || 'public',
     ssl: env.SUPABASE_DB_CA_FILE ? { ca: require('node:fs').readFileSync(env.SUPABASE_DB_CA_FILE, 'utf8'), rejectUnauthorized: true } : null,
   },
@@ -50,6 +52,8 @@ const config = {
   },
   uploadDir: env.UPLOAD_DIR || path.join(root, 'storage', 'uploads'),
   maxUploadBytes: Number(env.MAX_UPLOAD_MB || 8) * 1024 * 1024,
+  // Rahasia untuk rute tugas berkala /cron/harian (Vercel Cron mengirim 'Authorization: Bearer <CRON_SECRET>').
+  cronSecret: env.CRON_SECRET || '',
   // Masuk dengan Google (OAuth 2.0 / OpenID Connect, alur kode + PKCE). Aktif hanya bila client ID & secret diisi.
   // Client secret hanya dipakai di server; tidak pernah dikirim ke browser.
   google: {

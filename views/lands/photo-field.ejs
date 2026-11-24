@@ -14,7 +14,7 @@
     </div>
     <div class="photo-field-body">
       <label class="btn btn-ghost btn-sm" for="f-photo"><%- icon('upload', 18) %> <%= land.photo_path ? 'Ganti foto' : 'Pilih foto' %></label>
-      <input class="visually-hidden" id="f-photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" data-photo-input aria-describedby="f-photo-h">
+      <input class="visually-hidden" id="f-photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" data-photo-input data-resize aria-describedby="f-photo-h">
       <div id="f-photo-h">
         <% if (photoErr) { %><p class="field-error"><%- icon('alert', 16) %> <%= photoErr %></p><% } %>
         <p class="hint">Foto asli lahan ini. JPG, PNG, atau WEBP, maksimal <%= uploadMaxMb %> MB. Foto diperkecil otomatis dan data lokasi di dalam berkas foto dihapus.</p>

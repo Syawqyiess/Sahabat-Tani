@@ -12,6 +12,8 @@ const { icon } = require('./lib/icons');
 const ai = require('./services/ai');
 
 function createApp() {
+  // Produksi wajib punya SESSION_SECRET sendiri (berlaku juga di Vercel, yang tidak menjalankan src/server.js).
+  if (config.isProd && config.sessionSecret.startsWith('dev-only')) throw new Error('SESSION_SECRET wajib diatur di produksi.');
   db.open();
   const app = express();
   app.set('view engine', 'ejs');
@@ -42,7 +44,9 @@ function createApp() {
     crossOriginEmbedderPolicy: false,
   }));
 
-  app.use('/static', express.static(path.join(config.root, 'public'), { maxAge: config.isProd ? '7d' : 0 }));
+  // s-maxage: CDN hosting (mis. Vercel) ikut menyimpan berkas statis, jadi tidak setiap kali memanggil fungsi server.
+  const cdnCache = (days) => (res) => { if (config.isProd) res.set('Cache-Control', `public, max-age=${days * 86400}, s-maxage=${days * 86400}`); };
+  app.use('/static', express.static(path.join(config.root, 'public'), { maxAge: config.isProd ? '7d' : 0, setHeaders: cdnCache(7) }));
   // Leaflet (pustaka peta terbuka) disajikan langsung dari paket npm.
   // Salinan gambar berita (hanya untuk sumber yang mengizinkan penyalinan) — publik seperti beritanya.
   app.get('/media-berita/:name', async (req, res) => {
@@ -51,7 +55,9 @@ function createApp() {
     if (!buf) return res.status(404).end();
     res.set({ 'Cache-Control': 'public, max-age=604800', 'X-Content-Type-Options': 'nosniff' }).type('image/webp').send(buf);
   });
-  app.use('/static/vendor/leaflet', express.static(path.join(config.root, 'node_modules', 'leaflet', 'dist'), { maxAge: config.isProd ? '30d' : 0 }));
+  app.use('/static/vendor/leaflet', express.static(path.join(config.root, 'node_modules', 'leaflet', 'dist'), { maxAge: config.isProd ? '30d' : 0, setHeaders: cdnCache(30) }));
+  // Tugas berkala (Vercel Cron) — sebelum sesi & CSRF agar panggilan terjadwal tidak membuat sesi baru.
+  app.use(require('./routes/cron'));
   app.use(express.urlencoded({ extended: false, limit: '200kb' }));
   app.use(express.json({ limit: '200kb' }));
 

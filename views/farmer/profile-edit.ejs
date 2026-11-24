@@ -9,7 +9,7 @@
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <% if (values.photo_path) { %><img class="avatar avatar-lg" src="/media/<%= values.photo_path %>" alt="Foto profil saat ini" width="104" height="104"><% } else { %><div class="avatar avatar-lg avatar-ph" aria-hidden="true"><%- icon('user', 44) %></div><% } %>
       <div>
-        <label class="btn btn-tonal file-btn"><%- icon('image', 20) %> Pilih foto<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-autosubmit class="visually-hidden"></label>
+        <label class="btn btn-tonal file-btn"><%- icon('image', 20) %> Pilih foto<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-resize data-autosubmit class="visually-hidden"></label>
         <p class="hint">JPG, PNG, atau WEBP. Maksimal 8 MB. Langsung tersimpan setelah dipilih.</p>
         <noscript><button class="btn btn-sm" type="submit">Unggah</button></noscript>
       </div>

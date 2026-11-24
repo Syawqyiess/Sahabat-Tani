@@ -5,7 +5,7 @@
   "description": "Sistem informasi pertanian untuk petani padi (demo fungsional)",
   "main": "src/server.js",
   "engines": {
-    "node": ">=22.13"
+    "node": "22.x"
   },
   "scripts": {
     "start": "node src/server.js",

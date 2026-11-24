@@ -1,0 +1,10 @@
+# Tidak diunggah ke Vercel (data lokal, rahasia, dan berkas pelatihan model).
+.env
+.env.*
+!.env.example
+storage/
+ml/
+assets/
+models/
+node_modules/
+*.log

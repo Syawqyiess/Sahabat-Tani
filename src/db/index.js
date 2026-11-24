@@ -17,6 +17,7 @@ function open(opts = {}) {
       connectionString: opts.connectionString || config.db.url,
       fallbackConnectionString: opts.fallbackConnectionString || config.db.fallbackUrl,
       schema: opts.schema || config.db.schema,
+      max: config.db.poolMax,
       ssl: config.db.ssl,
     });
   } else {

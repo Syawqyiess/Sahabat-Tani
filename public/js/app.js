@@ -172,6 +172,47 @@
   });
 
   // Unggah foto profil langsung setelah dipilih.
+  // ---------- Perkecil foto besar sebelum diunggah ----------
+  // Hosting (mis. Vercel) membatasi ukuran unggahan ±4,5 MB, sedangkan foto kamera HP sering 5–10 MB.
+  // Kolom foto bertanda data-resize: bila foto > 3,5 MB, diperkecil di browser (sisi terpanjang ≤ 2400 px, JPEG)
+  // SEBELUM pratinjau / kirim otomatis berjalan (event change ditahan lalu dikirim ulang dengan foto hasil olahan).
+  var RESIZE_LIMIT = 3.5 * 1024 * 1024;
+  function shrinkImage(file, maxDim, quality) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function () {
+        var scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (b) { resolve(b); }, 'image/jpeg', quality);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
+  document.addEventListener('change', function (e) {
+    var input = e.target;
+    if (!input || input.tagName !== 'INPUT' || input.type !== 'file' || !input.hasAttribute('data-resize')) return;
+    if (input.dataset.resized === '1') { delete input.dataset.resized; return; } // event yang kita kirim ulang
+    var f = input.files && input.files[0];
+    if (!f || f.size <= RESIZE_LIMIT || !/^image\/(jpeg|png|webp)$/.test(f.type) || typeof DataTransfer === 'undefined') return;
+    e.stopImmediatePropagation(); // tahan pratinjau/kirim otomatis sampai foto selesai diperkecil
+    shrinkImage(f, 2400, 0.85).then(function (b) {
+      return b && b.size > RESIZE_LIMIT ? shrinkImage(f, 1800, 0.75) : b;
+    }).then(function (b) {
+      if (b && b.size < f.size) {
+        var dt = new DataTransfer();
+        dt.items.add(new File([b], f.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg', { type: 'image/jpeg', lastModified: Date.now() }));
+        input.files = dt.files;
+      }
+      input.dataset.resized = '1';
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }, true);
+
   document.querySelectorAll('[data-autosubmit]').forEach(function (input) {
     input.addEventListener('change', function () { if (input.files.length) input.form.submit(); });
   });
