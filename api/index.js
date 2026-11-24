@@ -68,5 +68,11 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     return sendPage(res, ['Aplikasi gagal dimulai — lihat pesan galat di bawah dan tab Logs di Vercel.'], safeMessage(err));
   }
+  // Vercel menempelkan "helper" miliknya sendiri pada req/res (res.redirect berkode 307, res.status, res.json,
+  // req.query, req.body, …) sebagai properti langsung, sehingga menutupi metode Express. Akibatnya setiap
+  // res.redirect() setelah formulir menjadi 307 — browser mengirim ULANG formulir (POST) ke tujuan dengan
+  // token lama → "Formulir kedaluwarsa" saat masuk/keluar. Helper dihapus agar Express yang menangani (302).
+  for (const k of ['status', 'send', 'json', 'redirect']) if (Object.prototype.hasOwnProperty.call(res, k)) delete res[k];
+  for (const k of ['query', 'cookies', 'body']) if (Object.prototype.hasOwnProperty.call(req, k)) delete req[k];
   return app(req, res);
 };
