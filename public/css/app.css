@@ -2616,20 +2616,6 @@ body:has(.sheet:target, .chat-history.is-open, [aria-modal="true"]:not([hidden])
 .sf-links a:focus-visible, .sf-wa:focus-visible, .sf-logo:focus-visible { outline: 3px solid var(--color-accent-lime, #84C341); outline-offset: 2px; }
 .sf-copy { margin: var(--s-8) 0 0; padding-top: var(--s-5); border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: var(--fs-xs); color: #6e8578; }
 
-/* Giant Typography Watermark */
-.sf-watermark {
-  margin: var(--s-8) 0 0;
-  font-size: clamp(52px, 12vw, 160px);
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.05);
-  text-align: center;
-  line-height: 0.85;
-  letter-spacing: -0.04em;
-  text-transform: uppercase;
-  user-select: none;
-  pointer-events: none;
-  white-space: nowrap;
-}
 @media (max-width: 760px) {
   .site-footer-in { padding-top: 36px; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
   .sf-grid { grid-template-columns: 1fr; gap: var(--s-6); }

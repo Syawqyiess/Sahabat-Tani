@@ -7,7 +7,11 @@ const db = require('./index');
 // - sesi yang baru dibaca/ditulis disimpan sebentar di memori (satu proses server) agar permintaan beruntun
 //   (mis. 20 foto di satu halaman) tidak membaca database berulang-ulang;
 // - "touch" (perpanjang masa berlaku tanpa perubahan isi) hanya ditulis bila sudah lewat 10 menit.
-const CACHE_MS = 30 * 1000;
+// PENTING: cache memori hanya aman bila aplikasi berjalan sebagai SATU proses (npm start). Di hosting
+// serverless (Vercel) ada banyak instance dengan memori masing-masing: sesi yang diubah di satu instance
+// (mis. token CSRF baru setelah login) tidak terlihat di instance lain yang masih menyimpan versi lama,
+// sehingga formulir ditolak ("Formulir kedaluwarsa"). Karena itu cache dimatikan di Vercel.
+const CACHE_MS = process.env.SESSION_CACHE_MS !== undefined ? Number(process.env.SESSION_CACHE_MS) : (process.env.VERCEL ? 0 : 30 * 1000);
 // Satu cache untuk seluruh proses (dipakai bersama oleh semua instance store).
 const cache = new Map(); // sid → { sess, expires, at }
 const touched = new Map(); // sid → waktu terakhir masa berlaku ditulis
@@ -21,6 +25,7 @@ class SqliteStore extends session.Store {
   }
 
   remember(sid, sess, expires) {
+    if (!CACHE_MS) return;
     this.cache.set(sid, { sess, expires, at: Date.now() });
     if (this.cache.size > 5000) this.cache.delete(this.cache.keys().next().value);
   }
