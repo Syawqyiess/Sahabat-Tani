@@ -8,6 +8,22 @@ require('node:dns').setDefaultResultOrder('ipv4first');
 const root = path.resolve(__dirname, '..');
 const env = process.env;
 
+// Alamat publik aplikasi (dipakai untuk callback login Google & tautan reset sandi).
+// Di Vercel (deployment Production), alamat produksi yang dilaporkan Vercel sendiri
+// (VERCEL_PROJECT_PRODUCTION_URL, mis. "sahabat-tani-five.vercel.app" atau domain kustom) diutamakan,
+// karena APP_URL yang salah ketik/terlambat diperbarui membuat login Google gagal (redirect_uri_mismatch).
+function resolveAppUrl() {
+  const fallback = env.APP_URL || `http://localhost:${env.PORT || 3000}`;
+  const vercelHost = env.VERCEL_ENV === 'production' && env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (!vercelHost) return fallback.replace(/\/+$/, '');
+  const vercelUrl = `https://${String(vercelHost).replace(/^https?:\/\//, '').replace(/\/+$/, '')}`;
+  if (env.APP_URL && env.APP_URL.replace(/\/+$/, '') !== vercelUrl) {
+    console.warn(`[config] APP_URL (${env.APP_URL}) berbeda dengan alamat produksi Vercel (${vercelUrl}); memakai alamat Vercel.`);
+  }
+  return vercelUrl;
+}
+const APP_URL = resolveAppUrl();
+
 function bool(v, def = false) {
   if (v === undefined || v === '') return def;
   return ['1', 'true', 'yes', 'on'].includes(String(v).toLowerCase());
@@ -29,7 +45,7 @@ const config = {
   isProd: env.NODE_ENV === 'production',
   isTest: env.NODE_ENV === 'test',
   port: Number(env.PORT || 3000),
-  appUrl: env.APP_URL || `http://localhost:${env.PORT || 3000}`,
+  appUrl: APP_URL,
   sessionSecret: env.SESSION_SECRET || 'dev-only-secret-ganti-di-produksi',
   dbPath: env.DB_PATH || path.join(root, 'storage', 'sahabat-tani.db'),
   // Database: 'postgres' (Supabase) atau 'sqlite' (bawaan; dipakai uji otomatis & mode offline).
@@ -59,7 +75,7 @@ const config = {
   google: {
     clientId: env.GOOGLE_CLIENT_ID || '',
     clientSecret: env.GOOGLE_CLIENT_SECRET || '',
-    redirectUri: env.GOOGLE_REDIRECT_URI || `${env.APP_URL || `http://localhost:${env.PORT || 3000}`}/auth/google/callback`,
+    redirectUri: env.GOOGLE_REDIRECT_URI || `${APP_URL}/auth/google/callback`,
     get enabled() { return !!(this.clientId && this.clientSecret); },
   },
 
