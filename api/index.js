@@ -35,20 +35,38 @@ ${detail ? `<p class="muted">Galat saat memulai: <code>${esc(detail)}</code></p>
 <p class="muted">Halaman ini hanya menampilkan nama pengaturan, tidak pernah nilainya. Panduan: docs/VERCEL.md.</p></main></body></html>`;
 }
 
-let handler;
-const problems = configProblems();
-if (problems.length) {
-  handler = (req, res) => { res.statusCode = 503; res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.setHeader('Cache-Control', 'no-store'); res.end(setupPage(problems)); };
-} else {
-  try {
-    const { createApp } = require('../src/app');
-    handler = createApp();
-  } catch (err) {
-    // Jangan tampilkan nilai rahasia: buang URL/kunci dari pesan galat.
-    const msg = String(err && err.message || err).replace(/postgres(ql)?:\/\/\S+/gi, '[url]').replace(/sb_secret_\S+/g, '[secret]').slice(0, 300);
-    console.error('[vercel] aplikasi gagal dimulai:', msg);
-    handler = (req, res) => { res.statusCode = 503; res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(setupPage(['Aplikasi gagal dimulai — lihat pesan galat di bawah dan tab Logs di Vercel.'], msg)); };
-  }
-}
+// Paket yang hanya berbentuk ES Module dan di-require() dari CommonJS. Vercel menolak require(esm)
+// (flag --no-experimental-require-module), jadi keduanya dimuat lebih dulu dengan import().
+// Daftar diperoleh dengan menjalankan aplikasi memakai flag yang sama (lihat docs/VERCEL.md).
+const ESM_PACKAGES = [
+  { request: 'htmlparser2', from: 'sanitize-html' },
+  { request: 'marked' },
+];
 
-module.exports = handler;
+const sendPage = (res, problems, detail) => {
+  res.statusCode = 503;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  res.end(setupPage(problems, detail));
+};
+// Jangan tampilkan nilai rahasia: buang URL/kunci dari pesan galat.
+const safeMessage = (err) => String(err && err.message || err).replace(/postgres(ql)?:\/\/\S+/gi, '[url]').replace(/sb_secret_\S+/g, '[secret]').slice(0, 300);
+
+const problems = configProblems();
+const ready = problems.length ? null : (async () => {
+  await require('../src/esm-preload').preloadEsm(ESM_PACKAGES);
+  const { createApp } = require('../src/app');
+  return createApp();
+})();
+if (ready) ready.catch((err) => console.error('[vercel] aplikasi gagal dimulai:', safeMessage(err)));
+
+module.exports = async function handler(req, res) {
+  if (!ready) return sendPage(res, problems);
+  let app;
+  try {
+    app = await ready;
+  } catch (err) {
+    return sendPage(res, ['Aplikasi gagal dimulai — lihat pesan galat di bawah dan tab Logs di Vercel.'], safeMessage(err));
+  }
+  return app(req, res);
+};

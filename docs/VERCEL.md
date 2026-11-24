@@ -85,6 +85,20 @@ kebijakan privasi dengan alamat Vercel, lalu **Audience → Publish app**. Lihat
 5. Vercel → Project → **Settings → Cron Jobs**: `/cron/harian` terdaftar. Tombol *Run* untuk mencoba; hasilnya
    terlihat di **Logs** (`[cron/harian] {...}`).
 
+## Paket ES Module (ERR_REQUIRE_ESM)
+
+Vercel menjalankan fungsi dengan flag `--no-experimental-require-module`, jadi `require()` terhadap paket
+yang hanya berbentuk ES Module selalu gagal di Vercel walau berjalan di laptop. `api/index.js` memuat paket
+tersebut lebih dulu dengan `import()` (`src/esm-preload.js`) — saat ini `marked` dan `htmlparser2` milik
+`sanitize-html` — tanpa menurunkan versi library.
+
+Bila setelah memperbarui dependensi muncul galat `ERR_REQUIRE_ESM` di Vercel, uji di laptop dengan kondisi
+yang sama lalu tambahkan paket yang disebut galat ke daftar `ESM_PACKAGES` di `api/index.js`:
+
+```powershell
+node --no-experimental-require-module -e "require('./api/index.js')"
+```
+
 ## Batasan yang perlu diketahui
 
 - **Unggahan maks. ±4,5 MB per permintaan** (batas Vercel). Browser otomatis memperkecil foto > 3,5 MB
