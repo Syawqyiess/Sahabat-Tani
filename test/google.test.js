@@ -30,10 +30,12 @@ function makeIdToken(claims, { key = privateKey, kid = KID } = {}) {
 let nextToken = null;
 let nextError = null;
 let lastVerifier = null;
+let lastRedirect = null;
 class TestClient extends OAuth2Client {
   async getFederatedSignonCertsAsync() { return { certs: { [KID]: PUB_PEM }, format: 'PEM' }; }
   async getToken(opts) {
     lastVerifier = opts.codeVerifier;
+    lastRedirect = opts.redirect_uri;
     if (nextError) throw nextError;
     return { tokens: { id_token: nextToken } };
   }
@@ -281,5 +283,48 @@ describe('Masuk/Daftar dengan Google', () => {
     await g.post('/profil/google/putus').type('form').send({ _csrf: gc });
     assert.equal((await h.db.get("SELECT COUNT(*) n FROM user_identities WHERE subject = 'google-sub-100'")).n, 1);
     assert.match(await flashOf(g, '/profil/google'), /Buat kata sandi terlebih dahulu/);
+  });
+});
+
+describe('Alamat callback Google mengikuti domain yang dibuka', () => {
+  async function flowOn(host, extraHeaders = {}) {
+    const agent = h.request.agent(h.getApp());
+    const page = await agent.get('/masuk').set('Host', host).set(extraHeaders);
+    const csrf = h.csrfFrom(page.text);
+    const res = await agent.post('/auth/google').set('Host', host).set(extraHeaders).type('form').send({ _csrf: csrf, intent: 'login' });
+    return { agent, url: new URL(res.headers.location) };
+  }
+
+  test('server biasa: host asing tidak dipercaya, host APP_URL dipakai', async () => {
+    const saved = process.env.VERCEL;
+    delete process.env.VERCEL;
+    try {
+      const evil = await flowOn('penipu.example');
+      assert.equal(evil.url.searchParams.get('redirect_uri'), config.google.redirectUri, 'header Host palsu tidak dipakai');
+      const own = new URL(config.appUrl).host;
+      const ok = await flowOn(own);
+      assert.equal(ok.url.searchParams.get('redirect_uri'), config.google.redirectUri);
+    } finally {
+      if (saved !== undefined) process.env.VERCEL = saved;
+    }
+  });
+
+  test('Vercel: callback memakai domain yang sedang dibuka, dan kode ditukar dengan alamat yang sama', async () => {
+    const saved = process.env.VERCEL;
+    process.env.VERCEL = '1';
+    try {
+      const { agent, url } = await flowOn('sahabat-tani.my.id');
+      assert.equal(url.searchParams.get('redirect_uri'), 'https://sahabat-tani.my.id/auth/google/callback');
+      const viaProxy = await flowOn('internal.vercel', { 'X-Forwarded-Host': 'www.sahabat-tani.my.id' });
+      assert.equal(viaProxy.url.searchParams.get('redirect_uri'), 'https://www.sahabat-tani.my.id/auth/google/callback');
+      // Selesaikan alur: getToken harus menerima redirect_uri yang sama dengan permintaan awal.
+      nextToken = makeIdToken({ sub: 'google-sub-domain', email: 'domain.baru@gmail.com', nonce: url.searchParams.get('nonce') });
+      nextError = null;
+      const cb = await agent.get(`/auth/google/callback?code=x&state=${encodeURIComponent(url.searchParams.get('state'))}`).set('Host', 'sahabat-tani.my.id');
+      assert.equal(cb.status, 302);
+      assert.equal(lastRedirect, 'https://sahabat-tani.my.id/auth/google/callback');
+    } finally {
+      if (saved === undefined) delete process.env.VERCEL; else process.env.VERCEL = saved;
+    }
   });
 });

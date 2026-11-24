@@ -58,7 +58,7 @@ router.post('/auth/google', limits.login, async (req, res, next) => {
     } else if (req.user) {
       return res.redirect(homeFor(req.user));
     }
-    const { flow, url } = await google.begin({ intent, userId });
+    const { flow, url } = await google.begin({ intent, userId, redirectUri: google.redirectUriFor(req) });
     req.session.googleFlow = flow;
     req.session.save((err) => (err ? next(err) : res.redirect(url)));
   } catch (err) {

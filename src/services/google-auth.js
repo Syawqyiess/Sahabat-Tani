@@ -27,15 +27,31 @@ function getClient() {
   return client;
 }
 
+// Alamat callback mengikuti domain yang sedang dibuka pengguna (mis. sahabat-tani.my.id atau *.vercel.app),
+// karena sesi login (state/nonce/PKCE) tersimpan per domain: kembali ke domain lain = sesi tidak ditemukan.
+// - Di Vercel, permintaan hanya sampai bila domainnya terdaftar di project, jadi host permintaan dapat dipercaya.
+// - Di server lain, hanya host dari APP_URL / GOOGLE_REDIRECT_URI yang dipakai (cegah pemalsuan header Host).
+// Setiap alamat callback harus didaftarkan di Google Cloud (Authorized redirect URIs).
+function redirectUriFor(req) {
+  const fallback = config.google.redirectUri;
+  if (!req) return fallback;
+  const host = String(req.get('x-forwarded-host') || req.get('host') || '').split(',')[0].trim().toLowerCase();
+  if (!/^[a-z0-9.-]+(:\d+)?$/.test(host)) return fallback;
+  const trusted = new Set([new URL(fallback).host, new URL(config.appUrl).host].map((h) => h.toLowerCase()));
+  if (!process.env.VERCEL && !trusted.has(host)) return fallback;
+  const proto = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host) ? (req.protocol || 'http') : 'https';
+  return `${proto}://${host}/auth/google/callback`;
+}
+
 // Memulai alur: membuat state, nonce, dan PKCE verifier yang disimpan di sesi server (bukan di browser).
-async function begin({ intent, userId = null, returnTo = null }) {
+async function begin({ intent, userId = null, returnTo = null, redirectUri = config.google.redirectUri }) {
   const c = getClient();
   const { codeVerifier, codeChallenge } = await c.generateCodeVerifierAsync();
   const flow = {
     state: crypto.randomBytes(24).toString('base64url'),
     nonce: crypto.randomBytes(24).toString('base64url'),
     verifier: codeVerifier,
-    intent, userId, returnTo,
+    intent, userId, returnTo, redirectUri,
     startedAt: Date.now(),
   };
   const url = c.generateAuthUrl({
@@ -47,6 +63,7 @@ async function begin({ intent, userId = null, returnTo = null }) {
     prompt: 'select_account',
     access_type: 'online',
     include_granted_scopes: false,
+    redirect_uri: redirectUri,
   });
   return { flow, url };
 }
@@ -63,7 +80,7 @@ async function complete(flow, { code, state }) {
   const c = getClient();
   let tokens;
   try {
-    ({ tokens } = await c.getToken({ code, codeVerifier: flow.verifier }));
+    ({ tokens } = await c.getToken({ code, codeVerifier: flow.verifier, redirect_uri: flow.redirectUri || config.google.redirectUri }));
   } catch (err) {
     const status = err && err.response && err.response.status;
     // 400/401 dari Google = kode/redirect/klien tidak cocok; selain itu dianggap gangguan koneksi.
@@ -94,7 +111,7 @@ async function verifyIdToken(idToken, expectedNonce) {
 }
 
 module.exports = {
-  SCOPES, FLOW_TTL_MS, GoogleAuthError, begin, complete, verifyIdToken,
+  SCOPES, FLOW_TTL_MS, GoogleAuthError, begin, complete, verifyIdToken, redirectUriFor,
   get enabled() { return config.google.enabled; },
   // Untuk pengujian: pakai klien tiruan / kunci publik uji.
   _setClient(c) { client = c; },
