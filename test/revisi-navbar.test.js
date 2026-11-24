@@ -200,10 +200,12 @@ describe('Tahap 4 — Kalender Tanam', () => {
     assert.doesNotMatch(dash.text, /class="cal-grid"/, 'Dashboard tidak memuat kalender sebulan');
     assert.match(dash.text, /Belum ada kegiatan hari ini/);
     assert.equal(dash.headers['cache-control'], 'no-store');
-    // Tidak ada tautan/tombol bersarang di dalam kartu.
-    const card = dash.text.match(/<a class="tile cal-today"[\s\S]*?<\/a>\s*(<form|<\/div>)/)[0];
-    assert.equal((card.match(/<a /g) || []).length, 1);
-    assert.doesNotMatch(card, /<button|<select/);
+    // Satu tautan untuk seluruh kartu; pemilih lahan tidak bersarang di dalam tautan.
+    const card = dash.text.match(/<article class="tile cal-today"[\s\S]*?<\/article>/)[0];
+    assert.equal((card.match(/<a /g) || []).length, 1, 'satu tautan per kartu');
+    const link = card.match(/<a class="tile-go cal-today-link"[\s\S]*?<\/a>/)[0];
+    assert.doesNotMatch(link, /<button|<select|<form/);
+    assert.match(card, /<select id="cal-tile-land" name="kalender"/, 'petani dengan >1 lahan dapat memilih lahan di dalam kartu');
 
     // Tambah 4 kegiatan hari ini + 1 besok → kartu menampilkan 3 + "+1 kegiatan lainnya", besok tidak ikut.
     for (const [t, c] of [['Pupuk susulan pertama di petak utara yang judulnya sangat panjang sekali', 'pemupukan'], ['Cek wereng', 'pengamatan-hama'], ['Bersihkan gulma', 'perawatan'], ['Atur air', 'lainnya']]) {

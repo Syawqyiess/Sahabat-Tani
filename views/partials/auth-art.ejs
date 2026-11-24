@@ -1,12 +1,19 @@
-<div class="auth-art">
+<div class="auth-art auth-art-agri">
+  <%# Latar foto sawah seperti hero Dashboard. Foto stok berlisensi CC BY-SA 4.0 (lihat public/img/lahan-demo/KREDIT.md). %>
+  <div class="auth-art-backdrop" aria-hidden="true">
+    <img src="/static/img/lahan-demo/blok-b.webp" alt="" class="auth-art-photo" width="1600" height="900" fetchpriority="high" decoding="async">
+    <div class="auth-art-overlay"></div>
+    <div class="auth-art-contour"></div>
+  </div>
   <div class="auth-art-text">
+    <span class="auth-art-eyebrow"><%- icon('leaf', 14) %> Sahabat Tani</span>
     <h2><%= typeof artTitle !== 'undefined' ? artTitle : 'Lahan sehat dimulai dari pengamatan yang rutin.' %></h2>
-    <p class="muted">Satu aplikasi untuk mencatat lahan, mengenali gejala hama, dan bertanya seputar budidaya padi.</p>
+    <p>Satu aplikasi untuk mencatat lahan, mengenali gejala hama, dan bertanya seputar budidaya padi.</p>
     <ul class="auth-features" role="list">
       <li><span class="auth-feat-ic" aria-hidden="true"><%- icon('scan', 22) %></span><span><strong>Scan Hama AI</strong><span>Foto gejala pada tanaman, dapatkan dugaan awal beserta tingkat keyakinannya.</span></span></li>
       <li><span class="auth-feat-ic" aria-hidden="true"><%- icon('chat', 22) %></span><span><strong>Asisten Penyuluhan AI</strong><span>Tanya soal hama, pupuk, dan perawatan dengan bahasa sehari-hari.</span></span></li>
       <li><span class="auth-feat-ic" aria-hidden="true"><%- icon('map', 22) %></span><span><strong>Peta &amp; Kalender Lahan</strong><span>Lihat petak di peta, pantau umur tanaman (HST), dan atur pengingat perawatan.</span></span></li>
     </ul>
   </div>
-  <div class="auth-art-scene" aria-hidden="true"><%- include('terrace', { variant: 'day' }) %></div>
+  <p class="auth-art-credit">Foto: “Tanam Padi”, Yumenosora — <a href="https://commons.wikimedia.org/wiki/File:Tanam_Padi.jpg" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a></p>
 </div>

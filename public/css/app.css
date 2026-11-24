@@ -2222,6 +2222,34 @@ a.tile:active { transform: scale(.99); }
   .auth-features li > span:last-child span { display: none; }
 }
 
+/* Panel Masuk/Daftar bergaya hero Dashboard: foto sawah + lapisan hijau tua + kontur, teks terang. */
+.auth-art.auth-art-agri { position: relative; isolation: isolate; background: #061a10; color: #fff; border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 36px -12px rgba(6, 26, 16, 0.45); min-height: 100%; }
+.auth-art-backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.auth-art-photo { width: 100%; height: 100%; object-fit: cover; object-position: center 60%; opacity: 0.85; filter: saturate(1.2) contrast(1.05); transform: scale(1.03); }
+/* Atas lebih gelap agar judul & fitur terbaca; bawah lebih terang agar hamparan sawah terlihat. */
+.auth-art-overlay { position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(6, 26, 16, 0.94) 0%, rgba(6, 26, 16, 0.86) 38%, rgba(8, 36, 22, 0.55) 68%, rgba(8, 36, 22, 0.22) 86%, rgba(6, 26, 16, 0.55) 100%); }
+.auth-art-contour { position: absolute; inset: 0; background: url('/static/img/kontur.svg') repeat; background-size: 320px; opacity: 0.08; mix-blend-mode: overlay; }
+.auth-art-agri .auth-art-text { position: relative; }
+.auth-art-eyebrow { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; margin-bottom: var(--s-4); border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.22); color: #d9f2c9; font-size: var(--fs-xs); font-weight: 700; letter-spacing: .02em; }
+.auth-art-agri h2 { color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); }
+.auth-art-agri .auth-art-text > p { color: rgba(255, 255, 255, 0.84); margin: var(--s-3) 0 0; max-width: 42ch; }
+.auth-art-agri .auth-features strong { color: #fff; }
+.auth-art-agri .auth-features li > span:last-child { color: rgba(255, 255, 255, 0.78); }
+.auth-art-agri .auth-feat-ic { background: rgba(255, 255, 255, 0.14); color: #d9f2c9; border: 1px solid rgba(255, 255, 255, 0.24); box-shadow: none;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.auth-art-credit { position: relative; margin: 0; padding: 0 var(--s-8) var(--s-4); font-size: 11px; color: rgba(255, 255, 255, 0.72); text-align: right; text-shadow: 0 1px 4px rgba(0, 0, 0, .6); }
+.auth-art-credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.auth-art-credit a:hover { color: #fff; }
+@media (max-width: 899px) {
+  .auth-art.auth-art-agri { background: #061a10; }
+  .auth-art-agri .auth-art-overlay { background: linear-gradient(180deg, rgba(6, 26, 16, 0.92) 0%, rgba(6, 26, 16, 0.78) 100%); }
+  .auth-art-eyebrow { display: none; }
+  .auth-art-credit { padding: 0 var(--s-5) var(--s-3); }
+}
+
 /* ---------- Kalender Tanam ---------- */
 .text-ink { color: var(--c-text); }
 .phase-badge { display: inline-flex; align-items: center; padding: 3px 12px; border-radius: 9999px; background: var(--leaf-soft); color: var(--forest-900); font-weight: 700; font-size: var(--fs-sm); }
@@ -2257,6 +2285,25 @@ a.tile:active { transform: scale(.99); }
 .cal-today-list li.is-done .cal-today-item { text-decoration: line-through; color: var(--c-text-3); }
 .cal-today-check { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--c-success-bg); color: var(--c-success); flex: none; }
 .cal-today-more { margin: 0; font-size: var(--fs-xs); font-weight: 700; color: var(--text-body, #5C6660); }
+/* Judul kartu: "Kalender Tanam" di atas, hari & bulan di bawahnya; lingkaran tanggal di kanan. */
+.cal-today-wrap .cal-head-left { flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.cal-today-wrap .cal-today-date { margin: 0; }
+.cal-today-wrap .cal-today-land-bar { flex-wrap: wrap; }
+/* Seluruh kartu dapat diklik: area klik tautan "Lihat Kalender Lengkap" diperluas menutupi kartu. */
+.cal-today { position: relative; cursor: pointer; }
+/* Tanpa transform pada tautan: transform akan mengecilkan area klik ::after menjadi selebar tautan saja. */
+.cal-today-link, .tile.cal-today:hover .cal-today-link, .cal-today-link:hover { position: static; transform: none; }
+.cal-today-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: 1; }
+.cal-today-link:focus-visible { outline: none; }
+.cal-today:has(.cal-today-link:focus-visible) { outline: 3px solid var(--color-primary-green, #4E8A3E); outline-offset: 3px; }
+/* Pemilih lahan (akun dengan >1 lahan): di baris nama lahan, di atas area klik kartu. */
+.cal-land-form { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 6px; margin: 0; min-width: 0; flex: 1 1 auto; color: var(--color-primary-green, #4E8A3E); }
+.cal-land-form .ic { flex: none; }
+.cal-land-form select { min-height: 30px; min-width: 0; width: 100%; max-width: 220px; padding: 2px 28px 2px 10px; border-radius: var(--radius-pill, 9999px);
+  border: 1px solid rgba(78, 138, 62, 0.30); background-color: #fff; color: var(--color-primary-dark, #0A2E1D); font-size: var(--fs-xs); font-weight: 700; cursor: pointer;
+  text-overflow: ellipsis; }
+.cal-land-form select:hover { border-color: var(--color-primary-green, #4E8A3E); }
+.cal-land-form select:focus-visible { outline: 3px solid var(--color-primary-green, #4E8A3E); outline-offset: 2px; }
 .cal-today-empty { margin: var(--s-1) 0 0; padding: 10px 12px; border-radius: 12px; background: var(--bg-canvas, #FFFFFF); border: 1px solid var(--border-subtle, #E0E4E1); color: var(--text-body, #5C6660); font-size: var(--fs-sm); }
 
 /* Halaman kalender lengkap */

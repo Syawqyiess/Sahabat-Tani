@@ -1,14 +1,17 @@
 <%
-  // Kartu Dashboard "Kalender Tanam": pratinjau kegiatan tanam hari ini (Asia/Jakarta)
+  // Kartu Dashboard "Kalender Tanam": pratinjau kegiatan tanam hari ini (Asia/Jakarta).
+  // Seluruh kartu dapat diklik lewat satu tautan ("stretched link": area klik tautan menutupi kartu).
+  // Pemilih lahan (hanya bila petani punya >1 lahan) berada DI DALAM kartu, tetapi BUKAN di dalam tautan,
+  // dan berada di atas area klik tautan sehingga tetap bisa dipakai — tidak ada kontrol bersarang.
   const c = calendar;
   const [dayName, rest] = c.todayLabel.split(', ');
   const monthYear = rest.replace(/^\d+ /, '');
   const href = '/kalender-tanam?' + (c.land ? 'lahan=' + c.land.id + '&' : '') + 'tanggal=' + c.today;
   const summary = c.land ? (c.total ? c.total + ' kegiatan hari ini' : 'belum ada kegiatan hari ini') : 'belum ada lahan';
+  const canPick = c.land && lands.length > 1;
 %>
-<div class="cal-today-wrap<%= c.land && lands.length > 1 ? ' has-pick' : '' %>">
-  <a class="tile cal-today" href="<%= href %>" data-cal-today="<%= c.today %>"
-     aria-label="Kalender Tanam, <%= c.todayLabel %><%= c.land ? ', ' + c.land.name : '' %>: <%= summary %>. Lihat kalender lengkap">
+<div class="cal-today-wrap">
+  <article class="tile cal-today" data-cal-today="<%= c.today %>" aria-label="Kalender Tanam">
     <div class="cal-today-head">
       <div class="cal-head-left">
         <span class="cal-today-title"><%- icon('calendar', 18) %> Kalender Tanam</span>
@@ -25,7 +28,18 @@
       </div>
     <% } else { %>
       <div class="cal-today-land-bar">
-        <span class="cal-today-land"><%- icon('field', 14) %> <strong><%= c.land.name %></strong></span>
+        <% if (canPick) { %>
+          <form method="get" action="/dashboard" class="cal-land-form">
+            <%- icon('field', 14) %>
+            <label for="cal-tile-land" class="visually-hidden">Pilih lahan untuk Kalender Tanam</label>
+            <select id="cal-tile-land" name="kalender" data-autosubmit-select>
+              <% lands.forEach((l) => { %><option value="<%= l.id %>" <%= c.land.id === l.id ? 'selected' : '' %>><%= l.name %></option><% }) %>
+            </select>
+            <noscript><button class="btn btn-sm" type="submit">Pilih</button></noscript>
+          </form>
+        <% } else { %>
+          <span class="cal-today-land"><%- icon('field', 14) %> <strong><%= c.land.name %></strong></span>
+        <% } %>
         <% if (c.age && c.age.status === 'growing') { %>
           <span class="cal-today-hst"><%= c.age.days %> HST<%= c.age.phase ? ' · ' + c.age.phase : '' %></span>
         <% } %>
@@ -55,18 +69,9 @@
       </div>
     <% } %>
 
-    <span class="tile-go">
+    <a class="tile-go cal-today-link" href="<%= href %>"
+       aria-label="Kalender Tanam, <%= c.todayLabel %><%= c.land ? ', ' + c.land.name : '' %>: <%= summary %>. Lihat kalender lengkap">
       Lihat Kalender Lengkap <%- icon('arrowRight', 16) %>
-    </span>
-  </a>
-
-  <% if (c.land && lands.length > 1) { %>
-    <form method="get" action="/dashboard" class="cal-today-pick">
-      <label for="cal-tile-land" class="visually-hidden">Pilih lahan untuk Kalender Tanam</label>
-      <select id="cal-tile-land" name="kalender" data-autosubmit-select>
-        <% lands.forEach((l) => { %><option value="<%= l.id %>" <%= c.land.id === l.id ? 'selected' : '' %>><%= l.name %></option><% }) %>
-      </select>
-      <noscript><button class="btn btn-sm" type="submit">Pilih</button></noscript>
-    </form>
-  <% } %>
+    </a>
+  </article>
 </div>
