@@ -472,4 +472,23 @@
     form.querySelector('[data-pf-cancel]').addEventListener('click', reset);
   });
 
+  // Tombol akun demo: klik untuk mengisi kredensial dan langsung masuk
+  document.querySelectorAll('[data-demo-id]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var idInput = document.getElementById('f-identifier');
+      var pwInput = document.getElementById('f-password');
+      if (!idInput || !pwInput) return;
+      idInput.value = btn.getAttribute('data-demo-id');
+      pwInput.value = btn.getAttribute('data-demo-pw');
+      var form = idInput.closest('form');
+      if (form) {
+        if (typeof form.requestSubmit === 'function') {
+          form.requestSubmit();
+        } else {
+          form.submit();
+        }
+      }
+    });
+  });
+
 })();

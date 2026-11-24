@@ -25,14 +25,33 @@
     </form>
     <%- include('../partials/google-button', { source: 'masuk' }) %>
     <div class="auth-links"><a href="/lupa-sandi">Lupa kata sandi?</a><span>Belum punya akun? <a href="/daftar">Daftar</a></span></div>
-    <details class="demo-box">
-      <summary>Akun demo untuk mencoba</summary>
-      <ul>
-        <li>Petani 1: <code>081200000001</code> / <code>tani12345</code></li>
-        <li>Petani 2: <code>081200000002</code> / <code>tani12345</code></li>
-        <li>Admin: <code>admin@sahabattani.test</code> / <code>admin12345</code></li>
-      </ul>
-      <p class="small" style="margin:0">Hanya untuk demo. Hapus akun demo sebelum digunakan dengan data asli.</p>
+    <details class="demo-box" open>
+      <summary><%- icon('user', 18) %> Akun demo untuk mencoba</summary>
+      <p class="small muted" style="margin:var(--s-2) 0 var(--s-3)">Klik tombol akun untuk mengisi otomatis dan masuk:</p>
+      <div class="demo-btns">
+        <button type="button" class="btn-demo" data-demo-id="081200000001" data-demo-pw="tani12345" title="Masuk sebagai Petani 1">
+          <div class="demo-btn-body">
+            <span class="demo-btn-title"><%- icon('user', 16) %> <strong>Petani 1</strong></span>
+            <span class="demo-btn-meta"><code>081200000001</code> / <code>tani12345</code> (Profil Lengkap)</span>
+          </div>
+          <span class="demo-btn-action">Masuk <%- icon('arrowRight', 16) %></span>
+        </button>
+        <button type="button" class="btn-demo" data-demo-id="081200000002" data-demo-pw="tani12345" title="Masuk sebagai Petani 2">
+          <div class="demo-btn-body">
+            <span class="demo-btn-title"><%- icon('user', 16) %> <strong>Petani 2</strong></span>
+            <span class="demo-btn-meta"><code>081200000002</code> / <code>tani12345</code> (Profil Baru)</span>
+          </div>
+          <span class="demo-btn-action">Masuk <%- icon('arrowRight', 16) %></span>
+        </button>
+        <button type="button" class="btn-demo btn-demo-admin" data-demo-id="admin@sahabattani.test" data-demo-pw="admin12345" title="Masuk sebagai Admin">
+          <div class="demo-btn-body">
+            <span class="demo-btn-title"><%- icon('shield', 16) %> <strong>Admin</strong></span>
+            <span class="demo-btn-meta"><code>admin@sahabattani.test</code> / <code>admin12345</code></span>
+          </div>
+          <span class="demo-btn-action">Masuk <%- icon('arrowRight', 16) %></span>
+        </button>
+      </div>
+      <p class="small" style="margin:var(--s-3) 0 0">Hanya untuk demo. Hapus akun demo sebelum digunakan dengan data asli.</p>
     </details>
   </div>
 </div>

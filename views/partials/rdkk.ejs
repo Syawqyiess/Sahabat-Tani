@@ -8,14 +8,26 @@
   const nama = (s) => LABEL[s] || s.charAt(0) + s.slice(1).toLowerCase();
 %>
 <section class="section rdkk" aria-labelledby="rdkk-judul" data-rdkk data-reveal>
-  <div class="section-head rdkk-head">
-    <div>
-      <h2 class="h3" id="rdkk-judul"><%- icon('chart') %> Visualisasi Data Pertanian</h2>
-      <p class="small muted" style="margin:var(--s-1) 0 0">
-        Kebutuhan pupuk bersubsidi — <%= r.title %>. Data: Tableau Public (<%= r.author %>)<% if (r.fetchedAt) { %>, diperbarui <%= u.fmtDate(r.fetchedAt, true) %><% } %>. Sama untuk semua pengguna, tidak disaring per akun.
+  <div class="rdkk-banner-head">
+    <div class="rdkk-title-wrap">
+      <div class="rdkk-badge-row">
+        <span class="rdkk-top-badge"><%- icon('chart', 15) %> RDKK Mojopuro Wetan</span>
+        <span class="rdkk-src-tag">Data: Tableau Public (<%= r.author %>)</span>
+        <% if (r.fetchedAt) { %>
+          <span class="rdkk-time-tag"><%- icon('clock', 13) %> Diperbarui <%= u.fmtDate(r.fetchedAt, true) %></span>
+        <% } %>
+      </div>
+      <h2 class="h3" id="rdkk-judul">Visualisasi Data Pertanian</h2>
+      <p class="small muted" style="margin: 4px 0 0; max-width: 65ch;">
+        Alokasi pupuk bersubsidi resmi (RDKK Mojopuro Wetan). Data agregat transparan untuk semua anggota kelompok tani.
       </p>
     </div>
-    <a class="small" href="<%= r.publicUrl %>" target="_blank" rel="noopener noreferrer">Dashboard asli <%- icon('external', 14) %></a>
+    <div class="rdkk-head-actions">
+      <a class="btn btn-sm btn-ghost rdkk-src-btn" href="<%= r.publicUrl %>" target="_blank" rel="noopener noreferrer">
+        <span>Buka Dashboard Asli</span>
+        <%- icon('external', 14) %>
+      </a>
+    </div>
   </div>
 
   <% if (!d) { %>
@@ -29,38 +41,88 @@
     <% } %>
 
     <div class="rdkk-kpis">
-      <div class="rdkk-kpi rv rv-rise" style="--rv-d:0ms"><span class="rdkk-kpi-label">Petani terdaftar</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.petani %>"><%= d.kpi.petani.toLocaleString('id-ID') %></span></span></div>
-      <div class="rdkk-kpi rv rv-rise" style="--rv-d:70ms"><span class="rdkk-kpi-label">Kelompok tani</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.kelompok %>"><%= d.kpi.kelompok.toLocaleString('id-ID') %></span></span></div>
-      <div class="rdkk-kpi rv rv-rise" style="--rv-d:140ms"><span class="rdkk-kpi-label">Total kebutuhan pupuk</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.total %>"><%= d.kpi.total.toLocaleString('id-ID') %></span><small> kg</small></span></div>
-      <div class="rdkk-kpi rv rv-rise" style="--rv-d:210ms"><span class="rdkk-kpi-label">Rata-rata per petani</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.rataRata %>"><%= d.kpi.rataRata.toLocaleString('id-ID') %></span><small> kg</small></span></div>
+      <div class="rdkk-kpi rv rv-rise" style="--rv-d:0ms">
+        <div class="rdkk-kpi-icon ic-petani"><%- icon('users', 22) %></div>
+        <div class="rdkk-kpi-content">
+          <span class="rdkk-kpi-label">Petani terdaftar</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.petani %>"><%= d.kpi.petani.toLocaleString('id-ID') %></span></span>
+        </div>
+      </div>
+      <div class="rdkk-kpi rv rv-rise" style="--rv-d:70ms">
+        <div class="rdkk-kpi-icon ic-kelompok"><%- icon('field', 22) %></div>
+        <div class="rdkk-kpi-content">
+          <span class="rdkk-kpi-label">Kelompok tani</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.kelompok %>"><%= d.kpi.kelompok.toLocaleString('id-ID') %></span></span>
+        </div>
+      </div>
+      <div class="rdkk-kpi rv rv-rise" style="--rv-d:140ms">
+        <div class="rdkk-kpi-icon ic-pupuk"><%- icon('tag', 22) %></div>
+        <div class="rdkk-kpi-content">
+          <span class="rdkk-kpi-label">Total kebutuhan pupuk</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.total %>"><%= d.kpi.total.toLocaleString('id-ID') %></span><small> kg</small></span>
+        </div>
+      </div>
+      <div class="rdkk-kpi rv rv-rise" style="--rv-d:210ms">
+        <div class="rdkk-kpi-icon ic-rata"><%- icon('chart', 22) %></div>
+        <div class="rdkk-kpi-content">
+          <span class="rdkk-kpi-label">Rata-rata per petani</span><span class="rdkk-kpi-num"><span data-count="<%= d.kpi.rataRata %>"><%= d.kpi.rataRata.toLocaleString('id-ID') %></span><small> kg</small></span>
+        </div>
+      </div>
     </div>
 
-    <div class="rdkk-filter" role="group" aria-label="Tampilkan jenis pupuk" hidden data-rdkk-filter>
-      <span class="small muted">Jenis pupuk:</span>
-      <button type="button" class="chip is-active" aria-pressed="true" data-jenis="">Semua</button>
-      <% d.jenis.forEach((j) => { %><button type="button" class="chip" aria-pressed="false" data-jenis="<%= j %>"><span class="rdkk-swatch" data-swatch="<%= j %>"></span><%= nama(j) %></button><% }) %>
+    <div class="rdkk-filter-strip">
+      <div class="rdkk-filter-tag"><%- icon('tag', 15) %> <span>Jenis pupuk:</span></div>
+      <div class="rdkk-filter" role="group" aria-label="Tampilkan jenis pupuk" hidden data-rdkk-filter>
+        <button type="button" class="chip is-active" aria-pressed="true" data-jenis="">Semua</button>
+        <% d.jenis.forEach((j) => { %><button type="button" class="chip" aria-pressed="false" data-jenis="<%= j %>"><span class="rdkk-swatch" data-swatch="<%= j %>"></span><%= nama(j) %></button><% }) %>
+      </div>
     </div>
 
     <div class="rdkk-grid">
       <figure class="panel rdkk-card rv rv-rise" style="--rv-d:120ms">
-        <figcaption><strong>Kebutuhan per kelompok tani</strong><span class="small muted">Jumlah kebutuhan sesuai RDKK, dipecah per jenis pupuk</span></figcaption>
-        <div class="rdkk-legend" data-legend></div>
-        <div class="rdkk-chart" data-chart="kelompok" role="img" aria-label="Diagram batang bertumpuk kebutuhan pupuk per kelompok tani"></div>
+        <figcaption class="rdkk-card-caption">
+          <div>
+            <strong>Kebutuhan per kelompok tani</strong>
+            <span class="small muted">Jumlah alokasi sesuai RDKK per jenis pupuk</span>
+          </div>
+          <div class="rdkk-legend" data-legend></div>
+        </figcaption>
+        <div class="rdkk-chart-wrapper">
+          <div class="rdkk-chart" data-chart="kelompok" role="img" aria-label="Diagram batang bertumpuk kebutuhan pupuk per kelompok tani"></div>
+        </div>
       </figure>
+
       <figure class="panel rdkk-card rv rv-rise" style="--rv-d:200ms">
-        <figcaption><strong>Kebutuhan per musim tanam</strong><span class="small muted">MT1–MT3, per jenis pupuk</span></figcaption>
-        <div class="rdkk-legend" data-legend></div>
-        <div class="rdkk-chart" data-chart="musim" role="img" aria-label="Diagram batang berkelompok kebutuhan pupuk per musim tanam"></div>
+        <figcaption class="rdkk-card-caption">
+          <div>
+            <strong>Kebutuhan per musim tanam</strong>
+            <span class="small muted">Alokasi MT1–MT3 per jenis pupuk</span>
+          </div>
+          <div class="rdkk-legend" data-legend></div>
+        </figcaption>
+        <div class="rdkk-chart-wrapper">
+          <div class="rdkk-chart" data-chart="musim" role="img" aria-label="Diagram batang berkelompok kebutuhan pupuk per musim tanam"></div>
+        </div>
       </figure>
+
       <figure class="panel rdkk-card rdkk-card-wide rv rv-rise" style="--rv-d:280ms">
-        <figcaption><strong>Peta panas kebutuhan pupuk</strong><span class="small muted">Makin gelap, makin besar kebutuhan (kg)</span></figcaption>
-        <div class="rdkk-chart" data-chart="heatmap" role="img" aria-label="Peta panas kebutuhan pupuk menurut jenis dan musim tanam"></div>
+        <figcaption class="rdkk-card-caption">
+          <div>
+            <strong>Peta panas kebutuhan pupuk (Heatmap)</strong>
+            <span class="small muted">Intensitas alokasi menurut jenis pupuk dan musim tanam</span>
+          </div>
+          <div class="heatmap-scale-legend">
+            <span>Intensitas:</span>
+            <span class="scale-item"><i class="scale-box scale-low"></i> Rendah (&lt;10k kg)</span>
+            <span class="scale-item"><i class="scale-box scale-high"></i> Tinggi (&gt;20k kg)</span>
+          </div>
+        </figcaption>
+        <div class="rdkk-chart-wrapper">
+          <div class="rdkk-chart" data-chart="heatmap" role="img" aria-label="Peta panas kebutuhan pupuk menurut jenis dan musim tanam"></div>
+        </div>
       </figure>
     </div>
 
     <details class="rdkk-table">
-      <summary>Lihat tabel data</summary>
-      <div class="grid-2">
+      <summary><%- icon('article', 16) %> <span>Lihat Rincian Tabel Data Angka</span></summary>
+      <div class="grid-2" style="margin-top: var(--s-4);">
         <table class="table">
           <caption class="small muted">Per kelompok tani</caption>
           <thead><tr><th scope="col">Kelompok tani</th><th scope="col">Jenis</th><th scope="col" class="num">Kebutuhan</th></tr></thead>

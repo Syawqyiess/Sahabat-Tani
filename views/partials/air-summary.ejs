@@ -8,7 +8,15 @@
   <div class="state state-inline"><%- icon('info') %><p>Belum ada data kualitas udara untuk lokasi ini. Status tidak ditampilkan sampai data tersedia.</p></div>
 <% } else {
   const tone = data.category ? data.category.tone : 'none';
-  const catIcon = { good: 'smile', moderate: 'info', none: 'info' }[tone] || 'alert'; %>
+  const catIcon = { good: 'smile', moderate: 'info', none: 'info' }[tone] || 'alert';
+  const advice = {
+    good: 'Udara bersih & prima untuk pemupukan atau penyemprotan.',
+    moderate: 'Cukup bersahabat; hindari paparan terik saat siang hari.',
+    usg: 'Kurang ideal untuk semprot daun; utamakan pagi hari.',
+    unhealthy: 'Hindari semprot pestisida hari ini; gunakan masker di sawah.',
+    very: 'Kualitas udara buruk; batasi kegiatan luar ruang berkepanjangan.',
+    hazard: 'Bahaya paparan udara; tunda pekerjaan fisik berat di sawah.'
+  }[tone] || 'Pantau perubahan cuaca berkala.'; %>
   <div class="aq-card-inner tone-<%= tone %>">
     <div class="aq-primary-row">
       <div class="aq-figure">
@@ -19,8 +27,13 @@
         <span class="aq-cat-pill">
           <%- icon(catIcon, 15) %> <%= data.category ? data.category.label : 'Kategori tidak tersedia' %>
         </span>
-        <span class="aq-param-pill">PM2.5 <%= data.params && data.params[0] && data.params[0].value != null ? data.params[0].value : '—' %> <%= data.params && data.params[0] && data.params[0].unit ? data.params[0].unit : 'µg/m³' %></span>
+        <span class="aq-param-pill"><strong>PM2.5</strong> <%= data.params && data.params[0] && data.params[0].value != null ? data.params[0].value : '—' %> <%= data.params && data.params[0] && data.params[0].unit ? data.params[0].unit : 'µg/m³' %></span>
       </div>
+    </div>
+
+    <div class="aq-field-advisory">
+      <span class="advisory-badge"><%- icon('leaf', 13) %> Rekomendasi Tani</span>
+      <span class="advisory-text"><%= advice %></span>
     </div>
 
     <div class="aq-meta-bar">

@@ -190,6 +190,7 @@ describe('Tahap 4 — Kalender Tanam', () => {
   test('kartu Dashboard: hanya hari ini, satu tautan, sinkron dengan kalender, tanpa kalender sebulan', async () => {
     const land = await h.db.get("SELECT * FROM lands WHERE name = 'Sawah Blok A (Demo)'");
     const today = crop.todayISO();
+    await h.db.run('DELETE FROM land_reminders WHERE due_date = ?', today);
     const dashUrl = `/dashboard?kalender=${land.id}`;
     let dash = await f1.get(dashUrl);
     assert.match(dash.text, /data-cal-today="(\d{4}-\d{2}-\d{2})"/);

@@ -48,6 +48,8 @@
   L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
   map.on('click', function () { map.scrollWheelZoom.enable(); });
   el.addEventListener('mouseleave', function () { map.scrollWheelZoom.disable(); });
+  setTimeout(function () { map.invalidateSize(); }, 200);
+  window.addEventListener('resize', function () { map.invalidateSize(); });
 
   // Beri tahu bila ubin peta gagal dimuat (mis. koneksi terputus) — bukan menampilkan peta kosong diam-diam.
   var tileErrors = 0;

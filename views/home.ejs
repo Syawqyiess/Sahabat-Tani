@@ -1,14 +1,49 @@
 <%- include('partials/head') %>
-<section class="hero bento-hero">
-  <div>
-    <h1>Teman di sawah, <span class="pill-badge"><%- icon('field', 18) %> Modern AgriTech</span> dari foto hama sampai kabar pertanian.</h1>
-    <p class="lead">Foto tanaman padi yang bergejala, dapatkan dugaan awal hamanya, lalu tanyakan langkah berikutnya ke Asisten AI — semuanya dari ponsel.</p>
+<section class="hero bento-hero agri-hero">
+  <div class="hero-content">
+    <div class="hero-badge-row">
+      <span class="pill-badge agri-hero-pill">
+        <%- icon('leaf', 16) %> Modern AgriTech Padi
+      </span>
+      <span class="hero-subbadge">Teman Bertani Digital Indonesia</span>
+    </div>
+    <h1>Teman setia di sawah, dari deteksi hama hingga panen raya.</h1>
+    <p class="lead">Foto tanaman padi yang bergejala langsung di sawah, kenali hamanya dengan AI, dan konsultasikan penanganannya secara terpadu — cepat, tepat, dan mudah dari ponsel Anda.</p>
     <div class="hero-cta">
-      <a class="btn btn-lg btn-pill" href="/daftar">Daftar Gratis <span style="font-size:1.1em; margin-left:4px">→</span></a>
+      <a class="btn btn-lg btn-scan btn-pill" href="/daftar">
+        <span>Daftar Gratis</span>
+        <span class="action-circle-sm">↗</span>
+      </a>
       <a class="btn btn-lg btn-ghost btn-pill" href="/masuk">Saya sudah punya akun</a>
     </div>
+    <div class="hero-stats-row">
+      <div class="hero-stat-pill">
+        <span class="stat-bullet"></span>
+        <span>14 Spesies Hama Padi</span>
+      </div>
+      <div class="hero-stat-pill">
+        <span class="stat-bullet"></span>
+        <span>Kualitas Udara Real-Time</span>
+      </div>
+      <div class="hero-stat-pill">
+        <span class="stat-bullet"></span>
+        <span>Kalender Tanam &amp; HST</span>
+      </div>
+    </div>
   </div>
-  <div class="hero-art"><%- include('partials/terrace', { variant: 'day' }) %></div>
+  <div class="hero-visual-card">
+    <div class="hero-art-photo">
+      <img src="/static/img/lahan-demo/blok-a.webp" alt="Sawah padi hijau terasering Indonesia" class="hero-img-cover" fetchpriority="high">
+      <div class="hero-art-gradient"></div>
+      <div class="hero-art-overlay-card">
+        <div class="ha-card-top">
+          <span class="ha-badge"><%- icon('camera', 16) %> AI Scanner Padi</span>
+          <span class="ha-status">Akurasi 86%+</span>
+        </div>
+        <p class="ha-card-text">Deteksi otomatis wereng, penggerek batang, ulat grayak, dan hama utama lainnya.</p>
+      </div>
+    </div>
+  </div>
 </section>
 
 <div class="section-head" style="margin-top: var(--s-10);">

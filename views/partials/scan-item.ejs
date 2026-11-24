@@ -9,7 +9,16 @@
   <a href="/asisten/<%= s.chat_session_id %>">
     <% if (s.image_path) { %><img src="/media/<%= s.image_path %>" alt="Foto scan #<%= s.id %>" width="60" height="60" loading="lazy"><% } %>
     <div>
-      <strong><%= label %></strong>
+      <div class="scan-title-row">
+        <% if (r.identified && r.suspected_pest_name) { %>
+          <span class="scan-dot pest-warn" title="Terindikasi Hama"></span>
+        <% } else if (s.status === 'failed') { %>
+          <span class="scan-dot pest-err" title="Gagal Analisis"></span>
+        <% } else { %>
+          <span class="scan-dot pest-ok" title="Status Normal"></span>
+        <% } %>
+        <strong><%= label %></strong>
+      </div>
       <span class="small muted">Scan #<%= s.id %> · <%= u.timeAgo(s.created_at) %><% if (s.land_name) { %> · <%= s.land_name %><% } %></span>
       <% if (s.mode === 'demo' || s.status === 'failed') { %>
         <span class="badges" style="margin:2px 0 0">
