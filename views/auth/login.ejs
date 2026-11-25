@@ -25,6 +25,7 @@
     </form>
     <%- include('../partials/google-button', { source: 'masuk' }) %>
     <div class="auth-links"><a href="/lupa-sandi">Lupa kata sandi?</a><span>Belum punya akun? <a href="/daftar">Daftar</a></span></div>
+    <% if (showDemoAccounts) { %>
     <details class="demo-box" open>
       <summary><%- icon('user', 18) %> Akun demo untuk mencoba</summary>
       <p class="small muted" style="margin:var(--s-2) 0 var(--s-3)">Klik tombol akun untuk mengisi otomatis dan masuk:</p>
@@ -53,6 +54,7 @@
       </div>
       <p class="small" style="margin:var(--s-3) 0 0">Hanya untuk demo. Hapus akun demo sebelum digunakan dengan data asli.</p>
     </details>
+    <% } %>
   </div>
 </div>
 <%- include('../partials/foot') %>

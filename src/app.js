@@ -83,6 +83,7 @@ function createApp() {
     res.locals.aiMode = { vision: ai.vision().mode, chat: ai.chat().mode };
     res.locals.title = 'Sahabat Tani';
     res.locals.uploadMaxMb = Math.round(config.maxUploadBytes / 1024 / 1024);
+    res.locals.showDemoAccounts = config.showDemoAccounts;
     res.locals.googleEnabled = config.google.enabled; // tombol Google hanya tampil bila client ID & secret terpasang
     next();
   });

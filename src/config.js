@@ -70,6 +70,9 @@ const config = {
   maxUploadBytes: Number(env.MAX_UPLOAD_MB || 8) * 1024 * 1024,
   // Rahasia untuk rute tugas berkala /cron/harian (Vercel Cron mengirim 'Authorization: Bearer <CRON_SECRET>').
   cronSecret: env.CRON_SECRET || '',
+  // Kotak 'Akun demo untuk mencoba' di halaman Masuk: tampil saat pengembangan, tersembunyi di produksi
+  // (bisa dipaksa tampil dengan SHOW_DEMO_ACCOUNTS=1, atau disembunyikan dengan SHOW_DEMO_ACCOUNTS=0).
+  showDemoAccounts: bool(env.SHOW_DEMO_ACCOUNTS, env.NODE_ENV !== 'production'),
   // Masuk dengan Google (OAuth 2.0 / OpenID Connect, alur kode + PKCE). Aktif hanya bila client ID & secret diisi.
   // Client secret hanya dipakai di server; tidak pernah dikirim ke browser.
   google: {
