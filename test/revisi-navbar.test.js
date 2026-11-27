@@ -344,3 +344,14 @@ describe('Footer baru & halaman informasi', () => {
     assert.ok(await h.db.get('SELECT 1 FROM articles WHERE id = ?', internal.id), 'artikel tidak dihapus');
   });
 });
+
+describe('Versi berkas statis', () => {
+  test('CSS & JS memakai ?v=<hash isi berkas> agar perubahan tidak tertahan cache', async () => {
+    const page = await h.request(h.getApp()).get('/masuk');
+    const css = page.text.match(/href="(\/static\/css\/app\.css\?v=[0-9a-f]{10})"/);
+    assert.ok(css, 'app.css berversi');
+    assert.match(page.text, /src="\/static\/js\/app\.js\?v=[0-9a-f]{10}"/);
+    const res = await h.request(h.getApp()).get(css[1]);
+    assert.equal(res.status, 200);
+  });
+});

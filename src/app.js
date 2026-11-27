@@ -77,6 +77,7 @@ function createApp() {
     res.locals.u = util;
     res.locals.crop = require('./lib/crop');
     res.locals.icon = icon;
+    res.locals.asset = require('./lib/assets').asset;
     res.locals.path = req.path;
     res.locals.flash = req.session.flash || null;
     delete req.session.flash;

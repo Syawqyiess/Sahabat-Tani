@@ -97,7 +97,7 @@ describe('Animasi masuk', () => {
     const first = await agent.get('/masuk');
     assert.match(first.text, /class="intro"/);
     assert.match(first.headers['set-cookie'].join(';'), /st_intro=1/);
-    assert.match(first.text, /<script src="\/static\/js\/early\.js"><\/script>/);
+    assert.match(first.text, /<script src="\/static\/js\/early\.js\?v=[0-9a-f]{10}"><\/script>/);
     const second = await agent.get('/masuk');
     assert.doesNotMatch(second.text, /class="intro"/);
     assert.match(second.text, /auth-wrap auth-enter"/);

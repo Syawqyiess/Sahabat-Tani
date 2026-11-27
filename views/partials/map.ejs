@@ -32,7 +32,7 @@
     <p class="map-tile-msg small warn" data-map-msg role="status" hidden></p>
     <noscript><p class="notice">Peta membutuhkan JavaScript. Koordinat lahan tetap bisa dilihat di halaman detail lahan.</p></noscript>
     <script src="/static/vendor/leaflet/leaflet.js" defer></script>
-    <script src="/static/js/map.js" defer></script>
+    <script src="<%= asset('js/map.js') %>" defer></script>
   <% } else { %>
     <div class="map-placeholder" role="note">
       <%- include('terrace', { variant: 'soft' }) %>
