@@ -1,17 +1,150 @@
 <%- include('../partials/head') %>
-<h1>Dashboard Admin</h1>
-<p class="muted small">Statistik agregat. Isi percakapan pribadi petani tidak ditampilkan di panel admin.</p>
-<% const byStatus = (rows, s) => (rows.find((r) => r.status === s) || { n: 0 }).n; %>
-<div class="stat-grid">
-  <div class="card stat"><span class="stat-num"><%= stats.farmers.n %></span><span>Akun petani</span><span class="small muted"><%= stats.farmers.active || 0 %> aktif · <%= stats.incomplete %> profil belum lengkap</span></div>
-  <div class="card stat"><span class="stat-num"><%= stats.lands.n %></span><span>Lahan</span><span class="small muted"><%= stats.lands.geo || 0 %> berkoordinat · <%= stats.lands.demo || 0 %> demo</span></div>
-  <div class="card stat"><span class="stat-num"><%= byStatus(stats.scans, 'completed') + byStatus(stats.scans, 'failed') + byStatus(stats.scans, 'processing') + byStatus(stats.scans, 'pending') %></span><span>Scan</span><span class="small muted"><%= stats.scans7 %> dalam 7 hari · <%= byStatus(stats.scans, 'failed') %> gagal</span></div>
-  <div class="card stat"><span class="stat-num"><%= stats.sessions %></span><span>Sesi chat</span><span class="small muted"><%= stats.messages %> pesan petani</span></div>
-  <div class="card stat"><span class="stat-num"><%= byStatus(stats.articles, 'published') %></span><span>Artikel terbit</span><span class="small muted"><%= byStatus(stats.articles, 'draft') %> draft · <%= byStatus(stats.articles, 'archived') %> arsip</span></div>
+<%
+  const byStatus = (rows, s) => (rows.find((r) => r.status === s) || { n: 0 }).n;
+  const totalScans = ['completed', 'failed', 'processing', 'pending'].reduce((t, s) => t + byStatus(stats.scans, s), 0);
+  const failedScans = byStatus(stats.scans, 'failed');
+  const activeSources = stats.sources.filter((s) => s.is_active).length;
+  const fmtHa = (n) => (Math.round(n * 100) / 100).toLocaleString('id-ID', { maximumFractionDigits: 2 });
+  const maxDay = Math.max(1, ...stats.scanDays.map((d) => d.n));
+  const scans7 = stats.scanDays.reduce((t, d) => t + d.n, 0);
+  const dayName = (iso) => ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][new Date(iso + 'T00:00:00Z').getUTCDay()];
+  const maxPest = Math.max(1, ...stats.topPests.map((p) => p.n));
+  const attention = [
+    stats.incomplete ? { icon: 'user', text: `${stats.incomplete} profil petani belum lengkap`, href: '/admin/pengguna', cta: 'Lengkapi' } : null,
+    failedScans ? { icon: 'alert', text: `${failedScans} scan gagal dianalisis`, href: '/admin/integrasi', cta: 'Cek integrasi' } : null,
+    stats.sourceErrors ? { icon: 'news', text: `${stats.sourceErrors} sumber berita bermasalah`, href: '/admin/sumber-berita', cta: 'Periksa' } : null,
+    stats.pestsUnverified ? { icon: 'bug', text: `${stats.pestsUnverified} referensi hama belum diverifikasi`, href: '/admin/referensi-hama', cta: 'Verifikasi' } : null,
+  ].filter(Boolean);
+%>
+<section class="welcome welcome-agri adm-hero" aria-labelledby="adm-judul">
+  <div class="welcome-backdrop" aria-hidden="true">
+    <img src="/static/img/lahan-demo/blok-a.webp" alt="" class="welcome-bg-img" fetchpriority="high">
+    <div class="welcome-overlay"></div>
+    <div class="welcome-contour"></div>
+  </div>
+  <div class="welcome-content adm-hero-content">
+    <div class="welcome-text">
+      <div class="welcome-badge-row">
+        <span class="agri-pill-tag"><%- icon('shield', 14) %> Panel Admin · Desa Mojopuro Wetan</span>
+        <span class="welcome-date"><%- icon('clock', 13) %> <%= todayLabel %></span>
+      </div>
+      <h1 id="adm-judul">Ringkasan Sahabat Tani</h1>
+      <p class="welcome-sub">Pantau petani, lahan, dan layanan desa dalam satu tempat. Isi percakapan & foto pribadi petani tidak ditampilkan di panel admin.</p>
+      <div class="welcome-actions">
+        <a class="btn btn-scan btn-lg" href="/admin/pengguna/baru"><%- icon('plus', 20) %> <span>Tambah Akun Petani</span></a>
+        <a class="btn btn-ghost btn-lg" href="/admin/artikel/baru"><%- icon('edit', 20) %> Tulis Artikel</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="adm-kpis" aria-label="Statistik utama">
+  <a class="adm-kpi" href="/admin/pengguna">
+    <span class="adm-kpi-ic adm-ic-green"><%- icon('users', 22) %></span>
+    <span class="adm-kpi-num"><%= stats.farmers.n %></span>
+    <span class="adm-kpi-lbl">Akun petani</span>
+    <span class="adm-kpi-sub"><%= stats.farmers.active || 0 %> aktif · <%= stats.incomplete %> profil belum lengkap</span>
+  </a>
+  <a class="adm-kpi" href="/admin/lahan">
+    <span class="adm-kpi-ic adm-ic-soil"><%- icon('field', 22) %></span>
+    <span class="adm-kpi-num"><%= stats.lands.n %></span>
+    <span class="adm-kpi-lbl">Lahan tercatat</span>
+    <span class="adm-kpi-sub"><%= fmtHa(stats.area) %> ha · <%= stats.lands.geo || 0 %> berkoordinat<%= stats.lands.demo ? ' · ' + stats.lands.demo + ' demo' : '' %></span>
+  </a>
+  <div class="adm-kpi">
+    <span class="adm-kpi-ic adm-ic-paddy"><%- icon('camera', 22) %></span>
+    <span class="adm-kpi-num"><%= totalScans %></span>
+    <span class="adm-kpi-lbl">Scan hama</span>
+    <span class="adm-kpi-sub"><%= scans7 %> dalam 7 hari · <%= failedScans %> gagal</span>
+  </div>
+  <div class="adm-kpi">
+    <span class="adm-kpi-ic adm-ic-sky"><%- icon('chat', 22) %></span>
+    <span class="adm-kpi-num"><%= stats.sessions %></span>
+    <span class="adm-kpi-lbl">Percakapan AI</span>
+    <span class="adm-kpi-sub"><%= stats.messages %> pertanyaan petani</span>
+  </div>
+  <a class="adm-kpi" href="/admin/artikel">
+    <span class="adm-kpi-ic adm-ic-leaf"><%- icon('news', 22) %></span>
+    <span class="adm-kpi-num"><%= byStatus(stats.articles, 'published') %></span>
+    <span class="adm-kpi-lbl">Berita &amp; artikel terbit</span>
+    <span class="adm-kpi-sub"><%= activeSources %> sumber aktif · <%= byStatus(stats.articles, 'draft') %> draft</span>
+  </a>
+</section>
+
+<div class="adm-grid">
+  <section class="adm-panel" aria-labelledby="adm-perhatian">
+    <h2 class="adm-panel-title" id="adm-perhatian"><%- icon('alert', 18) %> Perlu perhatian</h2>
+    <% if (!attention.length) { %>
+      <div class="adm-allgood"><span class="adm-allgood-ic"><%- icon('check', 18) %></span><span><strong>Semua beres.</strong> Tidak ada yang perlu ditindaklanjuti saat ini.</span></div>
+    <% } else { %>
+      <ul class="adm-todo" role="list">
+        <% attention.forEach((a) => { %>
+          <li><span class="adm-todo-ic"><%- icon(a.icon, 16) %></span><span class="adm-todo-text"><%= a.text %></span><a class="btn btn-sm btn-ghost" href="<%= a.href %>"><%= a.cta %></a></li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+
+  <section class="adm-panel" aria-labelledby="adm-aktivitas">
+    <h2 class="adm-panel-title" id="adm-aktivitas"><%- icon('chart', 18) %> Aktivitas scan 7 hari</h2>
+    <div class="adm-bars" role="img" aria-label="Jumlah scan per hari: <%= stats.scanDays.map((d) => dayName(d.date) + ' ' + d.n).join(', ') %>">
+      <% stats.scanDays.forEach((d, i) => { %>
+        <div class="adm-bar-col">
+          <span class="adm-bar-val"><%= d.n %></span>
+          <span class="adm-bar" style="--h:<%= Math.round((d.n / maxDay) * 100) %>%" data-today="<%= i === 6 %>"></span>
+          <span class="adm-bar-day"><%= i === 6 ? 'Hari ini' : dayName(d.date) %></span>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="adm-panel" aria-labelledby="adm-hama">
+    <h2 class="adm-panel-title" id="adm-hama"><%- icon('bug', 18) %> Hama terdeteksi · 30 hari</h2>
+    <% if (!stats.topPests.length) { %>
+      <p class="muted small adm-empty">Belum ada hasil scan dalam 30 hari terakhir.</p>
+    <% } else { %>
+      <ul class="adm-rank" role="list">
+        <% stats.topPests.forEach((p) => { %>
+          <li><span class="adm-rank-name"><%= p.name %></span><span class="adm-rank-bar"><span style="width:<%= Math.round((p.n / maxPest) * 100) %>%"></span></span><span class="adm-rank-n"><%= p.n %></span></li>
+        <% }) %>
+      </ul>
+      <p class="muted small adm-note">Dugaan awal dari Scan Hama; perlu dikonfirmasi penyuluh.</p>
+    <% } %>
+  </section>
+
+  <section class="adm-panel" aria-labelledby="adm-petani">
+    <div class="adm-panel-head"><h2 class="adm-panel-title" id="adm-petani"><%- icon('users', 18) %> Petani terbaru</h2><a class="small" href="/admin/pengguna">Semua</a></div>
+    <% if (!stats.recentFarmers.length) { %>
+      <p class="muted small adm-empty">Belum ada akun petani.</p>
+    <% } else { %>
+      <ul class="adm-people" role="list">
+        <% stats.recentFarmers.forEach((f) => { const nm = (f.full_name || 'Tanpa nama').replace(/\s*\(Akun Demo\)\s*$/, ''); %>
+          <li>
+            <span class="adm-avatar" aria-hidden="true"><%= (nm.trim()[0] || '?').toUpperCase() %></span>
+            <span class="adm-person"><strong><%= nm %></strong><span class="small muted"><%= f.village || 'Desa belum diisi' %> · <%= f.land_count %> lahan<%= f.is_demo ? ' · demo' : '' %></span></span>
+            <span class="small muted adm-when"><%= u.timeAgo(f.created_at) %></span>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+
+  <section class="adm-panel adm-panel-wide" aria-labelledby="adm-sumber">
+    <div class="adm-panel-head"><h2 class="adm-panel-title" id="adm-sumber"><%- icon('news', 18) %> Sumber berita</h2><a class="small" href="/admin/sumber-berita">Kelola</a></div>
+    <ul class="adm-sources" role="list">
+      <% stats.sources.forEach((s) => { const st = !s.is_active ? ['Nonaktif', 'off'] : (s.last_error ? ['Bermasalah', 'err'] : (s.last_ok_at ? ['Lancar', 'ok'] : ['Belum diambil', 'off'])); %>
+        <li><span class="adm-dot adm-dot-<%= st[1] %>" aria-hidden="true"></span><span class="adm-src-name"><%= s.name %></span><span class="small muted"><%= s.last_fetched_at ? 'diambil ' + u.timeAgo(s.last_fetched_at) : '—' %></span><span class="adm-src-st adm-st-<%= st[1] %>"><%= st[0] %></span></li>
+      <% }) %>
+    </ul>
+  </section>
 </div>
-<div class="row wrap-row">
-  <a class="btn" href="/admin/pengguna/baru"><%- icon('plus', 18) %> Tambah akun petani</a>
-  <a class="btn btn-ghost" href="/admin/artikel/baru"><%- icon('edit', 18) %> Tulis artikel</a>
-  <a class="btn btn-ghost" href="/admin/integrasi"><%- icon('settings', 18) %> Status integrasi</a>
-</div>
+
+<nav class="adm-shortcuts" aria-label="Pintasan admin">
+  <a href="/admin/pengguna"><%- icon('users', 20) %><span>Pengguna</span></a>
+  <a href="/admin/lahan"><%- icon('field', 20) %><span>Lahan</span></a>
+  <a href="/admin/artikel"><%- icon('article', 20) %><span>Artikel</span></a>
+  <a href="/admin/sumber-berita"><%- icon('news', 20) %><span>Sumber berita</span></a>
+  <a href="/admin/referensi-hama"><%- icon('bug', 20) %><span>Referensi hama</span></a>
+  <a href="/admin/integrasi"><%- icon('settings', 20) %><span>Integrasi</span></a>
+</nav>
 <%- include('../partials/foot') %>

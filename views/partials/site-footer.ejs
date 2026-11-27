@@ -1,5 +1,7 @@
 <%
-  // Footer bersama (publik & aplikasi). Tahun dihitung dari tanggal hari ini (Asia/Jakarta), tidak dikunci di teks.
+  // Footer bersama (publik & aplikasi): profil Desa Mojopuro Wetan sebagai pemilik layanan.
+  // Nomor WhatsApp di bawah adalah kontak PENGEMBANG (perubahan/perbaikan website), bukan kontak kantor desa.
+  // Tahun dihitung dari tanggal hari ini (Asia/Jakarta), tidak dikunci di teks.
   const WA_DISPLAY = '082122873273';
   const WA_LINK = 'https://wa.me/6282122873273'; // tanpa ?text= → tidak mengisi/mengirim pesan otomatis
   const year = crop.todayISO().slice(0, 4);
@@ -7,9 +9,11 @@
 <footer class="site-footer<%= typeof withFab !== 'undefined' && withFab ? ' has-fab' : '' %>">
   <div class="site-footer-in">
     <div class="sf-grid">
-      <section class="sf-col sf-brand" aria-label="Tentang Sahabat Tani">
+      <section class="sf-col sf-brand" aria-label="Profil Desa Mojopuro Wetan">
         <a class="sf-logo" href="<%= currentUser ? (currentUser.role === 'admin' ? '/admin' : '/dashboard') : '/' %>"><img src="/static/img/logo-128.png" alt="" width="40" height="40"><span>Sahabat Tani</span></a>
-        <p>Teman petani untuk mengelola lahan, mengenali gejala hama, dan mengakses informasi pertanian.</p>
+        <p class="sf-owner">Layanan pertanian digital milik <strong>Pemerintah Desa Mojopuro Wetan</strong>.</p>
+        <p>Membantu petani desa mengelola lahan, mengenali gejala hama, dan mengakses informasi pertanian.</p>
+        <p class="sf-place"><%- icon('location', 16) %><span>Desa Mojopuro Wetan, Kecamatan Bungah,<br>Kabupaten Gresik, Jawa Timur</span></p>
       </section>
       <nav class="sf-col" aria-labelledby="sf-info">
         <h2 class="sf-title" id="sf-info">Informasi</h2>
@@ -20,13 +24,14 @@
         </ul>
       </nav>
       <section class="sf-col" aria-labelledby="sf-kontak">
-        <h2 class="sf-title" id="sf-kontak">Kontak</h2>
+        <h2 class="sf-title" id="sf-kontak">Kontak pengembang</h2>
         <a class="sf-wa" href="<%= WA_LINK %>" target="_blank" rel="noopener noreferrer">
           <span class="sf-wa-ic"><%- icon('whatsapp', 22) %></span>
-          <span><small>WhatsApp Sahabat Tani</small><strong><%= WA_DISPLAY %></strong></span>
+          <span><small>WhatsApp pengembang</small><strong><%= WA_DISPLAY %></strong></span>
         </a>
+        <p class="sf-hint">Untuk laporan kendala, saran, atau perubahan pada website.</p>
       </section>
     </div>
-    <p class="sf-copy">© <%= year %> Sahabat Tani. Hak cipta dilindungi.</p>
+    <p class="sf-copy">© <%= year %> Pemerintah Desa Mojopuro Wetan · Sahabat Tani. Hak cipta dilindungi.</p>
   </div>
 </footer>

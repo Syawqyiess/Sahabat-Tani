@@ -38,8 +38,36 @@ router.get('/', async (req, res) => {
       `SELECT COUNT(*) n FROM users u LEFT JOIN farmer_profiles p ON p.user_id = u.id
         WHERE u.role = 'farmer' AND (p.full_name IS NULL OR p.village IS NULL OR p.regency IS NULL OR p.province IS NULL)`,
     )).n,
+    area: (await db.get('SELECT SUM(area_ha) ha FROM lands')).ha || 0,
+    sources: await db.all('SELECT id, name, is_active, last_fetched_at, last_ok_at, last_error FROM news_sources ORDER BY id'),
+    pestsUnverified: (await db.get('SELECT COUNT(*) n FROM pest_references WHERE is_verified = 0')).n,
+    // Petani terbaru: nama, tanggal daftar, jumlah lahan (tanpa data pribadi lain).
+    recentFarmers: await db.all(
+      `SELECT u.id, u.created_at, u.is_demo, p.full_name, p.village, (SELECT COUNT(*) FROM lands l WHERE l.user_id = u.id) AS land_count
+         FROM users u LEFT JOIN farmer_profiles p ON p.user_id = u.id WHERE u.role = 'farmer' ORDER BY u.created_at DESC, u.id DESC LIMIT 5`,
+    ),
   };
-  res.render('admin/dashboard', { title: 'Dashboard Admin', stats });
+  // Aktivitas scan 7 hari terakhir (per tanggal Asia/Jakarta) & hama yang paling sering terdeteksi 30 hari terakhir.
+  // Hanya agregat: tidak ada foto, nama pemilik, atau isi percakapan.
+  const crop = require('../lib/crop');
+  const today = crop.todayISO();
+  const days = Array.from({ length: 7 }, (_, i) => crop.addDays(today, i - 6));
+  const perDay = Object.fromEntries(days.map((d) => [d, 0]));
+  for (const r of await db.all("SELECT created_at FROM pest_scans WHERE created_at >= datetime('now', '-8 days')")) {
+    const d = crop.todayISO(new Date(String(r.created_at).replace(' ', 'T') + 'Z'));
+    if (d in perDay) perDay[d] += 1;
+  }
+  stats.scanDays = days.map((d) => ({ date: d, n: perDay[d] }));
+  const pestCount = {};
+  for (const r of await db.all("SELECT result_json FROM pest_scans WHERE status = 'completed' AND created_at >= datetime('now', '-30 days')")) {
+    let res;
+    try { res = JSON.parse(r.result_json || '{}'); } catch { continue; }
+    const name = res && res.suspected_pest_name && String(res.suspected_pest_name).trim();
+    if (name) pestCount[name] = (pestCount[name] || 0) + 1;
+  }
+  stats.topPests = Object.entries(pestCount).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, n]) => ({ name, n }));
+  stats.sourceErrors = stats.sources.filter((s) => s.is_active && s.last_error).length;
+  res.render('admin/dashboard', { title: 'Dashboard Admin', stats, todayLabel: require('../services/calendar').longDate(today) });
 });
 
 // ---------- Pengguna ----------

@@ -306,8 +306,10 @@ describe('Footer baru & halaman informasi', () => {
       assert.deepEqual([...info.matchAll(/href="([^"]+)"/g)].map((m) => m[1]), ['/tentang', '/kebijakan-privasi', '/syarat-ketentuan']);
       assert.match(page.text, /href="https:\/\/wa\.me\/6282122873273" target="_blank"/);
       assert.match(page.text, /<strong>082122873273<\/strong>/);
-      assert.match(page.text, new RegExp(`© ${year} Sahabat Tani\. Hak cipta dilindungi\.`));
-      assert.match(page.text, /Teman petani untuk mengelola lahan, mengenali gejala hama, dan mengakses informasi pertanian\./);
+      assert.match(page.text, new RegExp(`© ${year} Pemerintah Desa Mojopuro Wetan · Sahabat Tani\\. Hak cipta dilindungi\\.`));
+      assert.match(page.text, /milik <strong>Pemerintah Desa Mojopuro Wetan<\/strong>/);
+      assert.match(page.text, /Kecamatan Bungah,<br>Kabupaten Gresik, Jawa Timur/);
+      assert.match(page.text, /Kontak pengembang/);
     }
     assert.doesNotMatch((await f1.get('/asisten')).text, /site-footer/, 'chatroom tidak memakai footer global');
   });
